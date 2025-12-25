@@ -1,0 +1,19 @@
+{
+  "name": "Bookshelf",
+  "short_name": "Bookshelf",
+  "description": "Personal AI-powered library with Google Sheets sync.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3389/3389081.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
