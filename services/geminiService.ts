@@ -1,21 +1,19 @@
-
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export const getBookInsights = async (title: string, author: string) => {
   try {
-    // Fixed: Always use the process.env.API_KEY directly and initialize inside the function
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Provide a very short (2-sentence) summary and a one-sentence "vibe" check for the book "${title}" by ${author}. Format: Summary: [summary] Vibe: [vibe]`,
-      config: {
-        temperature: 0.7,
-        // Fixed: Removed maxOutputTokens as recommended to avoid blocking responses when using thinking models
-      }
-    });
+    // KORJATTU: Käytetään import.meta.env ja oikeaa muuttujan nimeä
+    const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+    
+    // Käytetään vakaata mallia (esim. gemini-1.5-flash)
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    // Fixed: response.text is a property, not a method
-    return response.text || "No insights found.";
+    const prompt = `Provide a very short (2-sentence) summary and a one-sentence "vibe" check for the book "${title}" by ${author}. Format: Summary: [summary] Vibe: [vibe]`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    
+    return response.text() || "No insights found.";
   } catch (error) {
     console.error("Gemini Error:", error);
     return "Could not generate insights at this time.";

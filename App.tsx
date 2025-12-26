@@ -35,7 +35,7 @@ import { format } from 'date-fns';
 
 // REPLACE THIS with your actual Client ID from Google Cloud Console
 // Example: "123456789-abc.apps.googleusercontent.com"
-const CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"; 
+const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID; 
 
 const App: React.FC = () => {
   const [books, setBooks] = useState<Book[]>([]);
