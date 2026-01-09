@@ -49,12 +49,7 @@ function gisLoaded() {
     });
     gisInited = true; maybeEnableAuth();
 }
-function maybeEnableAuth() { 
-    if (gapiInited && gisInited) {
-        const btn = $("auth-btn");
-        if(btn) btn.disabled = false;
-    }
-}
+function maybeEnableAuth() { if (gapiInited && gisInited) $("auth-btn").disabled = false; }
 
 // =======================
 // HELPERS
@@ -185,6 +180,61 @@ function renderBooks() {
 
     items.slice().reverse().forEach(b => {
         const li = document.createElement("li"); li.className = "book-card";
+        
+        // --- 1. THREE DOTS MENU ---
+        // Only show date edit for 'read' shelf for now, or all if you prefer
+        const menuContainer = document.createElement("div");
+        menuContainer.className = "card-menu-container";
+        
+        // The Dots Button
+        const dotsBtn = document.createElement("button");
+        dotsBtn.className = "dots-btn";
+        dotsBtn.innerHTML = "⋮";
+        dotsBtn.onclick = (e) => {
+            e.stopPropagation();
+            // Close all others first
+            document.querySelectorAll('.menu-dropdown.show').forEach(d => d.classList.remove('show'));
+            const dropdown = menuContainer.querySelector('.menu-dropdown');
+            dropdown.classList.toggle('show');
+        };
+
+        // The Dropdown Content
+        const dropdown = document.createElement("div");
+        dropdown.className = "menu-dropdown";
+        
+        // Option 1: Edit Date (Only for Read shelf)
+        if (currentShelf === 'read') {
+            const editDateBtn = document.createElement("button");
+            editDateBtn.className = "menu-item";
+            editDateBtn.innerHTML = "📅 Change Date";
+            editDateBtn.onclick = () => {
+                const dateSpan = document.getElementById(`date-display-${b.id}`);
+                const dateInput = document.getElementById(`date-input-${b.id}`);
+                if(dateSpan && dateInput) {
+                    dateSpan.style.display = "none";
+                    dateInput.style.display = "inline-block";
+                    dateInput.focus();
+                    dateInput.showPicker(); // Opens native calendar
+                }
+            };
+            dropdown.appendChild(editDateBtn);
+        }
+
+        // Option 2: Copy Title (Example of another feature)
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "menu-item";
+        copyBtn.innerHTML = "📋 Copy Title";
+        copyBtn.onclick = () => {
+            navigator.clipboard.writeText(b.title);
+            alert("Title copied!");
+        };
+        dropdown.appendChild(copyBtn);
+
+        menuContainer.appendChild(dotsBtn);
+        menuContainer.appendChild(dropdown);
+        li.appendChild(menuContainer);
+        // -------------------------
+
         const info = document.createElement("div"); info.className = "book-info";
         
         const badges = document.createElement("div");
@@ -212,29 +262,47 @@ function renderBooks() {
 
         const title = document.createElement("div"); title.className = "book-title"; title.textContent = b.title;
         const meta = document.createElement("div"); meta.className = "book-meta";
-        meta.textContent = getAuthorName(b);
-        info.appendChild(title); 
-        info.appendChild(meta);
+        
+        // Build Meta Text safely
+        const authorDiv = document.createElement("div");
+        authorDiv.textContent = getAuthorName(b);
+        meta.appendChild(authorDiv);
 
-        // --- NEW: DATE EDITOR FOR READ BOOKS ---
-        if (currentShelf === 'read') {
-            const dateRow = document.createElement("div");
-            dateRow.style.marginBottom = "8px";
+        if(currentShelf==='read' && b.dateRead) {
+            const dateDiv = document.createElement("div");
             
-            const label = document.createElement("span");
-            label.className = "date-label";
-            label.textContent = "Finished:";
+            // Static Text
+            const dateSpan = document.createElement("span");
+            dateSpan.id = `date-display-${b.id}`;
+            dateSpan.textContent = `Finished: ${b.dateRead}`;
             
+            // Hidden Input for Editing
             const dateInput = document.createElement("input");
             dateInput.type = "date";
-            dateInput.className = "date-input-edit";
+            dateInput.id = `date-input-${b.id}`;
+            dateInput.className = "date-edit-input";
             dateInput.value = b.dateRead;
-            dateInput.onchange = (e) => updateReadDate(b.id, e.target.value);
             
-            dateRow.appendChild(label);
-            dateRow.appendChild(dateInput);
-            info.appendChild(dateRow);
+            // Logic: Save on change
+            dateInput.onchange = (e) => {
+                updateReadDate(b.id, e.target.value);
+            };
+            // Logic: Revert if blur without change
+            dateInput.onblur = () => {
+                // Short delay to allow save to happen first
+                setTimeout(() => {
+                    dateInput.style.display = "none";
+                    dateSpan.style.display = "inline";
+                }, 200);
+            };
+
+            dateDiv.appendChild(dateSpan);
+            dateDiv.appendChild(dateInput);
+            meta.appendChild(dateDiv);
         }
+        
+        info.appendChild(title); 
+        info.appendChild(meta);
         
         if(b.isbn) {
             const isbnPill = document.createElement("div"); 
@@ -394,7 +462,6 @@ function updateRating(id, val) {
     if (book) { book.rating = Number(val); saveLibrary(true); }
 }
 
-// --- NEW FUNCTION TO SAVE EDITED DATE ---
 function updateReadDate(id, newDate) {
     const book = library.read.find(b => b.id === id);
     if (book) { 
@@ -665,6 +732,15 @@ window.addEventListener("DOMContentLoaded", () => {
         if($("menu-btn")) $("menu-btn").onclick = openMenu;
         if($("menu-overlay")) $("menu-overlay").onclick = closeMenu; 
         if($("modal-overlay")) $("modal-overlay").onclick = (e) => { if (e.target.id === "modal-overlay") closeModal(); };
+
+        // Global click listener to close card menus
+        document.addEventListener('click', (e) => {
+            const isDropdown = e.target.closest('.menu-dropdown');
+            const isBtn = e.target.closest('.dots-btn');
+            if (!isDropdown && !isBtn) {
+                document.querySelectorAll('.menu-dropdown.show').forEach(d => d.classList.remove('show'));
+            }
+        });
 
         const debouncedApplyFilters = debounce(applyFilters, 200);
         
