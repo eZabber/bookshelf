@@ -1,5 +1,5 @@
 // =======================
-// CONFIG
+// CONFIG & STATE
 // =======================
 const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
 const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar.events";
@@ -7,15 +7,11 @@ const DISCOVERY = [
     "https://sheets.googleapis.com/$discovery/rest?version=v4",
     "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"
 ];
-
 const SHEET_NAME = "Sheet1";
 const HEADER_RANGE = `${SHEET_NAME}!A1:J1`;
 const DATA_RANGE = `${SHEET_NAME}!A2:J999`;
 const HEADER = ["ID", "Title", "Author", "Shelf", "Rating", "Cover", "Date", "ReturnDate", "Audio", "ISBN"];
 
-// =======================
-// STATE & DOM
-// =======================
 let tokenClient = null;
 let gapiInited = false, gisInited = false;
 let spreadsheetId = localStorage.getItem("sheetId") || null;
@@ -26,10 +22,32 @@ let isSyncing = false, syncPending = false;
 let filterState = { text: "", year: "", month: "" };
 
 const $ = (id) => document.getElementById(id);
-// Note: 'list', 'sideMenu', 'menuOverlay' are found inside init to ensure DOM is ready
 
 // =======================
-// HELPERS & CORE
+// AUTH FUNCTIONS (MUST BE GLOBAL)
+// =======================
+function gapiLoaded() {
+    gapi.load("client", async () => {
+        try { await gapi.client.init({ discoveryDocs: DISCOVERY }); gapiInited = true; maybeEnableAuth(); } 
+        catch (e) { logError("GAPI Init Fail", e); }
+    });
+}
+function gisLoaded() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID, scope: SCOPES,
+        callback: async (resp) => {
+            if (resp.error) return logError("Auth Fail", resp);
+            gapi.client.setToken(resp);
+            $("auth-btn").textContent = "Working...";
+            await doSync();
+        }
+    });
+    gisInited = true; maybeEnableAuth();
+}
+function maybeEnableAuth() { if (gapiInited && gisInited) $("auth-btn").disabled = false; }
+
+// =======================
+// HELPERS
 // =======================
 function logError(msg, err) {
     const log = $("debug-log");
@@ -69,27 +87,21 @@ function setSyncStatus(state) {
     else dot.style.background = "#bbb"; 
 }
 
-// UPDATE COUNTERS (Only in Menu now)
+// =======================
+// LOGIC
+// =======================
 function updateShelfCounts() {
     const r = library.read?.length || 0;
     const w = library.wishlist?.length || 0;
     const l = library.loans?.length || 0;
 
-    // Clean Tabs
-    const tRead = document.getElementById("tab-read");
-    const tWish = document.getElementById("tab-wishlist");
-    const tLoans = document.getElementById("tab-loans");
-    if(tRead) tRead.textContent = "Read";
-    if(tWish) tWish.textContent = "Wishlist";
-    if(tLoans) tLoans.textContent = "Loans";
+    if($("tab-read")) $("tab-read").textContent = "Read";
+    if($("tab-wishlist")) $("tab-wishlist").textContent = "Wishlist";
+    if($("tab-loans")) $("tab-loans").textContent = "Loans";
 
-    // Update Menu Stats
-    const cRead = document.getElementById("count-read");
-    const cWish = document.getElementById("count-wishlist");
-    const cLoans = document.getElementById("count-loans");
-    if(cRead) cRead.textContent = `Read: ${r}`;
-    if(cWish) cWish.textContent = `Wish: ${w}`;
-    if(cLoans) cLoans.textContent = `Loans: ${l}`;
+    if($("count-read")) $("count-read").textContent = `Read: ${r}`;
+    if($("count-wishlist")) $("count-wishlist").textContent = `Wish: ${w}`;
+    if($("count-loans")) $("count-loans").textContent = `Loans: ${l}`;
 }
 
 function loadLibrary() {
@@ -113,9 +125,6 @@ function saveLibrary(shouldSync, skipRender = false) {
     if (shouldSync && gapi?.client?.getToken?.()) queueUpload();
 }
 
-// =======================
-// LOGIC & UI FUNCTIONS
-// =======================
 function openMenu() { 
     $("side-menu").classList.add("open"); 
     $("menu-overlay").classList.add("open"); 
@@ -136,10 +145,10 @@ function clearFilters() {
 }
 
 function renderBooks() {
-    const list = $("book-list");
-    if(!list) return;
+    const listEl = $("book-list");
+    if(!listEl) return;
 
-    list.innerHTML = "";
+    listEl.innerHTML = "";
     let items = library[currentShelf] || [];
     
     const term = (filterState.text || "").toLowerCase();
@@ -163,7 +172,6 @@ function renderBooks() {
         const li = document.createElement("li"); li.className = "book-card";
         const info = document.createElement("div"); info.className = "book-info";
         
-        // --- BADGES ROW ---
         const badges = document.createElement("div");
         badges.className = "badges-row";
         
@@ -227,7 +235,7 @@ function renderBooks() {
 
         const delBtn = document.createElement("button"); 
         delBtn.className = "btn-del"; 
-        delBtn.textContent = "🗑️"; // ICON ONLY
+        delBtn.textContent = "🗑️"; 
         delBtn.onclick = () => deleteBook(b.id);
         actions.appendChild(delBtn);
 
@@ -275,9 +283,6 @@ function hardReset() {
     location.reload();
 }
 
-// =======================
-// ACTION FUNCTIONS
-// =======================
 function confirmAdd(targetShelf) {
     if (!pendingBook) return;
     const key = normKey(pendingBook);
@@ -348,29 +353,6 @@ function updateRating(id, val) {
     const book = library.read.find(b => b.id === id);
     if (book) { book.rating = Number(val); saveLibrary(true); }
 }
-
-// =======================
-// AUTH & SYNC (Global)
-// =======================
-function gapiLoaded() {
-    gapi.load("client", async () => {
-        try { await gapi.client.init({ discoveryDocs: DISCOVERY }); gapiInited = true; maybeEnableAuth(); } 
-        catch (e) { logError("GAPI Init Fail", e); }
-    });
-}
-function gisLoaded() {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID, scope: SCOPES,
-        callback: async (resp) => {
-            if (resp.error) return logError("Auth Fail", resp);
-            gapi.client.setToken(resp);
-            $("auth-btn").textContent = "Working...";
-            await doSync();
-        }
-    });
-    gisInited = true; maybeEnableAuth();
-}
-function maybeEnableAuth() { if (gapiInited && gisInited) $("auth-btn").disabled = false; }
 
 async function ensureSheet() {
     if (spreadsheetId) return;
@@ -472,6 +454,32 @@ async function uploadData() {
         await gapi.client.sheets.spreadsheets.values.update({
             spreadsheetId, range: `${SHEET_NAME}!A2`, valueInputOption: "RAW", resource: { values: rows }
         });
+    }
+}
+
+async function addToCalendar(book) {
+    if (!gapi?.client?.getToken?.()) return alert("Please Sign In to add Calendar reminders.");
+    if (!book.returnDate) return alert("No return date set for this book.");
+    if (!confirm(`Add reminder to Google Calendar for "${book.title}"?\n(Note: If you already added one, this creates a duplicate.)`)) return;
+
+    const dateObj = new Date(book.returnDate);
+    dateObj.setDate(dateObj.getDate() - 1);
+    const reminderDate = dateObj.toISOString().split('T')[0];
+
+    try {
+        await gapi.client.calendar.events.insert({
+            'calendarId': 'primary',
+            'resource': {
+                'summary': `Return Library Book: ${book.title}`,
+                'description': `Return to library. Book by ${getAuthorName(book)}.`,
+                'start': { 'date': reminderDate }, 'end': { 'date': reminderDate },
+                'reminders': { 'useDefault': false, 'overrides': [ {'method': 'popup', 'minutes': 9 * 60} ] }
+            }
+        });
+        alert("Calendar event created! 📅");
+    } catch (e) {
+        logError("Calendar Error", e);
+        alert("Could not add to Calendar. Check permissions.");
     }
 }
 
@@ -581,7 +589,7 @@ function setSmartPlaceholder() {
 }
 
 // =======================
-// SAFE INITIALIZATION (Wait for DOM)
+// INITIALIZATION
 // =======================
 window.addEventListener("DOMContentLoaded", () => {
     try {
