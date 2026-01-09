@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cloud Library Beta</title>
+  <title>My BookShelf</title>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
     /* --- CSS VARIABLES --- */
@@ -11,47 +11,85 @@
         --primary: #2c3e50; --accent: #27ae60; --loan: #e67e22; 
         --bg: #f8f7f4; --card: #ffffff; --text: #333333;
         --meta: #666666; --border: #dddddd; --shadow: rgba(0,0,0,0.05);
-        --isbn-bg: #eeeeee;
+        --isbn-bg: #eeeeee; --isbn-text: #444444;
     }
     body.dark-mode {
         --primary: #ecf0f1; --accent: #2ecc71; --loan: #d35400;
         --bg: #121212; --card: #1e1e1e; --text: #e0e0e0;
         --meta: #aaaaaa; --border: #333333; --shadow: rgba(0,0,0,0.5);
-        --isbn-bg: #333333;
+        --isbn-bg: #333333; --isbn-text: #cccccc;
     }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); max-width: 600px; margin: 0 auto; padding: 20px; transition: background 0.3s; }
 
     /* --- HEADER --- */
     header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    h1 { margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+    
+    .app-title { 
+        margin: 0; font-size: 1.5rem; color: var(--primary); 
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .title-my { font-weight: 400; opacity: 0.8; }
+    .title-main { font-weight: 700; }
+
     #menu-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text); }
     
     #sync-wrapper { display: flex; align-items: center; gap: 10px; }
     #sync-dot { width: 10px; height: 10px; border-radius: 50%; background: #bbb; transition: background 0.3s; }
 
-    /* --- MENU & OVERLAY (Fixed) --- */
+    /* --- MENU & OVERLAY --- */
     #side-menu {
         position: fixed; top: 0; left: 0; width: 280px; height: 100%; background: var(--card); 
-        box-shadow: 2px 0 10px rgba(0,0,0,0.2); transform: translateX(-100%); transition: transform 0.3s ease;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.2); 
+        transform: translateX(-100%); transition: transform 0.3s ease;
         z-index: 2000; padding: 20px; display: flex; flex-direction: column; gap: 15px;
+        pointer-events: none;
     }
-    #side-menu.open { transform: translateX(0); }
+    #side-menu.open { transform: translateX(0); pointer-events: auto; }
 
-    /* NEW BULLETPROOF OVERLAY CSS */
     #menu-overlay {
-        display: none; 
-        pointer-events: none; /* Allows clicking through if visible by accident */
         position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
         background: rgba(0,0,0,0.5); z-index: 1999;
+        opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
     }
-    #menu-overlay.open {
-        display: block; 
-        pointer-events: auto; /* Blocks clicks only when open */
-    }
+    #menu-overlay.open { opacity: 1; pointer-events: auto; }
     
     .menu-section { border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 10px; }
     .menu-title { font-weight: bold; margin-bottom: 10px; color: var(--primary); display: block; }
     .menu-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+
+    /* --- MENU FORM (COMPACT YEAR) --- */
+    .menu-input {
+        width: 100%; box-sizing: border-box; padding: 10px 12px;
+        border: 1px solid var(--border); border-radius: 8px;
+        font-size: 16px; background: var(--card); color: var(--text);
+        height: 42px; line-height: 20px;
+    }
+    
+    /* SPECIAL: Make Year input fit 4 digits perfectly */
+    #filter-year {
+        width: 7ch; min-width: 7ch; max-width: 9ch;
+        padding-left: 10px; padding-right: 10px;
+    }
+
+    .menu-select {
+        width: 100%; box-sizing: border-box; height: 42px;
+        padding: 10px 12px; border: 1px solid var(--border);
+        border-radius: 8px; background: var(--card); color: var(--text);
+        font-size: 16px;
+    }
+    
+    .filter-grid {
+        display: grid; 
+        grid-template-columns: auto 1fr; /* Auto width for year, rest for month */
+        gap: 10px;
+        align-items: end; margin-top: 10px;
+    }
+    .filter-field label { display: block; font-size: 0.8rem; color: var(--meta); margin-bottom: 6px; }
+    .menu-actions { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 12px; }
+
+    /* COUNTERS */
+    .shelf-counters { display: flex; gap: 10px; flex-wrap: wrap; font-size: 0.9rem; color: var(--meta); }
+    .shelf-counters span { background: var(--isbn-bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 999px; }
     
     /* --- CONTROLS & TABS --- */
     #auth-btn { background: #4285F4; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: 500; font-size: 0.85rem; cursor: pointer; width: 100%; }
@@ -70,8 +108,10 @@
     ul { list-style: none; padding: 0; }
     .book-card { background: var(--card); padding: 12px; margin-bottom: 12px; border-radius: 12px; box-shadow: 0 2px 8px var(--shadow); display: flex; gap: 12px; align-items: start; border: 1px solid var(--border); position: relative; }
     
-    .audio-badge { position: absolute; top: 10px; left: 10px; background: #e74c3c; color: white; font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; z-index: 10; font-weight: bold; }
-    .loan-badge { position: absolute; right: 10px; top: 10px; background: var(--loan); color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; }
+    /* Badges */
+    .badges-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+    .audio-badge { background: #e74c3c; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; display: inline-block; }
+    .loan-badge { background: var(--loan); color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; display: inline-block; }
 
     .book-thumb { width: 60px; height: 90px; background: #eee; border-radius: 4px; object-fit: cover; flex-shrink: 0; }
     .book-info { flex: 1; min-width: 0; }
@@ -79,17 +119,18 @@
     .book-meta { color: var(--meta); font-size: 0.85rem; margin-bottom: 6px; line-height: 1.4; }
     
     .isbn-pill { 
-        display: inline-block; font-size: 0.7rem; color: var(--meta); font-family: monospace; 
-        background: var(--isbn-bg); padding: 2px 6px; border-radius: 4px; margin-bottom: 6px; 
+        display: inline-block; font-size: 0.75rem; color: var(--isbn-text); font-family: monospace; 
+        background: var(--isbn-bg); padding: 2px 6px; border-radius: 4px; margin-bottom: 8px; border: 1px solid var(--border);
     }
     
-    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
     
     /* BUTTON STYLES */
-    .btn-sm { border: 1px solid var(--border); background: none; color: var(--text); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
+    .btn-sm { border: 1px solid var(--border); background: none; color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; }
     .btn-del { color: #e74c3c; border-color: #e74c3c; }
-    .move-btn { background: var(--accent); color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
-    .btn-cal { border: 1px solid var(--loan); color: var(--loan); background: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
+    .btn-unread { border: 1px solid var(--meta); color: var(--meta); background: none; padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; }
+    .move-btn { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 500; }
+    .btn-cal { border: 1px solid var(--loan); color: var(--loan); background: none; padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; }
 
     select.rating { display: block; margin-top: 5px; padding: 4px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem; background: var(--card); color: var(--text); }
 
@@ -127,7 +168,7 @@
 
   <header>
     <button id="menu-btn" aria-label="Open menu">☰</button>
-    <h1>📚 Cloud Library</h1>
+    <h1 class="app-title">📚 <span class="title-my">My</span> <span class="title-main">BookShelf</span></h1>
     <div id="sync-wrapper">
       <div id="sync-dot" title="Sync Status"></div>
       <div style="width: 10px;"></div>
@@ -143,6 +184,16 @@
             <a id="sheet-link" target="_blank" href="#" style="display:none; color:var(--accent);">↗️ Open Google Sheet</a>
         </div>
     </div>
+    
+    <div class="menu-section">
+      <span class="menu-title">Shelves</span>
+      <div class="shelf-counters">
+        <span id="count-read">Read: 0</span>
+        <span id="count-wishlist">Wishlist: 0</span>
+        <span id="count-loans">Loans: 0</span>
+      </div>
+    </div>
+
     <div class="menu-section">
         <label class="menu-title">Display</label>
         <div class="menu-row">
@@ -153,23 +204,33 @@
             </label>
         </div>
     </div>
+
     <div class="menu-section">
         <label class="menu-title">Filter Books</label>
-        <input type="text" id="filter-text" placeholder="Title, Author, or ISBN" style="width: 100%; box-sizing:border-box; margin-bottom:8px;">
-        <div class="menu-row">
-            <span>Year:</span>
-            <input type="number" id="filter-year" placeholder="YYYY" style="width: 70px; padding: 5px;">
+        <input type="text" id="filter-text" class="menu-input" placeholder="Title, Author, or ISBN">
+        
+        <div class="filter-grid">
+            <div class="filter-field">
+                <label for="filter-year">Year</label>
+                <input type="text" id="filter-year" class="menu-input" placeholder="YYYY" inputmode="numeric" maxlength="4">
+            </div>
+            <div class="filter-field">
+                <label for="filter-month">Month</label>
+                <select id="filter-month" class="menu-select">
+                    <option value="">All</option>
+                    <option value="01">Jan</option><option value="02">Feb</option><option value="03">Mar</option>
+                    <option value="04">Apr</option><option value="05">May</option><option value="06">Jun</option>
+                    <option value="07">Jul</option><option value="08">Aug</option><option value="09">Sep</option>
+                    <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+                </select>
+            </div>
         </div>
-        <div class="menu-row">
-            <span>Month:</span>
-            <select id="filter-month" style="padding: 5px; border-radius:4px;">
-                <option value="">All</option><option value="01">Jan</option><option value="02">Feb</option><option value="03">Mar</option>
-                <option value="04">Apr</option><option value="05">May</option><option value="06">Jun</option><option value="07">Jul</option>
-                <option value="08">Aug</option><option value="09">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
-            </select>
+        
+        <div class="menu-actions">
+            <button class="btn-sm" onclick="clearFilters()" style="width:100%;">Clear Filters</button>
         </div>
-        <button class="btn-sm" onclick="clearFilters()" style="width:100%; margin-top:5px;">Clear Filters</button>
     </div>
+
     <div class="menu-section">
         <button id="reset-btn" class="btn-sm btn-del" style="width:100%;">Reset App Data</button>
     </div>
@@ -274,13 +335,10 @@
         console.error(msg, err);
     }
     function safeStringify(x) { try { return JSON.stringify(x, null, 2); } catch { return String(x); } }
-    
-    // SAFE ID GENERATOR
     function makeId() { 
         if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
-    
     function todayISO() { return new Date().toISOString().split("T")[0]; }
     function getAuthorName(b) { return (b?.authors?.[0]?.name || "Unknown").toString(); }
     function normKey(b) { return ((b?.title || "") + "|" + getAuthorName(b)).toLowerCase().trim(); }
@@ -306,6 +364,29 @@
         else dot.style.background = "#bbb"; 
     }
 
+    // UPDATE COUNTERS
+    function updateShelfCounts() {
+        const r = library.read?.length || 0;
+        const w = library.wishlist?.length || 0;
+        const l = library.loans?.length || 0;
+
+        // Update Tabs
+        const tRead = document.getElementById("tab-read");
+        const tWish = document.getElementById("tab-wishlist");
+        const tLoans = document.getElementById("tab-loans");
+        if(tRead) tRead.textContent = `Read (${r})`;
+        if(tWish) tWish.textContent = `Wishlist (${w})`;
+        if(tLoans) tLoans.textContent = `Loans (${l})`;
+
+        // Update Menu Counters
+        const cRead = document.getElementById("count-read");
+        const cWish = document.getElementById("count-wishlist");
+        const cLoans = document.getElementById("count-loans");
+        if(cRead) cRead.textContent = `Read: ${r}`;
+        if(cWish) cWish.textContent = `Wishlist: ${w}`;
+        if(cLoans) cLoans.textContent = `Loans: ${l}`;
+    }
+
     function loadLibrary() {
         try {
             const raw = JSON.parse(localStorage.getItem("myLibrary"));
@@ -322,6 +403,7 @@
 
     function saveLibrary(shouldSync, skipRender = false) {
         localStorage.setItem("myLibrary", JSON.stringify(library));
+        updateShelfCounts();
         if (!skipRender) renderBooks();
         if (shouldSync && gapi?.client?.getToken?.()) queueUpload();
     }
@@ -329,8 +411,23 @@
     // =======================
     // LOGIC & UI FUNCTIONS
     // =======================
-    function openMenu() { sideMenu.classList.add("open"); menuOverlay.classList.add("open"); }
-    function closeMenu() { sideMenu.classList.remove("open"); menuOverlay.classList.remove("open"); }
+    function openMenu() { 
+        sideMenu.classList.add("open"); 
+        menuOverlay.classList.add("open"); 
+        body.style.overflow = "hidden"; 
+    }
+    function closeMenu() { 
+        sideMenu.classList.remove("open"); 
+        menuOverlay.classList.remove("open"); 
+        body.style.overflow = ""; 
+    }
+
+    function clearFilters() {
+        $("filter-text").value = "";
+        $("filter-year").value = "";
+        $("filter-month").value = "";
+        applyFilters();
+    }
 
     function renderBooks() {
         list.innerHTML = "";
@@ -355,27 +452,40 @@
 
         items.slice().reverse().forEach(b => {
             const li = document.createElement("li"); li.className = "book-card";
-            if(b.isAudio) {
-                const badge = document.createElement("div"); badge.className = "audio-badge"; badge.textContent = "🎧 Audio"; li.appendChild(badge);
-            }
+            const info = document.createElement("div"); info.className = "book-info";
+            
+            // --- BADGES ROW ---
+            const badges = document.createElement("div");
+            badges.className = "badges-row";
+            
             if(b.returnDate && currentShelf === 'loans') {
-                const badge = document.createElement("div"); badge.className = "loan-badge"; badge.textContent = "Due: " + b.returnDate;
-                li.appendChild(badge);
+                const loanBadge = document.createElement("div"); 
+                loanBadge.className = "loan-badge"; 
+                loanBadge.textContent = "Due: " + b.returnDate;
+                badges.appendChild(loanBadge);
             }
+
+            if(b.isAudio) {
+                const audioBadge = document.createElement("div"); 
+                audioBadge.className = "audio-badge"; 
+                audioBadge.textContent = "🎧 Audio"; 
+                badges.appendChild(audioBadge);
+            }
+            if(badges.children.length > 0) info.appendChild(badges);
 
             const img = document.createElement(b.cover ? "img" : "div"); img.className = "book-thumb";
             if(b.cover) { img.src = b.cover; img.onerror = () => { img.style.display='none'; }; } 
             else { img.style.background = "#ddd"; }
             li.appendChild(img);
 
-            const info = document.createElement("div"); info.className = "book-info";
             const title = document.createElement("div"); title.className = "book-title"; title.textContent = b.title;
             const meta = document.createElement("div"); meta.className = "book-meta";
             let metaText = getAuthorName(b);
             if(currentShelf==='read' && b.dateRead) metaText += ` • Finished: ${b.dateRead}`;
             meta.textContent = metaText;
             
-            info.appendChild(title); info.appendChild(meta);
+            info.appendChild(title); 
+            info.appendChild(meta);
             
             if(b.isbn) {
                 const isbnPill = document.createElement("div"); 
@@ -385,15 +495,27 @@
             }
 
             const actions = document.createElement("div"); actions.className = "actions";
+            
             if (currentShelf === 'read') {
                 const sel = document.createElement("select"); sel.className = "rating";
                 sel.innerHTML = `<option value="0">Rate...</option>` + [1,2,3,4,5].map(n => `<option value="${n}" ${b.rating===n?'selected':''}>${'⭐'.repeat(n)}</option>`).join('');
                 sel.onchange = (e) => updateRating(b.id, e.target.value);
                 info.appendChild(sel);
+
+                const unreadBtn = document.createElement("button"); 
+                unreadBtn.className = "btn-sm btn-unread"; 
+                unreadBtn.textContent = "↩︎ Unread"; 
+                unreadBtn.onclick = () => moveToWishlist(b.id);
+                actions.appendChild(unreadBtn);
+
             } else {
-                const moveBtn = document.createElement("button"); moveBtn.className = "move-btn"; moveBtn.textContent = "✅ Mark Read"; moveBtn.onclick = () => moveToRead(b.id);
+                const moveBtn = document.createElement("button"); 
+                moveBtn.className = "move-btn"; 
+                moveBtn.textContent = "✅ Mark Read"; 
+                moveBtn.onclick = () => moveToRead(b.id);
                 actions.appendChild(moveBtn);
             }
+
             const delBtn = document.createElement("button"); delBtn.className = "btn-sm btn-del"; delBtn.textContent = "Remove"; delBtn.onclick = () => deleteBook(b.id);
             actions.appendChild(delBtn);
 
@@ -405,6 +527,7 @@
 
             info.appendChild(actions); li.appendChild(info); list.appendChild(li);
         });
+        updateShelfCounts();
     }
 
     const debouncedRender = debounce(renderBooks, 300);
@@ -491,6 +614,16 @@
         book.dateRead = todayISO(); book.returnDate = ""; book.rating = 0;
         library.read.push(book);
         setActiveTab('read'); saveLibrary(true, true);
+    }
+
+    function moveToWishlist(id) {
+        const idx = library.read.findIndex(b => b.id === id);
+        if (idx === -1) return;
+        const book = library.read[idx];
+        library.read.splice(idx, 1);
+        book.dateRead = ""; book.rating = 0; 
+        library.wishlist.push(book);
+        setActiveTab('wishlist'); saveLibrary(true, true);
     }
 
     function deleteBook(id) {
@@ -722,10 +855,26 @@
         $("reader-container").style.display = "block";
         if(html5QrCode) try{await html5QrCode.stop();}catch{}
         html5QrCode = new Html5Qrcode("reader");
+        
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        const onSuccess = async (txt) => {
+            if(scanLocked) return;
+            scanLocked = true;
+            await stopCamera();
+            await fetchAndPrompt(txt);
+        };
+
         try {
-            await html5QrCode.start({ facingMode: "environment" }, { fps:10, qrbox:{width:250,height:250} }, 
-            async (txt) => { if(scanLocked)return; scanLocked=true; await stopCamera(); await fetchAndPrompt(txt); });
-        } catch { $("reader-container").style.display="none"; alert("Camera Error"); }
+            await html5QrCode.start({ facingMode: "environment" }, config, onSuccess);
+        } catch (err) { 
+            try {
+                await html5QrCode.start({ facingMode: "user" }, config, onSuccess);
+            } catch (err2) {
+                console.warn("Camera Error", err2);
+                $("reader-container").style.display="none"; 
+                alert("Camera Error (Check Permissions)");
+            }
+        }
     }
     async function stopCamera() {
         $("reader-container").style.display = "none";
@@ -748,8 +897,12 @@
         menuOverlay.onclick = closeMenu; 
         $("modal-overlay").onclick = (e) => { if (e.target.id === "modal-overlay") closeModal(); };
 
-        $("filter-text").oninput = applyFilters; 
-        $("filter-year").oninput = applyFilters; 
+        const debouncedApplyFilters = debounce(applyFilters, 200);
+        $("filter-text").oninput = debouncedApplyFilters;
+        $("filter-year").oninput = (e) => {
+            e.target.value = e.target.value.replace(/\D/g, "").slice(0, 4);
+            debouncedApplyFilters();
+        };
         $("filter-month").onchange = applyFilters;
 
         $("btn-add").onclick = handleManualAdd;
