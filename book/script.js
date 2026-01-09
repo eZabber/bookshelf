@@ -23,7 +23,6 @@ let currentShelf = "read";
 let library = { read: [], wishlist: [], loans: [] }; 
 let html5QrCode = null, scanLocked = false, pendingBook = null;
 let isSyncing = false, syncPending = false;
-// NEW: Added 'rating' to filter state
 let filterState = { text: "", year: "", month: "", rating: "" };
 
 const $ = (id) => document.getElementById(id);
@@ -148,10 +147,12 @@ function clearFilters() {
     if($("filter-text")) $("filter-text").value = "";
     if($("filter-year")) $("filter-year").value = "";
     if($("filter-month")) $("filter-month").value = "";
-    if($("filter-rating")) $("filter-rating").value = ""; // Clear rating
+    if($("filter-rating")) $("filter-rating").value = "";
     
     filterState = { text: "", year: "", month: "", rating: "" };
-    applyFilters();
+    // "Apply" happens automatically or manually depending on listeners, 
+    // but here we force re-render
+    applyFilters(); 
 }
 
 function renderBooks() {
@@ -161,7 +162,7 @@ function renderBooks() {
     list.innerHTML = "";
     let items = library[currentShelf] || [];
     
-    // Update State from Inputs
+    // 1. READ FILTER VALUES
     const textInput = $("filter-text");
     const rateInput = $("filter-rating");
     
@@ -171,7 +172,7 @@ function renderBooks() {
     const term = (filterState.text || "").toLowerCase();
     const cleanTerm = term.replace(/[\s-]/g, "");
 
-    // Apply Filters
+    // 2. APPLY FILTERS
     if (term || filterState.year || filterState.month || filterState.rating) {
         items = items.filter(b => {
             // Text Match
@@ -185,13 +186,15 @@ function renderBooks() {
             const matchYear = !filterState.year || (dateStr && dateStr.startsWith(filterState.year));
             const matchMonth = !filterState.month || (dateStr && dateStr.substring(5,7) === filterState.month);
             
-            // Rating Match (New)
-            const matchRating = !filterState.rating || (b.rating >= Number(filterState.rating));
+            // Rating Match (UPDATED: Exact Match)
+            // If filter is set (e.g. "5"), book must have exactly 5.
+            const matchRating = !filterState.rating || (b.rating === Number(filterState.rating));
 
             return matchText && matchYear && matchMonth && matchRating;
         });
     }
 
+    // 3. RENDER ITEMS
     items.slice().reverse().forEach(b => {
         const li = document.createElement("li"); li.className = "book-card";
         
@@ -365,7 +368,8 @@ function applyFilters() {
     if(m) filterState.month = m.value;
     if(r) filterState.rating = r.value;
     
-    debouncedRender();
+    // RENDER: Re-draw the list with the new filters
+    renderBooks(); 
 }
 
 function setActiveTab(shelf) {
@@ -463,14 +467,18 @@ function deleteBook(id) {
 
 function updateRating(id, val) {
     const book = library.read.find(b => b.id === id);
-    if (book) { book.rating = Number(val); saveLibrary(true); }
+    if (book) { 
+        book.rating = Number(val); 
+        // Force refresh so if filter is active, book might disappear if rating doesn't match
+        saveLibrary(true); 
+    }
 }
 
 function updateReadDate(id, newDate) {
     const book = library.read.find(b => b.id === id);
     if (book) { 
         book.dateRead = newDate; 
-        saveLibrary(true); 
+        saveLibrary(true); // Saves and RE-RENDERS immediately
     }
 }
 
@@ -757,6 +765,7 @@ window.addEventListener("DOMContentLoaded", () => {
             };
         }
         
+        // "Apply" logic happens here instantly on change
         if($("filter-month")) $("filter-month").onchange = applyFilters;
         if($("filter-rating")) $("filter-rating").onchange = applyFilters;
 
