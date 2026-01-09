@@ -1,562 +1,824 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cloud Library Final</title>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <style>
-        :root { --primary: #2c3e50; --accent: #27ae60; --bg: #f8f7f4; --card: #ffffff; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); max-width: 600px; margin: 0 auto; padding: 20px; color: #333; }
-        
-        header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-        h1 { margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--primary); }
-        
-        #auth-container { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
-        #auth-btn { background: #4285F4; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: 500; font-size: 0.85rem; cursor: pointer; transition: background 0.2s; }
-        #auth-btn:disabled { background: #ccc; cursor: not-allowed; }
-        
-        #sheet-link { font-size: 0.75rem; color: #4285F4; margin-top: 8px; text-decoration: none; border-bottom: 1px dotted #4285F4; display: none; }
-        #reset-btn { font-size: 0.7rem; color: #999; text-decoration: underline; background: none; border: none; margin-top: 5px; cursor: pointer; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Cloud Library Final</title>
 
-        #debug-log { background: #fee; color: #c00; padding: 10px; font-family: monospace; font-size: 12px; border: 1px solid #fcc; border-radius: 4px; margin-bottom: 15px; display: none; word-wrap: break-word; }
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
-        .tabs { display: flex; background: #e0e0e0; border-radius: 8px; padding: 4px; margin-bottom: 20px; }
-        .tab { flex: 1; text-align: center; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.9rem; color: #666; }
-        .tab.active { background: white; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+  <style>
+    :root { --primary: #2c3e50; --accent: #27ae60; --bg: #f8f7f4; --card: #ffffff; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); max-width: 600px; margin: 0 auto; padding: 20px; color: #333; }
 
-        .controls { display: flex; gap: 8px; margin-bottom: 20px; }
-        input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; } 
-        button.action-btn { padding: 10px 16px; border: none; border-radius: 8px; background: var(--primary); color: white; font-weight: 600; cursor: pointer; }
-        button.scan-btn { background: var(--accent); }
+    header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+    h1 { margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--primary); }
 
-        #reader-container { display: none; margin-bottom: 15px; }
-        #reader { width: 100%; border-radius: 8px; overflow: hidden; background: black; }
-        
-        ul { list-style: none; padding: 0; }
-        .book-card { background: var(--card); padding: 12px; margin-bottom: 12px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; gap: 12px; align-items: start; }
-        
-        /* Thumb Logic: Fixed size, grey fallback */
-        .book-thumb { width: 60px; height: 90px; background: #eee; border-radius: 4px; object-fit: cover; flex-shrink: 0; }
-        
-        .book-info { flex: 1; min-width: 0; }
-        .book-title { font-weight: 600; font-size: 1rem; margin-bottom: 4px; line-height: 1.3; }
-        .book-meta { color: #666; font-size: 0.85rem; margin-bottom: 8px; line-height: 1.4; }
-        
-        .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 5px; }
-        .delete-btn { background: none; border: 1px solid #ff4d4d; color: #ff4d4d; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
-        .move-btn { background: var(--accent); border: none; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
-        
-        select.rating { display: block; margin-bottom: 8px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; background: white; }
+    #auth-container { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
+    #auth-btn { background: #4285F4; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: 500; font-size: 0.85rem; cursor: pointer; transition: background 0.2s; }
+    #auth-btn:disabled { background: #ccc; cursor: not-allowed; }
 
-        /* MODAL STYLES */
-        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-        .modal-cover { width: 100px; height: 150px; object-fit: cover; background: #eee; border-radius: 6px; margin-bottom: 15px; display: none; margin-left: auto; margin-right: auto; }
-        .modal-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 5px; }
-        .modal-author { color: #666; font-size: 0.9rem; margin-bottom: 20px; }
-        .modal-btns { display: flex; flex-direction: column; gap: 10px; }
-        .btn-choice { padding: 12px; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 500; }
-        .btn-read { background: var(--primary); color: white; }
-        .btn-wish { background: var(--accent); color: white; }
-        .btn-cancel { background: #eee; color: #333; }
-    </style>
+    #sheet-link { font-size: 0.75rem; color: #4285F4; margin-top: 8px; text-decoration: none; border-bottom: 1px dotted #4285F4; display: none; }
+    #reset-btn { font-size: 0.7rem; color: #999; text-decoration: underline; background: none; border: none; margin-top: 5px; cursor: pointer; }
+
+    #debug-log { background: #fee; color: #c00; padding: 10px; font-family: monospace; font-size: 12px; border: 1px solid #fcc; border-radius: 4px; margin-bottom: 15px; display: none; word-wrap: break-word; }
+
+    .tabs { display: flex; background: #e0e0e0; border-radius: 8px; padding: 4px; margin-bottom: 20px; }
+    .tab { flex: 1; text-align: center; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.9rem; color: #666; user-select: none; }
+    .tab.active { background: white; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+    .controls { display: flex; gap: 8px; margin-bottom: 20px; }
+    input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+    button.action-btn { padding: 10px 16px; border: none; border-radius: 8px; background: var(--primary); color: white; font-weight: 600; cursor: pointer; }
+    button.scan-btn { background: var(--accent); }
+
+    #reader-container { display: none; margin-bottom: 15px; }
+    #reader { width: 100%; border-radius: 8px; overflow: hidden; background: black; }
+
+    ul { list-style: none; padding: 0; }
+    .book-card { background: var(--card); padding: 12px; margin-bottom: 12px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; gap: 12px; align-items: start; }
+    .book-thumb { width: 60px; height: 90px; background: #eee; border-radius: 4px; object-fit: cover; flex-shrink: 0; }
+    .book-info { flex: 1; min-width: 0; }
+    .book-title { font-weight: 600; font-size: 1rem; margin-bottom: 4px; line-height: 1.3; }
+    .book-meta { color: #666; font-size: 0.85rem; margin-bottom: 8px; line-height: 1.4; }
+
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 5px; }
+    .delete-btn { background: none; border: 1px solid #ff4d4d; color: #ff4d4d; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
+    .move-btn { background: var(--accent); border: none; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
+
+    select.rating { display: block; margin-bottom: 8px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; background: white; }
+
+    /* MODAL */
+    #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .modal-cover { width: 100px; height: 150px; object-fit: cover; background: #eee; border-radius: 6px; margin-bottom: 15px; display: none; }
+    .modal-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 5px; }
+    .modal-author { color: #666; font-size: 0.9rem; margin-bottom: 20px; }
+    .modal-btns { display: flex; flex-direction: column; gap: 10px; }
+    .btn-choice { padding: 12px; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 500; }
+    .btn-read { background: var(--primary); color: white; }
+    .btn-wish { background: var(--accent); color: white; }
+    .btn-cancel { background: #eee; color: #333; }
+  </style>
 </head>
+
 <body>
-
-    <header>
-        <h1>📚 My Shelf</h1>
-        <div id="auth-container">
-            <button id="auth-btn" disabled onclick="handleAuthClick()">Sign In</button>
-            <a id="sheet-link" target="_blank" href="#">↗️ Open Sheet</a>
-            <button id="reset-btn" onclick="hardReset()">Reset App</button>
-        </div>
-    </header>
-
-    <div id="debug-log"></div>
-
-    <div class="tabs">
-        <div class="tab active" onclick="switchShelf('read', this)">Read</div>
-        <div class="tab" onclick="switchShelf('wishlist', this)">Wishlist</div>
+  <header>
+    <h1>📚 My Shelf</h1>
+    <div id="auth-container">
+      <button id="auth-btn" disabled>Sign In</button>
+      <a id="sheet-link" target="_blank" href="#">↗️ Open Sheet</a>
+      <button id="reset-btn">Reset App</button>
     </div>
+  </header>
 
-    <div class="controls">
-        <input type="text" id="isbn-input" placeholder="ISBN or Title">
-        <button class="action-btn" onclick="handleManualAdd()">Add</button>
-        <button class="action-btn scan-btn" onclick="startCamera()">📷</button>
+  <div id="debug-log"></div>
+
+  <div class="tabs">
+    <div class="tab active" id="tab-read">Read</div>
+    <div class="tab" id="tab-wishlist">Wishlist</div>
+  </div>
+
+  <div class="controls">
+    <input type="text" id="isbn-input" placeholder="ISBN or Title" />
+    <button class="action-btn" id="btn-add">Add</button>
+    <button class="action-btn scan-btn" id="btn-scan">📷</button>
+  </div>
+
+  <div id="reader-container">
+    <div id="reader"></div>
+    <button id="btn-stop-camera" style="width:100%;padding:10px;margin-top:10px;background:#eee;border:none;border-radius:4px;">Stop Camera</button>
+  </div>
+
+  <ul id="book-list"></ul>
+
+  <div id="modal-overlay">
+    <div class="modal-content">
+      <img id="modal-img" class="modal-cover" src="" alt="cover"/>
+      <div id="modal-title" class="modal-title"></div>
+      <div id="modal-author" class="modal-author"></div>
+      <div class="modal-btns">
+        <button class="btn-choice btn-read" id="modal-add-read">Add to Read</button>
+        <button class="btn-choice btn-wish" id="modal-add-wish">Add to Wishlist</button>
+        <button class="btn-choice btn-cancel" id="modal-cancel">Cancel</button>
+      </div>
     </div>
+  </div>
 
-    <div id="reader-container">
-        <div id="reader"></div>
-        <button onclick="stopCamera()" style="width:100%;padding:10px;margin-top:10px;background:#eee;border:none;border-radius:4px;">Stop Camera</button>
-    </div>
+  <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+  <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 
-    <ul id="book-list"></ul>
+  <script>
+    // =======================
+    // CONFIG
+    // =======================
+    const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
+    const SCOPES = "https://www.googleapis.com/auth/drive.file";
+    const DISCOVERY = ["https://sheets.googleapis.com/$discovery/rest?version=v4"];
 
-    <div id="modal-overlay">
-        <div class="modal-content">
-            <img id="modal-img" class="modal-cover" src="" onerror="this.style.display='none'">
-            <div id="modal-title" class="modal-title"></div>
-            <div id="modal-author" class="modal-author"></div>
-            <div class="modal-btns">
-                <button class="btn-choice btn-read" onclick="confirmAdd('read')">Add to Read</button>
-                <button class="btn-choice btn-wish" onclick="confirmAdd('wishlist')">Add to Wishlist</button>
-                <button class="btn-choice btn-cancel" onclick="closeModal()">Cancel</button>
-            </div>
-        </div>
-    </div>
+    // Sheet layout
+    const SHEET_NAME = "Sheet1";
+    const HEADER_RANGE = `${SHEET_NAME}!A1:G1`;
+    const DATA_RANGE = `${SHEET_NAME}!A2:G999`;
+    const HEADER = ["ID", "Title", "Author", "Shelf", "Rating", "Cover", "Date"];
 
-    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+    // =======================
+    // STATE
+    // =======================
+    let tokenClient = null;
+    let gapiInited = false;
+    let gisInited = false;
 
-<script>
-    // --- CONFIGURATION ---
-    const CLIENT_ID = '579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com'; 
-    const SCOPES = 'https://www.googleapis.com/auth/drive.file';
-    const DISCOVERY = ['https://sheets.googleapis.com/$discovery/rest?version=v4'];
+    let spreadsheetId = localStorage.getItem("sheetId") || null;
+    let currentShelf = "read"; // "read" | "wishlist"
 
-    let tokenClient, gapiInited = false, gisInited = false;
-    let spreadsheetId = localStorage.getItem('sheetId');
-    let currentShelf = 'read';
-    let library = JSON.parse(localStorage.getItem('myLibrary')) || { read: [], wishlist: [] };
-    let html5QrCode;
+    let library = loadLibrary(); // { read:[], wishlist:[] }
+
+    let html5QrCode = null;
+    let scanLocked = false;
+
+    let pendingBook = null; // object shown in modal
+
     let isSyncing = false;
     let syncPending = false;
-    let pendingBook = null;
-    let scanLocked = false; 
 
-    // Init UI
-    renderBooks();
-    updateSheetLink();
+    // =======================
+    // DOM
+    // =======================
+    const $ = (id) => document.getElementById(id);
 
-    // Close Modal on Overlay Click
-    document.getElementById('modal-overlay').addEventListener('click', (e) => {
-        if (e.target.id === 'modal-overlay') closeModal();
-    });
+    const authBtn = $("auth-btn");
+    const sheetLink = $("sheet-link");
+    const resetBtn = $("reset-btn");
 
-    // --- HELPERS ---
+    const tabRead = $("tab-read");
+    const tabWishlist = $("tab-wishlist");
+
+    const input = $("isbn-input");
+    const btnAdd = $("btn-add");
+    const btnScan = $("btn-scan");
+
+    const readerContainer = $("reader-container");
+    const btnStopCamera = $("btn-stop-camera");
+
+    const list = $("book-list");
+    const debugLog = $("debug-log");
+
+    const modalOverlay = $("modal-overlay");
+    const modalImg = $("modal-img");
+    const modalTitle = $("modal-title");
+    const modalAuthor = $("modal-author");
+    const modalAddRead = $("modal-add-read");
+    const modalAddWish = $("modal-add-wish");
+    const modalCancel = $("modal-cancel");
+
+    // =======================
+    // UTILS
+    // =======================
     function logError(msg, err) {
-        const div = document.getElementById('debug-log');
-        div.style.display = 'block';
-        div.innerText = "ERROR: " + msg + "\nDETAILS: " + JSON.stringify(err, null, 2);
-        console.error(msg, err);
+      debugLog.style.display = "block";
+      debugLog.textContent = "ERROR: " + msg + "\nDETAILS: " + safeStringify(err);
+      console.error(msg, err);
     }
 
-    // Security: Escape HTML characters for Text
-    function esc(s) {
-        return (s ?? "").toString()
-            .replaceAll("&", "&amp;")
-            .replaceAll("<", "&lt;")
-            .replaceAll(">", "&gt;")
-            .replaceAll('"', "&quot;")
-            .replaceAll("'", "&#039;");
+    function safeStringify(x) {
+      try { return JSON.stringify(x, null, 2); }
+      catch { return String(x); }
+    }
+
+    function todayISO() {
+      return new Date().toISOString().split("T")[0];
     }
 
     function getAuthorName(book) {
-        return (book?.authors?.[0]?.name || "").toString();
+      return (book?.authors?.[0]?.name || "Unknown Author").toString();
     }
-    
+
     function normKey(book) {
-        return ((book?.title || "") + "|" + getAuthorName(book)).toLowerCase().trim();
+      return ((book?.title || "") + "|" + getAuthorName(book)).toLowerCase().trim();
+    }
+
+    // Only allow http/https cover URLs
+    function safeUrl(url) {
+      const s = (url ?? "").toString().trim();
+      if (!s) return "";
+      try {
+        const u = new URL(s, window.location.href);
+        if (u.protocol === "http:" || u.protocol === "https:") return u.href;
+        return "";
+      } catch {
+        return "";
+      }
+    }
+
+    function loadLibrary() {
+      try {
+        const raw = JSON.parse(localStorage.getItem("myLibrary"));
+        if (raw && typeof raw === "object") {
+          return {
+            read: Array.isArray(raw.read) ? raw.read : [],
+            wishlist: Array.isArray(raw.wishlist) ? raw.wishlist : [],
+          };
+        }
+      } catch {}
+      return { read: [], wishlist: [] };
+    }
+
+    function saveLibrary(shouldSync) {
+      localStorage.setItem("myLibrary", JSON.stringify(library));
+      renderBooks();
+      if (shouldSync && gapi?.client?.getToken?.()) queueUpload();
+    }
+
+    function setAuthText(text) {
+      authBtn.textContent = text;
     }
 
     function updateSheetLink() {
-        const el = document.getElementById('sheet-link');
-        if(spreadsheetId) {
-            el.href = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
-            el.style.display = 'inline';
-        } else {
-            el.style.display = 'none';
-        }
+      if (spreadsheetId) {
+        sheetLink.href = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
+        sheetLink.style.display = "inline";
+      } else {
+        sheetLink.style.display = "none";
+      }
     }
 
-    function hardReset() {
-        if(!confirm("Disconnect from Google Sheet?")) return;
-        localStorage.removeItem('sheetId');
-        if(confirm("Also delete all local book data?")) {
-            localStorage.removeItem('myLibrary');
-        }
-        location.reload();
+    function setActiveTab(shelf) {
+      currentShelf = shelf;
+      tabRead.classList.toggle("active", shelf === "read");
+      tabWishlist.classList.toggle("active", shelf === "wishlist");
+      renderBooks();
     }
 
-    // --- AUTH ---
+    function getErrCode(e) {
+      // Google client often uses e.result.error.code, sometimes e.status
+      return e?.status ?? e?.result?.error?.code ?? null;
+    }
+
+    async function sleep(ms) {
+      return new Promise((r) => setTimeout(r, ms));
+    }
+
+    // =======================
+    // AUTH / GOOGLE INIT
+    // =======================
+    function maybeEnableAuth() {
+      if (gapiInited && gisInited) authBtn.disabled = false;
+    }
+
+    // Called by script tag onload
     function gapiLoaded() {
-        gapi.load('client', async () => {
-            try {
-                await gapi.client.init({ discoveryDocs: DISCOVERY });
-                gapiInited = true; maybeEnableAuth();
-            } catch(e) { logError("GAPI Init Failed", e); }
-        });
-    }
-    function gisLoaded() {
-        tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: CLIENT_ID, scope: SCOPES,
-            callback: async (resp) => {
-                if (resp.error) return logError("Auth Failed", resp);
-                gapi.client.setToken(resp);
-                document.getElementById('auth-btn').innerText = "Working...";
-                await doSync();
-            },
-        });
-        gisInited = true; maybeEnableAuth();
-    }
-    function maybeEnableAuth() { if (gapiInited && gisInited) document.getElementById('auth-btn').disabled = false; }
-    function handleAuthClick() { tokenClient.requestAccessToken({ prompt: 'consent' }); }
-
-    // --- SYNC ---
-    async function doSync() {
+      gapi.load("client", async () => {
         try {
-            if (!spreadsheetId) {
-                document.getElementById('auth-btn').innerText = "Creating Sheet...";
-                const createResp = await gapi.client.sheets.spreadsheets.create({
-                    properties: { title: "My Book App Data" }
-                });
-                spreadsheetId = createResp.result.spreadsheetId;
-                localStorage.setItem('sheetId', spreadsheetId);
-                
-                await gapi.client.sheets.spreadsheets.values.update({
-                    spreadsheetId, range: "Sheet1!A1:G1", valueInputOption: "RAW",
-                    resource: { values: [["ID", "Title", "Author", "Shelf", "Rating", "Cover", "Date"]] }
-                });
-            }
-
-            updateSheetLink();
-            document.getElementById('auth-btn').innerText = "Downloading...";
-            
-            const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1!A2:G999' });
-            const rows = resp.result.values;
-
-            if (rows && rows.length > 0) {
-                const newLib = { read: [], wishlist: [] };
-                rows.forEach(row => {
-                    if(!row[0]) return;
-                    const rawShelf = (row[3] || 'read').toLowerCase();
-                    const safeShelf = (rawShelf === 'read' || rawShelf === 'wishlist') ? rawShelf : 'read';
-                    
-                    // SAFE DATA LOADING
-                    const loadedCover = (row[5] === 'null' || !row[5]) ? null : row[5];
-                    
-                    newLib[safeShelf].push({
-                        id: Number(row[0]),
-                        title: row[1] || "Unknown Title",
-                        authors: [{name: row[2] || "Unknown Author"}],
-                        rating: Number(row[4] || 0),
-                        cover: loadedCover,
-                        dateRead: row[6] || ""
-                    });
-                });
-                library = newLib;
-                saveLocal(false);
-            } else {
-                await queueUpload();
-            }
-            document.getElementById('auth-btn').innerText = "Synced ✅";
-
-        } catch(e) { 
-            logError("Sync Failed", e);
-            const code = e?.result?.error?.code;
-            if (e?.status === 404 || code === 404) {
-                spreadsheetId = null;
-                localStorage.removeItem('sheetId');
-                updateSheetLink();
-                document.getElementById('auth-btn').innerText = "Sign In";
-                document.getElementById('auth-btn').disabled = false;
-                alert("Sheet deleted. Please Sign In again.");
-            }
+          await gapi.client.init({ discoveryDocs: DISCOVERY });
+          gapiInited = true;
+          maybeEnableAuth();
+        } catch (e) {
+          logError("GAPI init failed", e);
         }
+      });
+    }
+
+    // Called by script tag onload
+    function gisLoaded() {
+      try {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: CLIENT_ID,
+          scope: SCOPES,
+          callback: async (resp) => {
+            if (resp?.error) return logError("Auth failed", resp);
+            gapi.client.setToken(resp);
+            setAuthText("Working...");
+            await doSync();
+          },
+        });
+        gisInited = true;
+        maybeEnableAuth();
+      } catch (e) {
+        logError("GIS init failed", e);
+      }
+    }
+
+    function handleAuthClick() {
+      tokenClient.requestAccessToken({ prompt: "consent" });
+    }
+
+    // =======================
+    // SYNC (SHEETS)
+    // =======================
+    async function ensureSheet() {
+      if (spreadsheetId) return;
+
+      setAuthText("Creating Sheet...");
+      const createResp = await gapi.client.sheets.spreadsheets.create({
+        properties: { title: "My Book App Data" },
+      });
+
+      spreadsheetId = createResp.result.spreadsheetId;
+      localStorage.setItem("sheetId", spreadsheetId);
+      updateSheetLink();
+
+      await gapi.client.sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: HEADER_RANGE,
+        valueInputOption: "RAW",
+        resource: { values: [HEADER] },
+      });
+    }
+
+    async function doSync() {
+      try {
+        await ensureSheet();
+        updateSheetLink();
+
+        setAuthText("Downloading...");
+        const resp = await gapi.client.sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range: DATA_RANGE,
+        });
+
+        const rows = resp.result.values || [];
+
+        if (rows.length > 0) {
+          const newLib = { read: [], wishlist: [] };
+          for (const row of rows) {
+            if (!row?.[0]) continue;
+
+            const rawShelf = (row[3] || "read").toLowerCase();
+            const shelf = (rawShelf === "wishlist") ? "wishlist" : "read";
+
+            newLib[shelf].push({
+              id: Number(row[0]),
+              title: row[1] || "Unknown Title",
+              authors: [{ name: row[2] || "Unknown Author" }],
+              shelf,
+              rating: Number(row[4] || 0),
+              cover: row[5] === "null" ? null : (row[5] || null),
+              dateRead: row[6] || "",
+            });
+          }
+
+          library = newLib;
+          localStorage.setItem("myLibrary", JSON.stringify(library));
+          renderBooks();
+        } else {
+          // If sheet empty, upload local data
+          await queueUpload();
+        }
+
+        setAuthText("Synced ✅");
+      } catch (e) {
+        logError("Sync failed", e);
+        const code = getErrCode(e);
+
+        if (code === 404) {
+          spreadsheetId = null;
+          localStorage.removeItem("sheetId");
+          updateSheetLink();
+          setAuthText("Sign In");
+          authBtn.disabled = false;
+          alert("Sheet was deleted. Please Sign In again.");
+        }
+      }
     }
 
     async function queueUpload() {
-        if (isSyncing) { syncPending = true; return; }
-        isSyncing = true;
-        document.getElementById('auth-btn').innerText = "Saving...";
-        
-        try { 
-            // RETRY LOGIC (1 Retry)
-            try {
-                await uploadData();
-            } catch (err) {
-                if (err.status === 429 || err.status >= 500) {
-                     await new Promise(r => setTimeout(r, 2000));
-                     await uploadData(); 
-                } else { throw err; }
-            }
-            document.getElementById('auth-btn').innerText = "Synced ✅";
-        
-        } catch(e) {
-            logError("Upload Error", e);
-            const code = e?.result?.error?.code;
-            if (e?.status === 401 || e?.status === 403 || code === 401 || code === 403) {
-                document.getElementById('auth-btn').innerText = "Sign In";
-                document.getElementById('auth-btn').disabled = false;
-                gapi.client.setToken(null);
-                alert("Session expired. Please sign in again.");
-            } else {
-                document.getElementById('auth-btn').innerText = "Error ❌";
-            }
-        } finally {
-            isSyncing = false;
-            if (syncPending) { 
-                syncPending = false; 
-                setTimeout(queueUpload, 0); 
-            }
+      if (isSyncing) {
+        syncPending = true;
+        return;
+      }
+      isSyncing = true;
+      setAuthText("Saving...");
+
+      try {
+        // One retry on 429 / 5xx
+        try {
+          await uploadData();
+        } catch (err) {
+          const code = getErrCode(err);
+          if (code === 429 || (typeof code === "number" && code >= 500)) {
+            await sleep(2000);
+            await uploadData();
+          } else {
+            throw err;
+          }
         }
+
+        setAuthText("Synced ✅");
+      } catch (e) {
+        logError("Upload error", e);
+        const code = getErrCode(e);
+
+        // Session expired / forbidden
+        if (code === 401 || code === 403) {
+          setAuthText("Sign In");
+          authBtn.disabled = false;
+          gapi.client.setToken(null);
+          alert("Session expired. Please sign in again.");
+        } else {
+          setAuthText("Error ❌");
+        }
+      } finally {
+        isSyncing = false;
+        if (syncPending) {
+          syncPending = false;
+          setTimeout(queueUpload, 0);
+        }
+      }
     }
 
     async function uploadData() {
-        let rows = [];
-        ['read', 'wishlist'].forEach(shelf => {
-            library[shelf].forEach(b => {
-                const authorName = b.authors?.[0]?.name || "Unknown Author";
-                rows.push([b.id, b.title, authorName, shelf, b.rating || 0, b.cover || 'null', b.dateRead || ""]);
-            });
+      if (!spreadsheetId) return;
+
+      const rows = [];
+      for (const shelf of ["read", "wishlist"]) {
+        for (const b of library[shelf]) {
+          rows.push([
+            b.id,
+            b.title || "Unknown Title",
+            getAuthorName(b),
+            shelf,
+            Number(b.rating || 0),
+            b.cover ? String(b.cover) : "null",
+            shelf === "read" ? (b.dateRead || "") : "",
+          ]);
+        }
+      }
+
+      await gapi.client.sheets.spreadsheets.values.clear({
+        spreadsheetId,
+        range: DATA_RANGE,
+      });
+
+      if (rows.length > 0) {
+        await gapi.client.sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: `${SHEET_NAME}!A2`,
+          valueInputOption: "RAW",
+          resource: { values: rows },
         });
-        
-        await gapi.client.sheets.spreadsheets.values.clear({ spreadsheetId, range: "Sheet1!A2:G999" });
-        
-        if(rows.length > 0) {
-            await gapi.client.sheets.spreadsheets.values.update({
-                spreadsheetId, range: "Sheet1!A2", valueInputOption: "RAW", resource: { values: rows }
-            });
-        }
+      }
     }
 
-    // --- APP CORE ---
-    function switchShelf(shelf, el) {
-        currentShelf = shelf;
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        el.classList.add('active');
-        renderBooks();
-    }
-
-    // --- MODAL LOGIC ---
+    // =======================
+    // MODAL
+    // =======================
     function showModal(book) {
-        pendingBook = book;
-        const img = document.getElementById('modal-img');
-        
-        if (book.cover) {
-            img.src = book.cover;
-            img.style.display = "block"; // Changed to block for centering
-        } else {
-            img.removeAttribute('src');
-            img.style.display = "none";
-        }
+      pendingBook = book;
 
-        document.getElementById('modal-title').innerText = book.title;
-        document.getElementById('modal-author').innerText = getAuthorName(book);
-        document.getElementById('modal-overlay').style.display = "flex";
+      modalTitle.textContent = book.title || "Unknown Title";
+      modalAuthor.textContent = getAuthorName(book);
+
+      const cover = safeUrl(book.cover);
+      if (cover) {
+        modalImg.src = cover;
+        modalImg.style.display = "inline-block";
+      } else {
+        modalImg.removeAttribute("src");
+        modalImg.style.display = "none";
+      }
+
+      modalOverlay.style.display = "flex";
     }
 
     function closeModal() {
-        document.getElementById('modal-overlay').style.display = "none";
-        pendingBook = null;
-        scanLocked = false; 
+      modalOverlay.style.display = "none";
+      pendingBook = null;
+      scanLocked = false;
     }
 
     function confirmAdd(targetShelf) {
-        if (!pendingBook) return;
-        
-        const key = normKey(pendingBook);
-        const exists = library[targetShelf].some(b => normKey(b) === key);
-        
-        if (exists && !confirm("Book already in shelf. Add duplicate?")) {
-            closeModal();
-            return;
-        }
+      if (!pendingBook) return;
 
-        if (targetShelf === 'read') {
-            pendingBook.dateRead = new Date().toISOString().split('T')[0];
-        } else {
-            pendingBook.dateRead = "";
-        }
-        
-        library[targetShelf].push(pendingBook);
+      const key = normKey(pendingBook);
+      const exists = library[targetShelf].some((b) => normKey(b) === key);
+
+      if (exists && !confirm("Book already in shelf. Add duplicate?")) {
         closeModal();
-        
-        const tabIndex = targetShelf === 'read' ? 0 : 1;
-        switchShelf(targetShelf, document.querySelectorAll('.tab')[tabIndex]);
-        saveLocal(true, true); 
+        return;
+      }
+
+      const book = {
+        id: pendingBook.id || Date.now(),
+        title: pendingBook.title || "Unknown Title",
+        authors: pendingBook.authors?.length ? pendingBook.authors : [{ name: "Unknown Author" }],
+        rating: 0,
+        cover: safeUrl(pendingBook.cover) || null,
+        dateRead: targetShelf === "read" ? todayISO() : "",
+      };
+
+      library[targetShelf].push(book);
+
+      closeModal();
+      setActiveTab(targetShelf);
+      saveLibrary(true);
     }
 
-    // --- SEARCH / SCAN LOGIC ---
-    async function handleManualAdd() {
-        const val = document.getElementById('isbn-input').value.trim();
-        if (!val) return;
-        const isNum = /^[\d-]+$/.test(val) && val.replace(/-/g, "").length >= 9;
-        
-        document.getElementById('isbn-input').value = ""; 
-        
-        if (isNum) { await fetchAndPrompt(val); } 
-        else { await searchAndPrompt(val); }
-    }
-
-    async function searchAndPrompt(query) {
-        try {
-            const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=1`;
-            const res = await fetch(url);
-            const data = await res.json();
-            if (data.docs && data.docs.length > 0) {
-                const b = data.docs[0];
-                const coverUrl = b.cover_i ? `https://covers.openlibrary.org/b/id/${b.cover_i}-M.jpg` : null;
-                const author = b.author_name ? b.author_name[0] : "Unknown Author";
-                
-                showModal({
-                    title: b.title, authors: [{name: author}],
-                    cover: coverUrl, id: Date.now(), rating: 0
-                });
-            } else {
-                if(confirm("No match. Add text manually?")) {
-                    showModal({ title: query, authors: [{name: "Manual"}], cover: null, id: Date.now(), rating: 0 });
-                } else {
-                    scanLocked = false; 
-                }
-            }
-        } catch(e) { 
-            scanLocked = false; 
-            alert("Search error"); 
-        }
-    }
-
-    async function fetchAndPrompt(input) {
-        const clean = input.replace(/\D/g, ""); 
-        if(clean.length !== 10 && clean.length !== 13) {
-            scanLocked = false; 
-            return alert("Invalid ISBN.");
-        }
-
-        try {
-            const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${clean}&jscmd=data&format=json`);
-            const data = await res.json();
-            const key = `ISBN:${clean}`;
-            if (!data[key]) {
-                 if(confirm("ISBN not found. Search by text?")) { 
-                     searchAndPrompt("ISBN " + clean); 
-                 } else {
-                     scanLocked = false;
-                 }
-                 return;
-            }
-            const b = data[key];
-            showModal({
-                title: b.title, authors: b.authors || [{name: "Unknown"}],
-                cover: b.cover ? b.cover.medium : null, id: Date.now(), rating: 0
-            });
-        } catch(e) { 
-            scanLocked = false;
-            alert("Error fetching book."); 
-        }
-    }
-
+    // =======================
+    // BOOK ACTIONS
+    // =======================
     function moveToRead(id) {
-        const bookIndex = library['wishlist'].findIndex(b => b.id === id);
-        if (bookIndex === -1) return;
-        const book = library['wishlist'][bookIndex];
-        
-        library['wishlist'].splice(bookIndex, 1);
-        book.dateRead = new Date().toISOString().split('T')[0]; 
-        book.rating = 0; 
-        library['read'].push(book);
-        
-        switchShelf('read', document.querySelectorAll('.tab')[0]); 
-        saveLocal(true, true); 
+      const idx = library.wishlist.findIndex((b) => b.id === id);
+      if (idx === -1) return;
+
+      const book = library.wishlist[idx];
+      library.wishlist.splice(idx, 1);
+
+      book.dateRead = todayISO();
+      book.rating = 0;
+
+      library.read.push(book);
+
+      setActiveTab("read");
+      saveLibrary(true);
     }
 
     function deleteBook(id) {
-        if(!confirm("Delete?")) return;
-        library[currentShelf] = library[currentShelf].filter(b => b.id !== id);
-        saveLocal(true);
+      if (!confirm("Delete?")) return;
+      library[currentShelf] = library[currentShelf].filter((b) => b.id !== id);
+      saveLibrary(true);
     }
-    
+
     function updateRating(id, rating) {
-        const book = library['read'].find(b => b.id === id);
-        if(book) { book.rating = Number(rating); saveLocal(true); }
-    }
-    
-    function saveLocal(shouldSync, skipRender = false) {
-        localStorage.setItem('myLibrary', JSON.stringify(library));
-        if (!skipRender) renderBooks();
-        if (shouldSync && gapi.client.getToken()) queueUpload(); 
+      const book = library.read.find((b) => b.id === id);
+      if (!book) return;
+      book.rating = Number(rating);
+      saveLibrary(true);
     }
 
+    // =======================
+    // RENDER (DOM SAFE)
+    // =======================
     function renderBooks() {
-        const list = document.getElementById('book-list');
-        list.innerHTML = '';
-        library[currentShelf].slice().reverse().forEach(b => {
-            const li = document.createElement('li'); li.className = 'book-card';
-            const author = getAuthorName(b);
-            const safeTitle = esc(b.title);
-            const safeAuthor = esc(author);
-            const safeCover = esc(b.cover);
-            
-            let controlsHtml = '';
-            let metaHtml = `<div class="book-meta">${safeAuthor}</div>`;
-            
-            if(currentShelf === 'read') {
-                const dateDisplay = b.dateRead ? ` • ${b.dateRead}` : '';
-                metaHtml = `<div class="book-meta">${safeAuthor}${dateDisplay}</div>`;
-                controlsHtml = `
-                <select class="rating" onchange="updateRating(${b.id}, this.value)">
-                    <option value="0">Rate...</option>
-                    ${[1,2,3,4,5].map(n => `<option value="${n}" ${b.rating==n?'selected':''}>${'⭐'.repeat(n)}</option>`).join('')}
-                </select>
-                <div class="actions">
-                    <button class="delete-btn" onclick="deleteBook(${b.id})">Remove</button>
-                </div>`;
-            } else {
-                controlsHtml = `
-                <div class="actions">
-                    <button class="move-btn" onclick="moveToRead(${b.id})">✅ Mark Read</button>
-                    <button class="delete-btn" onclick="deleteBook(${b.id})">Remove</button>
-                </div>`;
-            }
+      list.innerHTML = "";
 
-            // ROBUST IMAGE FALLBACK: Swap to div on error
-            const placeholderHtml = '<div class="book-thumb" style="background:#ddd"></div>';
-            const imgTag = b.cover 
-                ? `<img src="${safeCover}" class="book-thumb" onerror="this.outerHTML='${placeholderHtml.replace(/"/g, "&quot;")}'">` 
-                : placeholderHtml;
+      const items = (library[currentShelf] || []).slice().reverse();
 
-            li.innerHTML = `
-                ${imgTag}
-                <div class="book-info">
-                    <div class="book-title">${safeTitle}</div>
-                    ${metaHtml}
-                    ${controlsHtml}
-                </div>
-            `;
-            list.appendChild(li);
+      for (const b of items) {
+        const li = document.createElement("li");
+        li.className = "book-card";
+
+        // Thumb
+        const cover = safeUrl(b.cover);
+        let thumb;
+        if (cover) {
+          thumb = document.createElement("img");
+          thumb.className = "book-thumb";
+          thumb.src = cover;
+          thumb.alt = "cover";
+          thumb.onerror = () => {
+            const fallback = document.createElement("div");
+            fallback.className = "book-thumb";
+            fallback.style.background = "#ddd";
+            thumb.replaceWith(fallback);
+          };
+        } else {
+          thumb = document.createElement("div");
+          thumb.className = "book-thumb";
+          thumb.style.background = "#ddd";
+        }
+
+        const info = document.createElement("div");
+        info.className = "book-info";
+
+        const title = document.createElement("div");
+        title.className = "book-title";
+        title.textContent = b.title || "Unknown Title";
+
+        const meta = document.createElement("div");
+        meta.className = "book-meta";
+        const author = getAuthorName(b);
+        const dateSuffix = (currentShelf === "read" && b.dateRead) ? ` • ${b.dateRead}` : "";
+        meta.textContent = author + dateSuffix;
+
+        info.appendChild(title);
+        info.appendChild(meta);
+
+        if (currentShelf === "read") {
+          const sel = document.createElement("select");
+          sel.className = "rating";
+
+          const opt0 = document.createElement("option");
+          opt0.value = "0";
+          opt0.textContent = "Rate...";
+          sel.appendChild(opt0);
+
+          for (let n = 1; n <= 5; n++) {
+            const opt = document.createElement("option");
+            opt.value = String(n);
+            opt.textContent = "⭐".repeat(n);
+            if (Number(b.rating) === n) opt.selected = true;
+            sel.appendChild(opt);
+          }
+
+          sel.addEventListener("change", () => updateRating(b.id, sel.value));
+          info.appendChild(sel);
+
+          const actions = document.createElement("div");
+          actions.className = "actions";
+
+          const del = document.createElement("button");
+          del.className = "delete-btn";
+          del.textContent = "Remove";
+          del.addEventListener("click", () => deleteBook(b.id));
+
+          actions.appendChild(del);
+          info.appendChild(actions);
+        } else {
+          const actions = document.createElement("div");
+          actions.className = "actions";
+
+          const move = document.createElement("button");
+          move.className = "move-btn";
+          move.textContent = "✅ Mark Read";
+          move.addEventListener("click", () => moveToRead(b.id));
+
+          const del = document.createElement("button");
+          del.className = "delete-btn";
+          del.textContent = "Remove";
+          del.addEventListener("click", () => deleteBook(b.id));
+
+          actions.appendChild(move);
+          actions.appendChild(del);
+          info.appendChild(actions);
+        }
+
+        li.appendChild(thumb);
+        li.appendChild(info);
+        list.appendChild(li);
+      }
+    }
+
+    // =======================
+    // SEARCH / ADD
+    // =======================
+    async function handleManualAdd() {
+      const val = input.value.trim();
+      if (!val) return;
+      input.value = "";
+
+      const isNum = /^[\d-]+$/.test(val) && val.replace(/-/g, "").length >= 9;
+      if (isNum) await fetchAndPrompt(val);
+      else await searchAndPrompt(val);
+    }
+
+    async function searchAndPrompt(query) {
+      try {
+        const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=1`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data?.docs?.length) {
+          const d = data.docs[0];
+          const coverUrl = d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : null;
+          const author = d.author_name ? d.author_name[0] : "Unknown Author";
+
+          showModal({
+            id: Date.now(),
+            title: d.title,
+            authors: [{ name: author }],
+            cover: coverUrl,
+          });
+        } else {
+          if (confirm("No match. Add text manually?")) {
+            showModal({
+              id: Date.now(),
+              title: query,
+              authors: [{ name: "Manual" }],
+              cover: null,
+            });
+          } else {
+            scanLocked = false;
+          }
+        }
+      } catch (e) {
+        scanLocked = false;
+        alert("Search error");
+      }
+    }
+
+    async function fetchAndPrompt(inputText) {
+      const clean = inputText.replace(/\D/g, "");
+      if (clean.length !== 10 && clean.length !== 13) {
+        scanLocked = false;
+        alert("Invalid ISBN.");
+        return;
+      }
+
+      try {
+        const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${clean}&jscmd=data&format=json`);
+        const data = await res.json();
+        const key = `ISBN:${clean}`;
+
+        if (!data[key]) {
+          if (confirm("ISBN not found. Search by text?")) {
+            await searchAndPrompt("ISBN " + clean);
+          } else {
+            scanLocked = false;
+          }
+          return;
+        }
+
+        const b = data[key];
+        showModal({
+          id: Date.now(),
+          title: b.title,
+          authors: b.authors?.length ? b.authors : [{ name: "Unknown Author" }],
+          cover: b.cover?.medium || null,
         });
+      } catch (e) {
+        scanLocked = false;
+        alert("Error fetching book.");
+      }
     }
 
-    // --- CAMERA ---
+    // =======================
+    // CAMERA
+    // =======================
     async function startCamera() {
-        document.getElementById('reader-container').style.display = 'block';
-        if (html5QrCode) { try { await html5QrCode.stop(); } catch(e){} }
-        html5QrCode = new Html5Qrcode("reader");
-        try {
-            await html5QrCode.start(
-                { facingMode: "environment" }, 
-                { fps: 10, qrbox: { width: 250, height: 250 } }, 
-                async (decodedText) => { 
-                    if (scanLocked) return;
-                    scanLocked = true;
-                    await stopCamera(); 
-                    await fetchAndPrompt(decodedText); 
-                }
-            );
-        } catch(err) {
-            document.getElementById('reader-container').style.display = 'none';
-            alert("Camera failed: " + err);
-        }
+      readerContainer.style.display = "block";
+
+      if (html5QrCode) {
+        try { await html5QrCode.stop(); } catch {}
+        try { html5QrCode.clear(); } catch {}
+      }
+
+      html5QrCode = new Html5Qrcode("reader");
+
+      try {
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          async (decodedText) => {
+            if (scanLocked) return;
+            scanLocked = true;
+            await stopCamera();
+            await fetchAndPrompt(decodedText);
+          }
+        );
+      } catch (err) {
+        readerContainer.style.display = "none";
+        scanLocked = false;
+        alert("Camera failed: " + err);
+      }
     }
+
     async function stopCamera() {
-        document.getElementById('reader-container').style.display = 'none';
-        if (html5QrCode) {
-            try { await html5QrCode.stop(); } catch(e) {}
-            try { html5QrCode.clear(); } catch(e) {}
-            html5QrCode = null;
-        }
+      readerContainer.style.display = "none";
+      if (!html5QrCode) return;
+      try { await html5QrCode.stop(); } catch {}
+      try { html5QrCode.clear(); } catch {}
+      html5QrCode = null;
     }
-</script>
+
+    // =======================
+    // RESET
+    // =======================
+    function hardReset() {
+      if (!confirm("Disconnect from Google Sheet?")) return;
+
+      localStorage.removeItem("sheetId");
+      spreadsheetId = null;
+      updateSheetLink();
+
+      if (confirm("Also delete all local book data?")) {
+        localStorage.removeItem("myLibrary");
+        library = { read: [], wishlist: [] };
+      }
+
+      location.reload();
+    }
+
+    // =======================
+    // EVENTS
+    // =======================
+    authBtn.addEventListener("click", handleAuthClick);
+    resetBtn.addEventListener("click", hardReset);
+
+    tabRead.addEventListener("click", () => setActiveTab("read"));
+    tabWishlist.addEventListener("click", () => setActiveTab("wishlist"));
+
+    btnAdd.addEventListener("click", handleManualAdd);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") handleManualAdd();
+    });
+
+    btnScan.addEventListener("click", startCamera);
+    btnStopCamera.addEventListener("click", stopCamera);
+
+    modalOverlay.addEventListener("click", (e) => {
+      if (e.target.id === "modal-overlay") closeModal();
+    });
+
+    modalAddRead.addEventListener("click", () => confirmAdd("read"));
+    modalAddWish.addEventListener("click", () => confirmAdd("wishlist"));
+    modalCancel.addEventListener("click", closeModal);
+
+    // =======================
+    // INIT
+    // =======================
+    updateSheetLink();
+    renderBooks();
+  </script>
 </body>
 </html>
