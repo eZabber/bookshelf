@@ -23,7 +23,17 @@
 
   <div id="menu-overlay"></div>
   <div id="side-menu">
-    <h2 class="menu-title">Settings & Filters</h2>
+    
+    <div class="menu-section">
+        <span class="menu-title" id="menu-lang">Language</span>
+        <select id="language-select" class="menu-select">
+            <option value="en">English 🇬🇧</option>
+            <option value="fi">Suomi 🇫🇮</option>
+            <option value="et">Eesti 🇪🇪</option>
+        </select>
+    </div>
+
+    <h2 class="menu-title" id="menu-settings">Settings & Filters</h2>
     <div class="menu-section">
         <button id="auth-btn" disabled>Sign In with Google</button>
         <div style="margin-top:10px; font-size:0.8rem; text-align:center;">
@@ -32,21 +42,21 @@
     </div>
     
     <div class="menu-section">
-      <span class="menu-title">Shelves</span>
+      <span class="menu-title" id="menu-shelves">Shelves</span>
       <div class="shelf-counters">
         
         <div class="stat-box">
-            <span class="stat-label">Read</span>
+            <span class="stat-label" id="label-stat-read">Read</span>
             <span id="count-read" class="stat-num">0</span>
         </div>
         
         <div class="stat-box">
-            <span class="stat-label">Wishlist</span>
+            <span class="stat-label" id="label-stat-wish">Wishlist</span>
             <span id="count-wishlist" class="stat-num">0</span>
         </div>
         
         <div class="stat-box">
-            <span class="stat-label">Loans</span>
+            <span class="stat-label" id="label-stat-loans">Loans</span>
             <span id="count-loans" class="stat-num">0</span>
         </div>
 
@@ -54,9 +64,9 @@
     </div>
 
     <div class="menu-section">
-        <label class="menu-title">Display</label>
+        <label class="menu-title" id="menu-display">Display</label>
         <div class="menu-row">
-            <span>Dark Mode</span>
+            <span id="label-darkmode">Dark Mode</span>
             <label class="toggle-switch">
                 <input type="checkbox" id="dark-mode-toggle">
                 <span class="slider"></span>
@@ -65,40 +75,41 @@
     </div>
 
     <div class="menu-section">
-        <label class="menu-title">Filter Books</label>
+        <label class="menu-title" id="menu-filter">Filter Books</label>
         <input type="text" id="filter-text" class="menu-input" placeholder="Title, Author, or ISBN">
         
         <div class="filter-grid">
             <div class="filter-field">
-                <label for="filter-year">Year</label>
+                <label for="filter-year" id="label-year">Year</label>
                 <input type="text" id="filter-year" class="menu-input" placeholder="YYYY" inputmode="numeric" maxlength="4">
             </div>
             <div class="filter-field">
-                <label for="filter-month">Month</label>
+                <label for="filter-month" id="label-month">Month</label>
                 <select id="filter-month" class="menu-select">
                     <option value="">All</option>
-                    <option value="01">Jan</option><option value="02">Feb</option><option value="03">Mar</option>
-                    <option value="04">Apr</option><option value="05">May</option><option value="06">Jun</option>
-                    <option value="07">Jul</option><option value="08">Aug</option><option value="09">Sep</option>
-                    <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+                    <option value="01">01</option><option value="02">02</option><option value="03">03</option>
+                    <option value="04">04</option><option value="05">05</option><option value="06">06</option>
+                    <option value="07">07</option><option value="08">08</option><option value="09">09</option>
+                    <option value="10">10</option><option value="11">11</option><option value="12">12</option>
                 </select>
             </div>
         </div>
 
         <div class="menu-row" style="margin-top:12px;">
-            <span>Rating</span>
+            <span id="label-rating">Rating</span>
             <select id="filter-rating" class="menu-select" style="width: 60%;">
-                <option value="">All Ratings</option>
-                <option value="5">5 Stars Only</option>
-                <option value="4">4 Stars Only</option>
-                <option value="3">3 Stars Only</option>
-                <option value="2">2 Stars Only</option>
-                <option value="1">1 Star Only</option>
+                <option value="">All</option>
+                <option value="5">5 ★</option>
+                <option value="4">4 ★</option>
+                <option value="3">3 ★</option>
+                <option value="2">2 ★</option>
+                <option value="1">1 ★</option>
             </select>
         </div>
         
         <div class="menu-actions">
-            <button class="btn-sm" onclick="clearFilters()" style="width:100%;">Clear Filters</button>
+            <button class="btn-sm btn-primary" id="btn-apply-filters" style="width:100%; margin-bottom:8px; background-color: var(--accent); color: white; border:none;">Apply Filters</button>
+            <button class="btn-sm" id="btn-clear-filters" style="width:100%;">Clear Filters</button>
         </div>
     </div>
 
@@ -116,7 +127,7 @@
   </div>
 
   <div class="controls">
-    <input type="text" id="isbn-input" placeholder="Search ISBN, Title, Author…" />
+    <input type="text" id="isbn-input" placeholder="..." />
     <button class="action-btn" id="btn-add">Add</button>
     <button class="action-btn scan-btn" id="btn-scan">📷</button>
   </div>
@@ -140,7 +151,7 @@
       <div style="font-size:0.8rem; color:var(--meta); margin-bottom:10px; font-family:monospace;" id="modal-isbn"></div>
       
       <div class="modal-input-row" style="justify-content: center; gap: 10px;">
-        <span>🎧 Storytel / Audio?</span>
+        <span id="label-audio">🎧 Audio?</span>
         <label class="toggle-switch">
             <input type="checkbox" id="modal-audio-check">
             <span class="slider"></span>
@@ -148,7 +159,7 @@
       </div>
 
       <div id="loan-date-row" class="modal-input-row" style="display:none; justify-content:center; gap:10px;">
-        <span>📅 Return date</span>
+        <span id="label-return">📅 Return</span>
         <input type="date" id="modal-return-date" style="padding:6px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text);">
       </div>
 
