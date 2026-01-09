@@ -14,7 +14,7 @@ const TRANSLATIONS = {
         read: "Read", wishlist: "Wishlist", loans: "Loans",
         settings: "Settings & Filters", shelves: "Shelves", display: "Display",
         filter: "Filter Books", year: "Year", month: "Month", rating: "Rating",
-        apply: "Apply Filters", clear: "Clear Filters", reset: "Reset App Data",
+        clear: "Clear Filters", reset: "Reset App Data",
         dark: "Dark Mode", lang: "Language",
         search: "Search ISBN, Title, Author...", add: "Add",
         signIn: "Sign In with Google", working: "Working...", synced: "Synced ✅", 
@@ -28,7 +28,7 @@ const TRANSLATIONS = {
         read: "Luetut", wishlist: "Toivelista", loans: "Lainassa",
         settings: "Asetukset", shelves: "Hyllyt", display: "Näkymä",
         filter: "Suodata", year: "Vuosi", month: "Kuukausi", rating: "Arvosana",
-        apply: "Käytä suodattimia", clear: "Tyhjennä", reset: "Nollaa tiedot",
+        clear: "Tyhjennä", reset: "Nollaa tiedot",
         dark: "Tumma tila", lang: "Kieli",
         search: "Etsi ISBN, Nimi, Kirjailija...", add: "Lisää",
         signIn: "Kirjaudu Googlella", working: "Työskennellään...", synced: "Synkattu ✅", 
@@ -42,7 +42,7 @@ const TRANSLATIONS = {
         read: "Loetud", wishlist: "Soovinimekiri", loans: "Laenatud",
         settings: "Sätted", shelves: "Riiulid", display: "Kuva",
         filter: "Filtreeri", year: "Aasta", month: "Kuu", rating: "Hinne",
-        apply: "Rakenda filtreid", clear: "Tühjenda", reset: "Lähtesta andmed",
+        clear: "Tühjenda", reset: "Lähtesta andmed",
         dark: "Tume režiim", lang: "Keel",
         search: "Otsi ISBN, Pealkiri, Autor...", add: "Lisa",
         signIn: "Logi sisse Google'iga", working: "Töötan...", synced: "Sünkroonitud ✅", 
@@ -98,6 +98,7 @@ function setLanguage(lang) {
     $("label-month").textContent = t("month");
     $("label-rating").textContent = t("rating");
     
+    // Removed: $("btn-apply-filters").textContent = t("apply"); 
     $("btn-clear-filters").textContent = t("clear");
     $("reset-btn").textContent = t("reset");
     
@@ -675,9 +676,6 @@ function setSmartPlaceholder() {
     el.placeholder = window.matchMedia("(max-width: 420px)").matches ? "..." : t("search");
 }
 
-// =======================
-// INITIALIZATION
-// =======================
 window.addEventListener("DOMContentLoaded", () => {
     try {
         library = loadLibrary();
