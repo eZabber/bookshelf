@@ -65,10 +65,7 @@
         height: 42px; line-height: 20px;
     }
     
-    /* Year input: fixed width but safe on mobile */
-    #filter-year {
-        width: 80px; text-align: center;
-    }
+    #filter-year { width: 80px; text-align: center; }
 
     .menu-select {
         width: 100%; box-sizing: border-box; height: 42px;
@@ -83,7 +80,7 @@
     .filter-field label { display: block; font-size: 0.8rem; color: var(--meta); margin-bottom: 6px; }
     .menu-actions { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 12px; }
 
-    /* REDESIGNED COUNTERS (Stats Bar) */
+    /* REDESIGNED COUNTERS */
     .shelf-counters { 
         display: flex; justify-content: space-between; 
         background: var(--isbn-bg); 
@@ -125,11 +122,14 @@
         background: var(--isbn-bg); padding: 2px 6px; border-radius: 4px; margin-bottom: 8px; border: 1px solid var(--border);
     }
     
-    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; align-items: center; }
     
     /* BUTTON STYLES */
     .btn-sm { border: 1px solid var(--border); background: none; color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; }
-    .btn-del { color: #e74c3c; border-color: #e74c3c; }
+    
+    /* ICON ONLY DELETE BUTTON */
+    .btn-del { color: #e74c3c; border: 1px solid #e74c3c; padding: 6px 10px; border-radius: 6px; font-size: 0.9rem; cursor: pointer; background: transparent; }
+    
     .btn-unread { border: 1px solid var(--meta); color: var(--meta); background: none; padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; }
     .move-btn { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 500; }
     .btn-cal { border: 1px solid var(--loan); color: var(--loan); background: none; padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; }
@@ -513,12 +513,15 @@
             } else {
                 const moveBtn = document.createElement("button"); 
                 moveBtn.className = "move-btn"; 
-                moveBtn.textContent = "✅ Mark Read"; 
+                moveBtn.textContent = "Mark Read"; 
                 moveBtn.onclick = () => moveToRead(b.id);
                 actions.appendChild(moveBtn);
             }
 
-            const delBtn = document.createElement("button"); delBtn.className = "btn-sm btn-del"; delBtn.textContent = "Remove"; delBtn.onclick = () => deleteBook(b.id);
+            const delBtn = document.createElement("button"); 
+            delBtn.className = "btn-del"; 
+            delBtn.textContent = "🗑️"; // ICON ONLY
+            delBtn.onclick = () => deleteBook(b.id);
             actions.appendChild(delBtn);
 
             if(currentShelf === 'loans' && b.returnDate) {
@@ -765,6 +768,32 @@
         }
     }
 
+    async function addToCalendar(book) {
+        if (!gapi?.client?.getToken?.()) return alert("Please Sign In to add Calendar reminders.");
+        if (!book.returnDate) return alert("No return date set for this book.");
+        if (!confirm(`Add reminder to Google Calendar for "${book.title}"?\n(Note: If you already added one, this creates a duplicate.)`)) return;
+
+        const dateObj = new Date(book.returnDate);
+        dateObj.setDate(dateObj.getDate() - 1);
+        const reminderDate = dateObj.toISOString().split('T')[0];
+
+        try {
+            await gapi.client.calendar.events.insert({
+                'calendarId': 'primary',
+                'resource': {
+                    'summary': `Return Library Book: ${book.title}`,
+                    'description': `Return to library. Book by ${getAuthorName(book)}.`,
+                    'start': { 'date': reminderDate }, 'end': { 'date': reminderDate },
+                    'reminders': { 'useDefault': false, 'overrides': [ {'method': 'popup', 'minutes': 9 * 60} ] }
+                }
+            });
+            alert("Calendar event created! 📅");
+        } catch (e) {
+            logError("Calendar Error", e);
+            alert("Could not add to Calendar. Check permissions.");
+        }
+    }
+
     function showModal(book, scannedIsbn = "") {
         pendingBook = book;
         if(scannedIsbn) pendingBook.isbn = scannedIsbn;
@@ -873,6 +902,7 @@
             : "Scan or type an ISBN… or just name the book";
     }
     window.addEventListener("resize", setSmartPlaceholder);
+    window.addEventListener("orientationchange", setSmartPlaceholder);
 
     // =======================
     // SAFE INITIALIZATION
