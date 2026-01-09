@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Cloud Library V2</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    /* --- CSS VARIABLES (Theming) --- */
+    :root { 
+        --primary: #2c3e50; 
+        --accent: #27ae60; 
+        --loan: #e67e22; 
+        --bg: #f8f7f4; 
+        --card: #ffffff; 
+        --text: #333333;
+        --meta: #666666;
+        --border: #dddddd;
+        --shadow: rgba(0,0,0,0.05);
+    }
+
+    body.dark-mode {
+        --primary: #ecf0f1;
+        --accent: #2ecc71;
+        --loan: #d35400;
+        --bg: #121212;
+        --card: #1e1e1e;
+        --text: #e0e0e0;
+        --meta: #aaaaaa;
+        --border: #333333;
+        --shadow: rgba(0,0,0,0.5);
+    }
+
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); max-width: 600px; margin: 0 auto; padding: 20px; transition: background 0.3s; }
+
+    /* --- HEADER & HAMBURGER --- */
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    h1 { margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+    
+    #menu-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text); }
+    
+    /* SLIDE-OUT MENU */
+    #side-menu {
+        position: fixed; top: 0; left: 0; width: 280px; height: 100%; background: var(--card); 
+        box-shadow: 2px 0 10px rgba(0,0,0,0.2); transform: translateX(-100%); transition: transform 0.3s ease;
+        z-index: 2000; padding: 20px; display: flex; flex-direction: column; gap: 15px;
+    }
+    #side-menu.open { transform: translateX(0); }
+    #menu-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1999; }
+    
+    .menu-section { border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 10px; }
+    .menu-title { font-weight: bold; margin-bottom: 10px; color: var(--primary); display: block; }
+    .menu-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    
+    /* --- AUTH & CONTROLS --- */
+    #auth-btn { background: #4285F4; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: 500; font-size: 0.85rem; cursor: pointer; width: 100%; }
+    #auth-btn:disabled { background: #ccc; cursor: not-allowed; }
+    
+    .tabs { display: flex; background: var(--border); border-radius: 8px; padding: 4px; margin-bottom: 20px; }
+    .tab { flex: 1; text-align: center; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.9rem; color: var(--meta); user-select: none; }
+    .tab.active { background: var(--card); color: var(--text); box-shadow: 0 2px 4px var(--shadow); font-weight: bold; }
+
+    .controls { display: flex; gap: 8px; margin-bottom: 20px; }
+    input { flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; background: var(--card); color: var(--text); }
+    button.action-btn { padding: 10px 16px; border: none; border-radius: 8px; background: var(--primary); color: var(--bg); font-weight: 600; cursor: pointer; }
+    button.scan-btn { background: var(--accent); color: white; }
+
+    /* --- READER & LIST --- */
+    #reader-container { display: none; margin-bottom: 15px; }
+    #reader { width: 100%; border-radius: 8px; overflow: hidden; background: black; }
+
+    ul { list-style: none; padding: 0; }
+    .book-card { background: var(--card); padding: 12px; margin-bottom: 12px; border-radius: 12px; box-shadow: 0 2px 8px var(--shadow); display: flex; gap: 12px; align-items: start; border: 1px solid var(--border); position: relative; }
+    
+    .audio-badge { position: absolute; top: 10px; left: 10px; background: #e74c3c; color: white; font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; z-index: 10; font-weight: bold; }
+    .loan-badge { background: var(--loan); color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px; }
+
+    .book-thumb { width: 60px; height: 90px; background: #eee; border-radius: 4px; object-fit: cover; flex-shrink: 0; }
+    .book-info { flex: 1; min-width: 0; }
+    .book-title { font-weight: 600; font-size: 1rem; margin-bottom: 4px; line-height: 1.3; }
+    .book-meta { color: var(--meta); font-size: 0.85rem; margin-bottom: 6px; line-height: 1.4; }
+    .isbn-text { font-size: 0.7rem; color: var(--meta); font-family: monospace; }
+
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+    .btn-sm { border: 1px solid var(--border); background: none; color: var(--text); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
+    .btn-del { color: #e74c3c; border-color: #e74c3c; }
+    
+    select.rating { display: block; margin-top: 5px; padding: 4px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem; background: var(--card); color: var(--text); }
+
+    /* --- MODAL --- */
+    #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 3000; align-items: center; justify-content: center; }
+    .modal-content { background: var(--card); padding: 20px; border-radius: 12px; width: 90%; max-width: 340px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.3); color: var(--text); }
+    .modal-cover { width: 90px; height: 135px; object-fit: cover; background: #eee; border-radius: 6px; margin-bottom: 15px; display: none; margin-left: auto; margin-right: auto; }
+    .modal-input-row { display: flex; align-items: center; justify-content: space-between; margin: 10px 0; font-size: 0.9rem; }
+    .modal-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
+    .btn-choice { padding: 12px; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 500; }
+    .btn-primary { background: var(--primary); color: var(--bg); }
+    .btn-loan { background: var(--loan); color: white; }
+    .btn-cancel { background: var(--border); color: var(--text); }
+    
+    /* Toggle Switch */
+    .toggle-switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
+    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--accent); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    /* Debug Log */
+    #debug-log { background: #fee; color: #c00; padding: 10px; font-family: monospace; font-size: 10px; display: none; word-wrap: break-word; }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <button id="menu-btn">☰</button>
+    <h1>📚 Cloud Library</h1>
+    <div style="width: 24px;"></div> </header>
+
+  <div id="menu-overlay"></div>
+  <div id="side-menu">
+    <h2 class="menu-title">Settings & Filters</h2>
+    
+    <div class="menu-section">
+        <button id="auth-btn" disabled>Sign In with Google</button>
+        <div style="margin-top:10px; font-size:0.8rem; text-align:center;">
+            <a id="sheet-link" target="_blank" href="#" style="display:none; color:var(--accent);">↗️ Open Google Sheet</a>
+        </div>
+    </div>
+
+    <div class="menu-section">
+        <label class="menu-title">Display</label>
+        <div class="menu-row">
+            <span>Dark Mode</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="dark-mode-toggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <div class="menu-section">
+        <label class="menu-title">Filter Books</label>
+        <input type="text" id="filter-text" placeholder="Filter by Title/Author" style="width: 100%; box-sizing:border-box; margin-bottom:8px;">
+        
+        <div class="menu-row">
+            <span>Year:</span>
+            <input type="number" id="filter-year" placeholder="YYYY" style="width: 70px; padding: 5px;">
+        </div>
+        <div class="menu-row">
+            <span>Month:</span>
+            <select id="filter-month" style="padding: 5px; border-radius:4px;">
+                <option value="">All</option>
+                <option value="01">Jan</option><option value="02">Feb</option><option value="03">Mar</option>
+                <option value="04">Apr</option><option value="05">May</option><option value="06">Jun</option>
+                <option value="07">Jul</option><option value="08">Aug</option><option value="09">Sep</option>
+                <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+            </select>
+        </div>
+        <button class="btn-sm" onclick="clearFilters()" style="width:100%; margin-top:5px;">Clear Filters</button>
+    </div>
+
+    <div class="menu-section">
+        <button id="reset-btn" class="btn-sm btn-del" style="width:100%;">Reset App Data</button>
+    </div>
+  </div>
+
+  <div id="debug-log"></div>
+
+  <div class="tabs">
+    <div class="tab active" id="tab-read">Read</div>
+    <div class="tab" id="tab-wishlist">Wishlist</div>
+    <div class="tab" id="tab-loans">Loans</div>
+  </div>
+
+  <div class="controls">
+    <input type="text" id="isbn-input" placeholder="ISBN or Title" />
+    <button class="action-btn" id="btn-add">Add</button>
+    <button class="action-btn scan-btn" id="btn-scan">📷</button>
+  </div>
+
+  <div id="reader-container">
+    <div id="reader"></div>
+    <button id="btn-stop-camera" style="width:100%;padding:10px;margin-top:10px;background:#eee;border:none;border-radius:4px;color:#333;">Stop Camera</button>
+  </div>
+
+  <ul id="book-list"></ul>
+
+  <div id="modal-overlay">
+    <div class="modal-content">
+      <img id="modal-img" class="modal-cover" src="" alt="cover" onerror="this.style.display='none'"/>
+      <div id="modal-title" class="modal-title"></div>
+      <div id="modal-author" class="modal-author"></div>
+      <div style="font-size:0.8rem; color:var(--meta); margin-bottom:10px;" id="modal-isbn"></div>
+
+      <div class="modal-input-row" style="justify-content: center; gap: 10px;">
+        <span>🎧 Storytel / Audio?</span>
+        <label class="toggle-switch">
+            <input type="checkbox" id="modal-audio-check">
+            <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="modal-btns">
+        <button class="btn-choice btn-primary" id="modal-add-read">Add to Read</button>
+        <button class="btn-choice btn-primary" id="modal-add-wish" style="background:var(--accent);">Add to Wishlist</button>
+        <button class="btn-choice btn-loan" id="modal-add-loan">Add to Loans</button>
+        <button class="btn-choice btn-cancel" id="modal-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+  <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+
+  <script>
+    // =======================
+    // CONFIG
+    // =======================
+    const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
+    // Added calendar.events scope
+    const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar.events";
+    const DISCOVERY = [
+        "https://sheets.googleapis.com/$discovery/rest?version=v4",
+        "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"
+    ];
+
+    // Sheet layout: Added ReturnDate (H), Audio (I), ISBN (J)
+    const SHEET_NAME = "Sheet1";
+    const HEADER_RANGE = `${SHEET_NAME}!A1:J1`;
+    const DATA_RANGE = `${SHEET_NAME}!A2:J999`;
+    const HEADER = ["ID", "Title", "Author", "Shelf", "Rating", "Cover", "Date", "ReturnDate", "Audio", "ISBN"];
+
+    // =======================
+    // STATE
+    // =======================
+    let tokenClient = null;
+    let gapiInited = false;
+    let gisInited = false;
+
+    let spreadsheetId = localStorage.getItem("sheetId") || null;
+    let currentShelf = "read"; // "read", "wishlist", "loans"
+    // library now supports { read:[], wishlist:[], loans:[] }
+    let library = loadLibrary(); 
+
+    let html5QrCode = null;
+    let scanLocked = false;
+    let pendingBook = null;
+    let isSyncing = false;
+    let syncPending = false;
+
+    // Filters
+    let filterState = { text: "", year: "", month: "" };
+
+    // =======================
+    // DOM ELEMENTS
+    // =======================
+    const $ = (id) => document.getElementById(id);
+    const sideMenu = $("side-menu");
+    const menuOverlay = $("menu-overlay");
+    const body = document.body;
+
+    // =======================
+    // HELPERS
+    // =======================
+    function logError(msg, err) {
+        $("debug-log").style.display = "block";
+        $("debug-log").textContent = "ERROR: " + msg + "\nDETAILS: " + safeStringify(err);
+        console.error(msg, err);
+    }
+    function safeStringify(x) {
+        try { return JSON.stringify(x, null, 2); } catch { return String(x); }
+    }
+    function todayISO() { return new Date().toISOString().split("T")[0]; }
+    function getAuthorName(b) { return (b?.authors?.[0]?.name || "Unknown").toString(); }
+    function normKey(b) { return ((b?.title || "") + "|" + getAuthorName(b)).toLowerCase().trim(); }
+    function safeUrl(url) {
+        if(!url) return "";
+        try { const u = new URL(url); return (u.protocol === "http:" || u.protocol === "https:") ? u.href : ""; }
+        catch { return ""; }
+    }
+    function getErrCode(e) { return e?.status ?? e?.result?.error?.code ?? null; }
+    async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    // =======================
+    // DATA LAYER
+    // =======================
+    function loadLibrary() {
+        try {
+            const raw = JSON.parse(localStorage.getItem("myLibrary"));
+            if (raw && typeof raw === "object") {
+                return {
+                    read: Array.isArray(raw.read) ? raw.read : [],
+                    wishlist: Array.isArray(raw.wishlist) ? raw.wishlist : [],
+                    loans: Array.isArray(raw.loans) ? raw.loans : []
+                };
+            }
+        } catch {}
+        return { read: [], wishlist: [], loans: [] };
+    }
+
+    function saveLibrary(shouldSync, skipRender = false) {
+        localStorage.setItem("myLibrary", JSON.stringify(library));
+        if (!skipRender) renderBooks();
+        if (shouldSync && gapi?.client?.getToken?.()) queueUpload();
+    }
+
+    // =======================
+    // AUTH & SYNC
+    // =======================
+    function gapiLoaded() {
+        gapi.load("client", async () => {
+            try {
+                await gapi.client.init({ discoveryDocs: DISCOVERY });
+                gapiInited = true; maybeEnableAuth();
+            } catch (e) { logError("GAPI Init Fail", e); }
+        });
+    }
+    function gisLoaded() {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID, scope: SCOPES,
+            callback: async (resp) => {
+                if (resp.error) return logError("Auth Fail", resp);
+                gapi.client.setToken(resp);
+                $("auth-btn").textContent = "Working...";
+                await doSync();
+            }
+        });
+        gisInited = true; maybeEnableAuth();
+    }
+    function maybeEnableAuth() { if (gapiInited && gisInited) $("auth-btn").disabled = false; }
+    
+    async function ensureSheet() {
+        if (spreadsheetId) return;
+        $("auth-btn").textContent = "Creating Sheet...";
+        const createResp = await gapi.client.sheets.spreadsheets.create({ properties: { title: "My Book App Data" } });
+        spreadsheetId = createResp.result.spreadsheetId;
+        localStorage.setItem("sheetId", spreadsheetId);
+        updateSheetLink();
+        await gapi.client.sheets.spreadsheets.values.update({
+            spreadsheetId, range: HEADER_RANGE, valueInputOption: "RAW", resource: { values: [HEADER] }
+        });
+    }
+
+    async function doSync() {
+        try {
+            await ensureSheet();
+            updateSheetLink();
+            $("auth-btn").textContent = "Downloading...";
+            
+            const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range: DATA_RANGE });
+            const rows = resp.result.values || [];
+
+            if (rows.length > 0) {
+                const newLib = { read: [], wishlist: [], loans: [] };
+                rows.forEach(row => {
+                    if (!row?.[0]) return;
+                    // H=ReturnDate, I=Audio, J=ISBN
+                    let shelf = (row[3] || "read").toLowerCase();
+                    if(!['read','wishlist','loans'].includes(shelf)) shelf = 'read';
+
+                    newLib[shelf].push({
+                        id: Number(row[0]),
+                        title: row[1] || "Unknown",
+                        authors: [{ name: row[2] || "Unknown" }],
+                        shelf: shelf,
+                        rating: Number(row[4] || 0),
+                        cover: row[5] === "null" ? null : (row[5] || null),
+                        dateRead: row[6] || "",
+                        returnDate: row[7] || "",
+                        isAudio: row[8] === "TRUE",
+                        isbn: row[9] || ""
+                    });
+                });
+                library = newLib;
+                saveLibrary(false); // No sync back
+            } else {
+                await queueUpload();
+            }
+            $("auth-btn").textContent = "Synced ✅";
+        } catch (e) {
+            logError("Sync Error", e);
+            if (getErrCode(e) === 404) {
+                spreadsheetId = null; localStorage.removeItem("sheetId");
+                updateSheetLink(); $("auth-btn").textContent = "Sign In"; $("auth-btn").disabled = false;
+                alert("Sheet deleted. Please Sign In again.");
+            }
+        }
+    }
+
+    async function queueUpload() {
+        if (isSyncing) { syncPending = true; return; }
+        isSyncing = true;
+        $("auth-btn").textContent = "Saving...";
+        
+        try {
+            try { await uploadData(); }
+            catch (err) {
+                if (err.status === 429 || err.status >= 500) { await sleep(2000); await uploadData(); }
+                else throw err;
+            }
+            $("auth-btn").textContent = "Synced ✅";
+        } catch (e) {
+            logError("Upload Error", e);
+            if ([401, 403].includes(getErrCode(e))) {
+                $("auth-btn").textContent = "Sign In"; $("auth-btn").disabled = false;
+                gapi.client.setToken(null);
+                alert("Session expired. Please sign in.");
+            } else {
+                $("auth-btn").textContent = "Error ❌";
+            }
+        } finally {
+            isSyncing = false;
+            if (syncPending) { syncPending = false; setTimeout(queueUpload, 0); }
+        }
+    }
+
+    async function uploadData() {
+        if (!spreadsheetId) return;
+        let rows = [];
+        ['read', 'wishlist', 'loans'].forEach(shelf => {
+            library[shelf].forEach(b => {
+                rows.push([
+                    b.id, b.title, getAuthorName(b), shelf, Number(b.rating||0),
+                    b.cover ? String(b.cover) : "null",
+                    b.dateRead || "",
+                    b.returnDate || "",
+                    b.isAudio ? "TRUE" : "FALSE",
+                    b.isbn || ""
+                ]);
+            });
+        });
+        await gapi.client.sheets.spreadsheets.values.clear({ spreadsheetId, range: DATA_RANGE });
+        if (rows.length > 0) {
+            await gapi.client.sheets.spreadsheets.values.update({
+                spreadsheetId, range: `${SHEET_NAME}!A2`, valueInputOption: "RAW", resource: { values: rows }
+            });
+        }
+    }
+
+    // =======================
+    // CALENDAR INTEGRATION
+    // =======================
+    async function addToCalendar(book) {
+        if (!book.returnDate) return;
+        if (!confirm(`Add reminder to Google Calendar for "${book.title}"?`)) return;
+
+        // Calculate 1 day before
+        const dateObj = new Date(book.returnDate);
+        dateObj.setDate(dateObj.getDate() - 1);
+        const reminderDate = dateObj.toISOString().split('T')[0];
+
+        const event = {
+            'summary': `Return Library Book: ${book.title}`,
+            'description': `Return to library. Book by ${getAuthorName(book)}.`,
+            'start': { 'date': reminderDate },
+            'end': { 'date': reminderDate },
+            'reminders': {
+                'useDefault': false,
+                'overrides': [ {'method': 'popup', 'minutes': 9 * 60} ] // 9 AM
+            }
+        };
+
+        try {
+            await gapi.client.calendar.events.insert({
+                'calendarId': 'primary',
+                'resource': event
+            });
+            alert("Calendar event created! 📅");
+        } catch (e) {
+            logError("Calendar Error", e);
+            alert("Could not add to Calendar. Check permissions.");
+        }
+    }
+
+    // =======================
+    // MODAL & LOGIC
+    // =======================
+    function showModal(book, scannedIsbn = "") {
+        pendingBook = book;
+        // Inject ISBN if we have it from scan/manual
+        if(scannedIsbn) pendingBook.isbn = scannedIsbn;
+
+        $("modal-title").textContent = book.title;
+        $("modal-author").textContent = getAuthorName(book);
+        $("modal-isbn").textContent = pendingBook.isbn ? `ISBN: ${pendingBook.isbn}` : "";
+        $("modal-audio-check").checked = false; // Reset
+
+        const cover = safeUrl(book.cover);
+        const img = $("modal-img");
+        if (cover) { img.src = cover; img.style.display = "block"; }
+        else { img.removeAttribute("src"); img.style.display = "none"; }
+
+        $("modal-overlay").style.display = "flex";
+    }
+
+    function confirmAdd(targetShelf) {
+        if (!pendingBook) return;
+        
+        // Duplicate Check
+        const key = normKey(pendingBook);
+        const exists = library[targetShelf].some(b => normKey(b) === key);
+        if (exists && !confirm("Book exists in shelf. Add duplicate?")) {
+            closeModal(); return;
+        }
+
+        let retDate = "";
+        if (targetShelf === 'loans') {
+            const userDate = prompt("Enter Return Date (YYYY-MM-DD):", "");
+            if (userDate) retDate = userDate;
+        }
+
+        const newBook = {
+            id: Date.now(),
+            title: pendingBook.title || "Unknown",
+            authors: pendingBook.authors || [{name:"Unknown"}],
+            rating: 0,
+            cover: safeUrl(pendingBook.cover) || null,
+            dateRead: targetShelf === 'read' ? todayISO() : "",
+            returnDate: retDate,
+            isAudio: $("modal-audio-check").checked,
+            isbn: pendingBook.isbn || ""
+        };
+
+        library[targetShelf].push(newBook);
+        closeModal();
+        
+        // Auto-switch to that tab
+        setActiveTab(targetShelf);
+        
+        // Check Calendar
+        if(targetShelf === 'loans' && retDate) addToCalendar(newBook);
+
+        saveLibrary(true, true); // Skip render
+    }
+
+    function closeModal() {
+        $("modal-overlay").style.display = "none";
+        pendingBook = null; scanLocked = false;
+    }
+
+    // =======================
+    // UI ACTIONS
+    // =======================
+    function setActiveTab(shelf) {
+        currentShelf = shelf;
+        ["read", "wishlist", "loans"].forEach(s => {
+            $(`tab-${s}`).classList.toggle("active", s === shelf);
+        });
+        renderBooks();
+    }
+
+    function moveToRead(id) {
+        // Search in wishlist OR loans
+        let fromShelf = library.wishlist.find(b => b.id === id) ? 'wishlist' : 'loans';
+        const idx = library[fromShelf].findIndex(b => b.id === id);
+        if (idx === -1) return;
+
+        const book = library[fromShelf][idx];
+        library[fromShelf].splice(idx, 1);
+        
+        book.dateRead = todayISO();
+        book.returnDate = ""; // Clear return date if it was a loan
+        book.rating = 0;
+        
+        library.read.push(book);
+        setActiveTab('read');
+        saveLibrary(true, true);
+    }
+
+    function deleteBook(id) {
+        if (!confirm("Delete?")) return;
+        library[currentShelf] = library[currentShelf].filter(b => b.id !== id);
+        saveLibrary(true);
+    }
+
+    function updateRating(id, val) {
+        const book = library.read.find(b => b.id === id);
+        if (book) { book.rating = Number(val); saveLibrary(true); }
+    }
+
+    // =======================
+    // SEARCH & SCAN
+    // =======================
+    async function handleManualAdd() {
+        const val = $("isbn-input").value.trim();
+        if (!val) return;
+        $("isbn-input").value = "";
+        const isNum = /^[\d-]+$/.test(val) && val.replace(/-/g,"").length >= 9;
+        if(isNum) await fetchAndPrompt(val);
+        else await searchAndPrompt(val);
+    }
+
+    async function searchAndPrompt(query) {
+        try {
+            const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=1`);
+            const data = await res.json();
+            if (data?.docs?.length) {
+                const d = data.docs[0];
+                showModal({
+                    title: d.title,
+                    authors: [{name: d.author_name?.[0] || "Unknown"}],
+                    cover: d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : null,
+                    isbn: d.isbn?.[0] || ""
+                });
+            } else {
+                if(confirm("No match. Add manual?")) showModal({ title: query, authors:[{name:"Manual"}] });
+                else scanLocked = false;
+            }
+        } catch { scanLocked = false; alert("Search Error"); }
+    }
+
+    async function fetchAndPrompt(rawIsbn) {
+        const clean = rawIsbn.replace(/\D/g, "");
+        if(clean.length!==10 && clean.length!==13) { scanLocked=false; return alert("Invalid ISBN"); }
+        
+        try {
+            const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${clean}&jscmd=data&format=json`);
+            const data = await res.json();
+            const key = `ISBN:${clean}`;
+            if (!data[key]) {
+                if(confirm("ISBN not found. Search text?")) await searchAndPrompt("ISBN " + clean);
+                else scanLocked = false;
+                return;
+            }
+            const b = data[key];
+            showModal({
+                title: b.title,
+                authors: b.authors || [{name:"Unknown"}],
+                cover: b.cover?.medium || null
+            }, clean); // Pass cleaned ISBN
+        } catch { scanLocked=false; alert("Fetch Error"); }
+    }
+
+    // =======================
+    // RENDERING & FILTERING
+    // =======================
+    function clearFilters() {
+        $("filter-text").value = "";
+        $("filter-year").value = "";
+        $("filter-month").value = "";
+        applyFilters();
+    }
+
+    function applyFilters() {
+        filterState.text = $("filter-text").value.toLowerCase();
+        filterState.year = $("filter-year").value;
+        filterState.month = $("filter-month").value;
+        renderBooks();
+    }
+
+    function renderBooks() {
+        list.innerHTML = "";
+        let items = library[currentShelf] || [];
+        
+        // Apply Filters
+        if (filterState.text || filterState.year || filterState.month) {
+            items = items.filter(b => {
+                // Text Filter
+                const matchText = !filterState.text || 
+                    b.title.toLowerCase().includes(filterState.text) || 
+                    getAuthorName(b).toLowerCase().includes(filterState.text);
+                
+                // Date Logic
+                let dateStr = "";
+                if(currentShelf === 'read') dateStr = b.dateRead;
+                if(currentShelf === 'loans') dateStr = b.returnDate;
+                
+                const matchYear = !filterState.year || (dateStr && dateStr.startsWith(filterState.year));
+                const matchMonth = !filterState.month || (dateStr && dateStr.substring(5,7) === filterState.month);
+
+                return matchText && matchYear && matchMonth;
+            });
+        }
+
+        items.slice().reverse().forEach(b => {
+            const li = document.createElement("li");
+            li.className = "book-card";
+
+            // AUDIO BADGE
+            if(b.isAudio) {
+                const badge = document.createElement("div");
+                badge.className = "audio-badge";
+                badge.textContent = "🎧 Audio";
+                li.appendChild(badge);
+            }
+
+            // COVER
+            const img = document.createElement(b.cover ? "img" : "div");
+            img.className = "book-thumb";
+            if(b.cover) {
+                img.src = b.cover;
+                img.onerror = () => { img.style.display='none'; }; // Simple hide on error
+            } else { img.style.background = "#ddd"; }
+            li.appendChild(img);
+
+            // INFO
+            const info = document.createElement("div");
+            info.className = "book-info";
+            
+            const title = document.createElement("div");
+            title.className = "book-title";
+            title.textContent = b.title;
+            info.appendChild(title);
+
+            const meta = document.createElement("div");
+            meta.className = "book-meta";
+            let metaText = getAuthorName(b);
+            
+            // Add Dates
+            if(currentShelf==='read' && b.dateRead) metaText += ` • Finished: ${b.dateRead}`;
+            if(currentShelf==='loans' && b.returnDate) metaText += ` • Due: ${b.returnDate}`;
+            
+            meta.textContent = metaText;
+            info.appendChild(meta);
+
+            // ISBN
+            if(b.isbn) {
+                const isbnDiv = document.createElement("div");
+                isbnDiv.className = "isbn-text";
+                isbnDiv.textContent = `ISBN: ${b.isbn}`;
+                info.appendChild(isbnDiv);
+            }
+
+            // CONTROLS
+            const actions = document.createElement("div");
+            actions.className = "actions";
+
+            if (currentShelf === 'read') {
+                const sel = document.createElement("select");
+                sel.className = "rating";
+                sel.innerHTML = `<option value="0">Rate...</option>` + 
+                    [1,2,3,4,5].map(n => `<option value="${n}" ${b.rating===n?'selected':''}>${'⭐'.repeat(n)}</option>`).join('');
+                sel.onchange = (e) => updateRating(b.id, e.target.value);
+                info.appendChild(sel);
+            } else {
+                const moveBtn = document.createElement("button");
+                moveBtn.className = "move-btn";
+                moveBtn.textContent = "✅ Mark Read";
+                moveBtn.onclick = () => moveToRead(b.id);
+                actions.appendChild(moveBtn);
+            }
+
+            const delBtn = document.createElement("button");
+            delBtn.className = "btn-sm btn-del";
+            delBtn.textContent = "Remove";
+            delBtn.onclick = () => deleteBook(b.id);
+            actions.appendChild(delBtn);
+
+            info.appendChild(actions);
+            li.appendChild(info);
+            list.appendChild(li);
+        });
+    }
+
+    // =======================
+    // HAMBURGER / SETTINGS
+    // =======================
+    $("menu-btn").onclick = () => { sideMenu.classList.add("open"); menuOverlay.style.display="block"; };
+    function closeMenu() { sideMenu.classList.remove("open"); menuOverlay.style.display="none"; }
+    menuOverlay.onclick = closeMenu;
+
+    // Filter listeners
+    $("filter-text").oninput = applyFilters;
+    $("filter-year").oninput = applyFilters;
+    $("filter-month").onchange = applyFilters;
+
+    // Dark Mode
+    const darkModeToggle = $("dark-mode-toggle");
+    if(localStorage.getItem("darkMode") === "true") {
+        body.classList.add("dark-mode");
+        darkModeToggle.checked = true;
+    }
+    darkModeToggle.onchange = (e) => {
+        if(e.target.checked) { body.classList.add("dark-mode"); localStorage.setItem("darkMode", "true"); }
+        else { body.classList.remove("dark-mode"); localStorage.setItem("darkMode", "false"); }
+    };
+
+    // SHEET LINK UPDATE
+    function updateSheetLink() {
+        const el = $("sheet-link");
+        if(spreadsheetId) { el.href=`https://docs.google.com/spreadsheets/d/${spreadsheetId}`; el.style.display='inline'; }
+        else { el.style.display='none'; }
+    }
+
+    // =======================
+    // CAMERA / SCANNER
+    // =======================
+    $("btn-add").onclick = handleManualAdd;
+    $("isbn-input").onkeydown = (e) => { if(e.key==="Enter") handleManualAdd(); };
+    $("btn-scan").onclick = startCamera;
+    $("btn-stop-camera").onclick = stopCamera;
+
+    async function startCamera() {
+        $("reader-container").style.display = "block";
+        if(html5QrCode) try{await html5QrCode.stop();}catch{}
+        html5QrCode = new Html5Qrcode("reader");
+        try {
+            await html5QrCode.start({ facingMode: "environment" }, { fps:10, qrbox:{width:250,height:250} }, 
+            async (txt) => { if(scanLocked)return; scanLocked=true; await stopCamera(); await fetchAndPrompt(txt); });
+        } catch { $("reader-container").style.display="none"; alert("Camera Error"); }
+    }
+    async function stopCamera() {
+        $("reader-container").style.display = "none";
+        if(html5QrCode) { try{await html5QrCode.stop();}catch{}; try{html5QrCode.clear();}catch{}; html5QrCode=null; }
+    }
+
+    // MODAL BUTTONS
+    $("modal-add-read").onclick = () => confirmAdd("read");
+    $("modal-add-wish").onclick = () => confirmAdd("wishlist");
+    $("modal-add-loan").onclick = () => confirmAdd("loans");
+    $("modal-cancel").onclick = closeModal;
+
+    // AUTH
+    $("auth-btn").onclick = () => tokenClient.requestAccessToken({ prompt: "consent" });
+    $("reset-btn").onclick = hardReset;
+
+  </script>
+</body>
+</html>
