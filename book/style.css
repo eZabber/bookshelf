@@ -72,9 +72,7 @@ header { display: flex; justify-content: space-between; align-items: center; mar
 .filter-field label { display: block; font-size: 0.8rem; color: var(--meta); margin-bottom: 6px; }
 .menu-actions { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 12px; }
 
-/* REDESIGNED COUNTERS */
-/* Paste this into style.css replacing the old .shelf-counters */
-
+/* REDESIGNED COUNTERS (Stats Grid) */
 .shelf-counters { 
     display: flex; 
     justify-content: space-between; 
@@ -85,7 +83,7 @@ header { display: flex; justify-content: space-between; align-items: center; mar
 }
 
 .stat-box {
-    flex: 1; /* Makes them equal width */
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
