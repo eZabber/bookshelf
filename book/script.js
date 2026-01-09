@@ -23,7 +23,8 @@ let currentShelf = "read";
 let library = { read: [], wishlist: [], loans: [] }; 
 let html5QrCode = null, scanLocked = false, pendingBook = null;
 let isSyncing = false, syncPending = false;
-let filterState = { text: "", year: "", month: "" };
+// NEW: Added 'rating' to filter state
+let filterState = { text: "", year: "", month: "", rating: "" };
 
 const $ = (id) => document.getElementById(id);
 
@@ -147,7 +148,9 @@ function clearFilters() {
     if($("filter-text")) $("filter-text").value = "";
     if($("filter-year")) $("filter-year").value = "";
     if($("filter-month")) $("filter-month").value = "";
-    filterState = { text: "", year: "", month: "" };
+    if($("filter-rating")) $("filter-rating").value = ""; // Clear rating
+    
+    filterState = { text: "", year: "", month: "", rating: "" };
     applyFilters();
 }
 
@@ -158,51 +161,57 @@ function renderBooks() {
     list.innerHTML = "";
     let items = library[currentShelf] || [];
     
+    // Update State from Inputs
     const textInput = $("filter-text");
+    const rateInput = $("filter-rating");
+    
     if(textInput) filterState.text = textInput.value.toLowerCase();
+    if(rateInput) filterState.rating = rateInput.value;
     
     const term = (filterState.text || "").toLowerCase();
     const cleanTerm = term.replace(/[\s-]/g, "");
 
-    if (term || filterState.year || filterState.month) {
+    // Apply Filters
+    if (term || filterState.year || filterState.month || filterState.rating) {
         items = items.filter(b => {
+            // Text Match
             const matchText = !term || 
                 b.title.toLowerCase().includes(term) || 
                 getAuthorName(b).toLowerCase().includes(term) ||
                 (b.isbn && b.isbn.replace(/[\s-]/g, "").toLowerCase().includes(cleanTerm));
             
+            // Date Match
             let dateStr = currentShelf === 'read' ? b.dateRead : (currentShelf === 'loans' ? b.returnDate : "");
             const matchYear = !filterState.year || (dateStr && dateStr.startsWith(filterState.year));
             const matchMonth = !filterState.month || (dateStr && dateStr.substring(5,7) === filterState.month);
-            return matchText && matchYear && matchMonth;
+            
+            // Rating Match (New)
+            const matchRating = !filterState.rating || (b.rating >= Number(filterState.rating));
+
+            return matchText && matchYear && matchMonth && matchRating;
         });
     }
 
     items.slice().reverse().forEach(b => {
         const li = document.createElement("li"); li.className = "book-card";
         
-        // --- 1. THREE DOTS MENU ---
-        // Only show date edit for 'read' shelf for now, or all if you prefer
+        // --- THREE DOTS MENU ---
         const menuContainer = document.createElement("div");
         menuContainer.className = "card-menu-container";
         
-        // The Dots Button
         const dotsBtn = document.createElement("button");
         dotsBtn.className = "dots-btn";
         dotsBtn.innerHTML = "⋮";
         dotsBtn.onclick = (e) => {
             e.stopPropagation();
-            // Close all others first
             document.querySelectorAll('.menu-dropdown.show').forEach(d => d.classList.remove('show'));
             const dropdown = menuContainer.querySelector('.menu-dropdown');
             dropdown.classList.toggle('show');
         };
 
-        // The Dropdown Content
         const dropdown = document.createElement("div");
         dropdown.className = "menu-dropdown";
         
-        // Option 1: Edit Date (Only for Read shelf)
         if (currentShelf === 'read') {
             const editDateBtn = document.createElement("button");
             editDateBtn.className = "menu-item";
@@ -214,13 +223,12 @@ function renderBooks() {
                     dateSpan.style.display = "none";
                     dateInput.style.display = "inline-block";
                     dateInput.focus();
-                    dateInput.showPicker(); // Opens native calendar
+                    dateInput.showPicker(); 
                 }
             };
             dropdown.appendChild(editDateBtn);
         }
 
-        // Option 2: Copy Title (Example of another feature)
         const copyBtn = document.createElement("button");
         copyBtn.className = "menu-item";
         copyBtn.innerHTML = "📋 Copy Title";
@@ -263,7 +271,6 @@ function renderBooks() {
         const title = document.createElement("div"); title.className = "book-title"; title.textContent = b.title;
         const meta = document.createElement("div"); meta.className = "book-meta";
         
-        // Build Meta Text safely
         const authorDiv = document.createElement("div");
         authorDiv.textContent = getAuthorName(b);
         meta.appendChild(authorDiv);
@@ -271,25 +278,20 @@ function renderBooks() {
         if(currentShelf==='read' && b.dateRead) {
             const dateDiv = document.createElement("div");
             
-            // Static Text
             const dateSpan = document.createElement("span");
             dateSpan.id = `date-display-${b.id}`;
             dateSpan.textContent = `Finished: ${b.dateRead}`;
             
-            // Hidden Input for Editing
             const dateInput = document.createElement("input");
             dateInput.type = "date";
             dateInput.id = `date-input-${b.id}`;
             dateInput.className = "date-edit-input";
             dateInput.value = b.dateRead;
             
-            // Logic: Save on change
             dateInput.onchange = (e) => {
                 updateReadDate(b.id, e.target.value);
             };
-            // Logic: Revert if blur without change
             dateInput.onblur = () => {
-                // Short delay to allow save to happen first
                 setTimeout(() => {
                     dateInput.style.display = "none";
                     dateSpan.style.display = "inline";
@@ -356,10 +358,12 @@ function applyFilters() {
     const t = $("filter-text");
     const y = $("filter-year");
     const m = $("filter-month");
+    const r = $("filter-rating");
     
     if(t) filterState.text = t.value.toLowerCase();
     if(y) filterState.year = y.value;
     if(m) filterState.month = m.value;
+    if(r) filterState.rating = r.value;
     
     debouncedRender();
 }
@@ -754,6 +758,7 @@ window.addEventListener("DOMContentLoaded", () => {
         }
         
         if($("filter-month")) $("filter-month").onchange = applyFilters;
+        if($("filter-rating")) $("filter-rating").onchange = applyFilters;
 
         if($("btn-add")) $("btn-add").onclick = handleManualAdd;
         if($("isbn-input")) $("isbn-input").onkeydown = (e) => { if(e.key==="Enter") handleManualAdd(); };
