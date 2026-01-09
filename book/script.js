@@ -13,7 +13,7 @@ const TRANSLATIONS = {
     en: {
         read: "Read", wishlist: "Wishlist", loans: "Loans",
         settings: "Settings & Filters", shelves: "Shelves", display: "Display",
-        filter: "Filter Books", year: "Year", month: "Month", rating: "Min Rating",
+        filter: "Filter Books", year: "Year", month: "Month", rating: "Rating",
         apply: "Apply Filters", clear: "Clear Filters", reset: "Reset App Data",
         dark: "Dark Mode", lang: "Language",
         search: "Search ISBN, Title, Author...", add: "Add",
@@ -68,7 +68,7 @@ let isSyncing = false, syncPending = false;
 let filterState = { text: "", year: "", month: "", rating: "" };
 
 const $ = (id) => document.getElementById(id);
-const t = (key) => TRANSLATIONS[currentLang][key] || key; // Helper for text
+const t = (key) => TRANSLATIONS[currentLang][key] || key;
 
 // =======================
 // LANGUAGE LOGIC
@@ -78,7 +78,7 @@ function setLanguage(lang) {
     localStorage.setItem("appLang", lang);
     $("language-select").value = lang;
 
-    // Static UI Elements
+    // Static UI
     $("tab-read").textContent = t("read");
     $("tab-wishlist").textContent = t("wishlist");
     $("tab-loans").textContent = t("loans");
@@ -98,14 +98,13 @@ function setLanguage(lang) {
     $("label-month").textContent = t("month");
     $("label-rating").textContent = t("rating");
     
-    $("btn-apply-filters").textContent = t("apply");
     $("btn-clear-filters").textContent = t("clear");
     $("reset-btn").textContent = t("reset");
     
     $("btn-add").textContent = t("add");
     $("isbn-input").placeholder = t("search");
     
-    // Auth Button (Default state)
+    // Auth Button
     const authBtn = $("auth-btn");
     if(authBtn && !authBtn.disabled && authBtn.textContent.includes("Sign In")) {
         authBtn.textContent = t("signIn");
@@ -119,7 +118,6 @@ function setLanguage(lang) {
     $("label-audio").textContent = t("modalAudio");
     $("label-return").textContent = t("modalReturn");
 
-    // Re-render books to translate buttons/badges
     renderBooks();
 }
 
@@ -150,7 +148,6 @@ function maybeEnableAuth() {
         const btn = $("auth-btn");
         if(btn) {
             btn.disabled = false;
-            // Only set text if not already syncing
             if(!isSyncing) btn.textContent = t("signIn");
         }
     }
@@ -260,7 +257,6 @@ function applyFilters() {
     if(m) filterState.month = m.value;
     if(r) filterState.rating = r.value;
     renderBooks(); 
-    closeMenu();
 }
 
 function renderBooks() {
@@ -679,12 +675,17 @@ function setSmartPlaceholder() {
     el.placeholder = window.matchMedia("(max-width: 420px)").matches ? "..." : t("search");
 }
 
+// =======================
+// INITIALIZATION
+// =======================
 window.addEventListener("DOMContentLoaded", () => {
     try {
         library = loadLibrary();
+        
         if($("menu-btn")) $("menu-btn").onclick = openMenu;
         if($("menu-overlay")) $("menu-overlay").onclick = closeMenu; 
         if($("modal-overlay")) $("modal-overlay").onclick = (e) => { if (e.target.id === "modal-overlay") closeModal(); };
+        
         document.addEventListener('click', (e) => {
             const isDropdown = e.target.closest('.menu-dropdown');
             const isBtn = e.target.closest('.dots-btn');
@@ -694,8 +695,18 @@ window.addEventListener("DOMContentLoaded", () => {
         // LANGUAGE
         if($("language-select")) $("language-select").onchange = (e) => setLanguage(e.target.value);
 
-        if($("btn-apply-filters")) $("btn-apply-filters").onclick = applyFilters;
+        // FILTERS (Instant)
+        const debouncedApply = debounce(applyFilters, 200);
+        if($("filter-text")) $("filter-text").oninput = debouncedApply;
+        if($("filter-year")) $("filter-year").oninput = (e) => {
+            e.target.value = e.target.value.replace(/\D/g, "").slice(0, 4);
+            debouncedApply();
+        };
+        if($("filter-month")) $("filter-month").onchange = applyFilters;
+        if($("filter-rating")) $("filter-rating").onchange = applyFilters;
         if($("btn-clear-filters")) $("btn-clear-filters").onclick = clearFilters;
+
+        // ACTIONS
         if($("btn-add")) $("btn-add").onclick = handleManualAdd;
         if($("isbn-input")) $("isbn-input").onkeydown = (e) => { if(e.key==="Enter") handleManualAdd(); };
         if($("btn-scan")) $("btn-scan").onclick = startCamera;
@@ -704,19 +715,22 @@ window.addEventListener("DOMContentLoaded", () => {
         if($("modal-add-wish")) $("modal-add-wish").onclick = () => confirmAdd("wishlist");
         if($("modal-add-loan")) $("modal-add-loan").onclick = () => confirmAdd("loans");
         if($("modal-cancel")) $("modal-cancel").onclick = closeModal;
-        if($("auth-btn")) { $("auth-btn").onclick = () => { if(!tokenClient) return alert("Loading..."); tokenClient.requestAccessToken({ prompt: "" }); }; }
+        if($("auth-btn")) { $("auth-btn").onclick = () => { if(!tokenClient) return alert("Loading..."); tokenClient.requestAccessToken({ prompt: "consent" }); }; }
         if($("reset-btn")) $("reset-btn").onclick = hardReset;
+        
         const tabsContainer = document.querySelector(".tabs");
         if(tabsContainer) { tabsContainer.addEventListener("click", (e) => { const tab = e.target.closest(".tab"); if (!tab) return; const shelf = tab.id.replace("tab-", ""); setActiveTab(shelf); }); }
+        
         const darkModeToggle = $("dark-mode-toggle");
         if(darkModeToggle) {
             if(localStorage.getItem("darkMode") === "true") { document.body.classList.add("dark-mode"); darkModeToggle.checked = true; }
             darkModeToggle.onchange = (e) => { if(e.target.checked) { document.body.classList.add("dark-mode"); localStorage.setItem("darkMode", "true"); } else { document.body.classList.remove("dark-mode"); localStorage.setItem("darkMode", "false"); } };
         }
+        
         const yearSpan = $("year"); if(yearSpan) yearSpan.textContent = new Date().getFullYear();
         
         setSyncStatus("idle");
-        // INIT LANGUAGE FIRST
+        // INIT LANGUAGE & RENDER
         setLanguage(currentLang);
         updateShelfCounts();
         updateSheetLink();
