@@ -26,6 +26,10 @@
     h1 { margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--primary); }
     #menu-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text); }
     
+    /* Sync Dot Wrapper */
+    #sync-wrapper { display: flex; align-items: center; gap: 10px; }
+    #sync-dot { width: 10px; height: 10px; border-radius: 50%; background: #bbb; transition: background 0.3s; }
+
     #side-menu {
         position: fixed; top: 0; left: 0; width: 280px; height: 100%; background: var(--card); 
         box-shadow: 2px 0 10px rgba(0,0,0,0.2); transform: translateX(-100%); transition: transform 0.3s ease;
@@ -113,7 +117,10 @@
   <header>
     <button id="menu-btn" aria-label="Open menu">☰</button>
     <h1>📚 Cloud Library</h1>
-    <div style="width: 24px;"></div>
+    <div id="sync-wrapper">
+      <div id="sync-dot" title="Sync Status"></div>
+      <div style="width: 10px;"></div>
+    </div>
   </header>
 
   <div id="menu-overlay"></div>
@@ -197,6 +204,11 @@
         </label>
       </div>
 
+      <div id="loan-date-row" class="modal-input-row" style="display:none; justify-content:center; gap:10px;">
+        <span>📅 Return date</span>
+        <input type="date" id="modal-return-date" style="padding:6px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text);">
+      </div>
+
       <div class="modal-btns">
         <button class="btn-choice btn-primary" id="modal-add-read">Add to Read</button>
         <button class="btn-choice btn-primary" id="modal-add-wish" style="background:var(--accent);">Add to Wishlist</button>
@@ -262,6 +274,22 @@
     }
     function getErrCode(e) { return e?.status ?? e?.result?.error?.code ?? null; }
     async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    // DEBOUNCE FUNCTION
+    function debounce(fn, ms = 200) {
+        let t;
+        return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+    }
+
+    // SYNC STATUS
+    function setSyncStatus(state) {
+        const dot = $("sync-dot");
+        if (!dot) return;
+        if (state === "working") dot.style.background = "#f1c40f"; // yellow
+        else if (state === "ok") dot.style.background = "#2ecc71"; // green
+        else if (state === "error") dot.style.background = "#e74c3c"; // red
+        else dot.style.background = "#bbb"; // idle
+    }
 
     // =======================
     // DATA LAYER
@@ -333,6 +361,7 @@
     }
 
     async function doSync() {
+        setSyncStatus("working");
         try {
             await ensureSheet();
             updateSheetLink();
@@ -363,8 +392,10 @@
                 saveLibrary(false);
             } else { await queueUpload(); }
             $("auth-btn").textContent = "Synced ✅";
+            setSyncStatus("ok");
         } catch (e) {
             logError("Sync Error", e);
+            setSyncStatus("error");
             if (getErrCode(e) === 404) {
                 spreadsheetId = null; localStorage.removeItem("sheetId");
                 updateSheetLink(); $("auth-btn").textContent = "Sign In"; $("auth-btn").disabled = false;
@@ -376,6 +407,7 @@
     async function queueUpload() {
         if (isSyncing) { syncPending = true; return; }
         isSyncing = true;
+        setSyncStatus("working");
         $("auth-btn").textContent = "Saving...";
         try {
             try { await uploadData(); }
@@ -384,8 +416,10 @@
                 else throw err;
             }
             $("auth-btn").textContent = "Synced ✅";
+            setSyncStatus("ok");
         } catch (e) {
             logError("Upload Error", e);
+            setSyncStatus("error");
             if ([401, 403].includes(getErrCode(e))) {
                 $("auth-btn").textContent = "Sign In"; $("auth-btn").disabled = false;
                 gapi.client.setToken(null);
@@ -456,6 +490,11 @@
         $("modal-author").textContent = getAuthorName(book);
         $("modal-isbn").textContent = pendingBook.isbn ? `ISBN: ${pendingBook.isbn}` : "";
         $("modal-audio-check").checked = false;
+        
+        // Hide Date row by default & Reset
+        $("loan-date-row").style.display = "none";
+        $("modal-return-date").value = "";
+
         const cover = safeUrl(book.cover);
         const img = $("modal-img");
         if (cover) { img.src = cover; img.style.display = "block"; }
@@ -471,8 +510,20 @@
 
         let retDate = "";
         if (targetShelf === 'loans') {
-            const userDate = prompt("Enter Return Date (YYYY-MM-DD):", "");
-            if (userDate) retDate = userDate;
+            const row = $("loan-date-row");
+            const input = $("modal-return-date");
+            
+            // First Click: Show Input & Auto-fill +14 days
+            if (row.style.display === "none") {
+                row.style.display = "flex";
+                const d = new Date(); d.setDate(d.getDate() + 14);
+                input.value = d.toISOString().split('T')[0];
+                return; // Let user confirm/change date
+            } 
+            
+            // Second Click: Validate
+            retDate = input.value;
+            if(!retDate) return alert("Please pick a return date.");
         }
 
         const newBook = {
@@ -494,7 +545,11 @@
         saveLibrary(true, true); 
     }
 
-    function closeModal() { $("modal-overlay").style.display = "none"; pendingBook = null; scanLocked = false; }
+    function closeModal() { 
+        $("modal-overlay").style.display = "none"; 
+        $("loan-date-row").style.display = "none";
+        pendingBook = null; scanLocked = false; 
+    }
 
     // Defined earlier to be safe
     function closeMenu() { sideMenu.classList.remove("open"); menuOverlay.style.display="none"; }
@@ -584,6 +639,9 @@
         $("filter-text").value = ""; $("filter-year").value = ""; $("filter-month").value = "";
         applyFilters();
     }
+    
+    const debouncedApplyFilters = debounce(applyFilters, 200);
+
     function applyFilters() {
         filterState.text = $("filter-text").value.toLowerCase();
         filterState.year = $("filter-year").value;
@@ -596,7 +654,7 @@
         let items = library[currentShelf] || [];
         
         // CLEAN SEARCH
-        const term = filterState.text;
+        const term = (filterState.text || "").toLowerCase();
         const cleanTerm = term.replace(/[\s-]/g, "");
 
         if (term || filterState.year || filterState.month) {
@@ -676,9 +734,9 @@
     menuOverlay.onclick = () => closeMenu(); 
     $("modal-overlay").onclick = (e) => { if (e.target.id === "modal-overlay") closeModal(); };
 
-    // FILTERS
-    $("filter-text").oninput = applyFilters; 
-    $("filter-year").oninput = applyFilters; 
+    // DEBOUNCED INPUT
+    $("filter-text").oninput = debouncedApplyFilters; 
+    $("filter-year").oninput = debouncedApplyFilters; 
     $("filter-month").onchange = applyFilters;
 
     // DARK MODE
@@ -708,7 +766,10 @@
     $("modal-cancel").onclick = closeModal;
 
     // AUTH & RESET
-    $("auth-btn").onclick = () => tokenClient.requestAccessToken({ prompt: "consent" });
+    $("auth-btn").onclick = () => {
+        if(!tokenClient) return alert("Auth is still loading, try again in a moment.");
+        tokenClient.requestAccessToken({ prompt: "consent" });
+    };
     $("reset-btn").onclick = hardReset;
 
     // TABS
@@ -716,8 +777,9 @@
     $("tab-wishlist").onclick = () => setActiveTab("wishlist");
     $("tab-loans").onclick = () => setActiveTab("loans");
 
-    // FOOTER YEAR
+    // INIT
     $("year").textContent = new Date().getFullYear();
+    setSyncStatus("idle");
 
   </script>
 </body>
