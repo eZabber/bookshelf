@@ -1,5 +1,5 @@
 // =======================
-// CONFIG & STATE
+// CONFIG
 // =======================
 const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
 const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar.events";
@@ -7,11 +7,15 @@ const DISCOVERY = [
     "https://sheets.googleapis.com/$discovery/rest?version=v4",
     "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"
 ];
+
 const SHEET_NAME = "Sheet1";
 const HEADER_RANGE = `${SHEET_NAME}!A1:J1`;
 const DATA_RANGE = `${SHEET_NAME}!A2:J999`;
 const HEADER = ["ID", "Title", "Author", "Shelf", "Rating", "Cover", "Date", "ReturnDate", "Audio", "ISBN"];
 
+// =======================
+// STATE
+// =======================
 let tokenClient = null;
 let gapiInited = false, gisInited = false;
 let spreadsheetId = localStorage.getItem("sheetId") || null;
@@ -24,7 +28,7 @@ let filterState = { text: "", year: "", month: "" };
 const $ = (id) => document.getElementById(id);
 
 // =======================
-// AUTH FUNCTIONS (MUST BE GLOBAL)
+// AUTH FUNCTIONS (GLOBAL)
 // =======================
 function gapiLoaded() {
     gapi.load("client", async () => {
@@ -53,7 +57,9 @@ function logError(msg, err) {
     const log = $("debug-log");
     if(log) {
         log.style.display = "block";
-        log.textContent = "ERROR: " + msg + "\nDETAILS: " + safeStringify(err);
+        // Fix: Properly extract error message
+        const details = err.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+        log.textContent = "ERROR: " + msg + "\nDETAILS: " + details;
     }
     console.error(msg, err);
 }
@@ -88,20 +94,19 @@ function setSyncStatus(state) {
 }
 
 // =======================
-// LOGIC
+// CORE LOGIC
 // =======================
-
 function updateShelfCounts() {
     const r = library.read?.length || 0;
     const w = library.wishlist?.length || 0;
     const l = library.loans?.length || 0;
 
-    // Menu Stats (Update ONLY the number, not the label)
+    // Menu Stats: ONLY set the number (labels are in HTML)
     if($("count-read")) $("count-read").textContent = r;
     if($("count-wishlist")) $("count-wishlist").textContent = w;
     if($("count-loans")) $("count-loans").textContent = l;
-    
-    // Tabs (Update text if needed, or leave static)
+
+    // Tabs: Keep static text
     if($("tab-read")) $("tab-read").textContent = "Read";
     if($("tab-wishlist")) $("tab-wishlist").textContent = "Wishlist";
     if($("tab-loans")) $("tab-loans").textContent = "Loans";
@@ -148,10 +153,10 @@ function clearFilters() {
 }
 
 function renderBooks() {
-    const listEl = $("book-list");
-    if(!listEl) return;
+    const list = $("book-list");
+    if(!list) return;
 
-    listEl.innerHTML = "";
+    list.innerHTML = "";
     let items = library[currentShelf] || [];
     
     const term = (filterState.text || "").toLowerCase();
@@ -286,6 +291,9 @@ function hardReset() {
     location.reload();
 }
 
+// =======================
+// ACTION FUNCTIONS
+// =======================
 function confirmAdd(targetShelf) {
     if (!pendingBook) return;
     const key = normKey(pendingBook);
