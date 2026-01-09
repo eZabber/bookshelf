@@ -42,13 +42,19 @@ function gisLoaded() {
         callback: async (resp) => {
             if (resp.error) return logError("Auth Fail", resp);
             gapi.client.setToken(resp);
-            $("auth-btn").textContent = "Working...";
+            const btn = $("auth-btn");
+            if(btn) btn.textContent = "Working...";
             await doSync();
         }
     });
     gisInited = true; maybeEnableAuth();
 }
-function maybeEnableAuth() { if (gapiInited && gisInited) $("auth-btn").disabled = false; }
+function maybeEnableAuth() { 
+    if (gapiInited && gisInited) {
+        const btn = $("auth-btn");
+        if(btn) btn.disabled = false;
+    }
+}
 
 // =======================
 // HELPERS
@@ -57,12 +63,12 @@ function logError(msg, err) {
     const log = $("debug-log");
     if(log) {
         log.style.display = "block";
-        // Fix: Properly extract error message
-        const details = err.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+        const details = err.message || (typeof err === 'object' ? JSON.stringify(err, Object.getOwnPropertyNames(err)) : String(err));
         log.textContent = "ERROR: " + msg + "\nDETAILS: " + details;
     }
     console.error(msg, err);
 }
+
 function safeStringify(x) { try { return JSON.stringify(x, null, 2); } catch { return String(x); } }
 function makeId() { 
     if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
@@ -101,12 +107,10 @@ function updateShelfCounts() {
     const w = library.wishlist?.length || 0;
     const l = library.loans?.length || 0;
 
-    // Menu Stats: ONLY set the number (labels are in HTML)
     if($("count-read")) $("count-read").textContent = r;
     if($("count-wishlist")) $("count-wishlist").textContent = w;
     if($("count-loans")) $("count-loans").textContent = l;
 
-    // Tabs: Keep static text
     if($("tab-read")) $("tab-read").textContent = "Read";
     if($("tab-wishlist")) $("tab-wishlist").textContent = "Wishlist";
     if($("tab-loans")) $("tab-loans").textContent = "Loans";
@@ -134,20 +138,20 @@ function saveLibrary(shouldSync, skipRender = false) {
 }
 
 function openMenu() { 
-    $("side-menu").classList.add("open"); 
-    $("menu-overlay").classList.add("open"); 
+    if($("side-menu")) $("side-menu").classList.add("open"); 
+    if($("menu-overlay")) $("menu-overlay").classList.add("open"); 
     document.body.style.overflow = "hidden"; 
 }
 function closeMenu() { 
-    $("side-menu").classList.remove("open"); 
-    $("menu-overlay").classList.remove("open"); 
+    if($("side-menu")) $("side-menu").classList.remove("open"); 
+    if($("menu-overlay")) $("menu-overlay").classList.remove("open"); 
     document.body.style.overflow = ""; 
 }
 
 function clearFilters() {
-    $("filter-text").value = "";
-    $("filter-year").value = "";
-    $("filter-month").value = "";
+    if($("filter-text")) $("filter-text").value = "";
+    if($("filter-year")) $("filter-year").value = "";
+    if($("filter-month")) $("filter-month").value = "";
     filterState = { text: "", year: "", month: "" };
     applyFilters();
 }
@@ -158,6 +162,9 @@ function renderBooks() {
 
     list.innerHTML = "";
     let items = library[currentShelf] || [];
+    
+    const textInput = $("filter-text");
+    if(textInput) filterState.text = textInput.value.toLowerCase();
     
     const term = (filterState.text || "").toLowerCase();
     const cleanTerm = term.replace(/[\s-]/g, "");
@@ -205,12 +212,29 @@ function renderBooks() {
 
         const title = document.createElement("div"); title.className = "book-title"; title.textContent = b.title;
         const meta = document.createElement("div"); meta.className = "book-meta";
-        let metaText = getAuthorName(b);
-        if(currentShelf==='read' && b.dateRead) metaText += ` • Finished: ${b.dateRead}`;
-        meta.textContent = metaText;
-        
+        meta.textContent = getAuthorName(b);
         info.appendChild(title); 
         info.appendChild(meta);
+
+        // --- NEW: DATE EDITOR FOR READ BOOKS ---
+        if (currentShelf === 'read') {
+            const dateRow = document.createElement("div");
+            dateRow.style.marginBottom = "8px";
+            
+            const label = document.createElement("span");
+            label.className = "date-label";
+            label.textContent = "Finished:";
+            
+            const dateInput = document.createElement("input");
+            dateInput.type = "date";
+            dateInput.className = "date-input-edit";
+            dateInput.value = b.dateRead;
+            dateInput.onchange = (e) => updateReadDate(b.id, e.target.value);
+            
+            dateRow.appendChild(label);
+            dateRow.appendChild(dateInput);
+            info.appendChild(dateRow);
+        }
         
         if(b.isbn) {
             const isbnPill = document.createElement("div"); 
@@ -261,9 +285,14 @@ function renderBooks() {
 const debouncedRender = debounce(renderBooks, 300);
 
 function applyFilters() {
-    filterState.text = $("filter-text").value.toLowerCase();
-    filterState.year = $("filter-year").value;
-    filterState.month = $("filter-month").value;
+    const t = $("filter-text");
+    const y = $("filter-year");
+    const m = $("filter-month");
+    
+    if(t) filterState.text = t.value.toLowerCase();
+    if(y) filterState.year = y.value;
+    if(m) filterState.month = m.value;
+    
     debouncedRender();
 }
 
@@ -278,8 +307,8 @@ function setActiveTab(shelf) {
 }
 
 function closeModal() { 
-    $("modal-overlay").style.display = "none"; 
-    $("loan-date-row").style.display = "none";
+    if($("modal-overlay")) $("modal-overlay").style.display = "none"; 
+    if($("loan-date-row")) $("loan-date-row").style.display = "none";
     pendingBook = null; scanLocked = false; 
 }
 
@@ -322,7 +351,7 @@ function confirmAdd(targetShelf) {
         cover: safeUrl(pendingBook.cover) || null,
         dateRead: targetShelf === 'read' ? todayISO() : "",
         returnDate: retDate,
-        isAudio: $("modal-audio-check").checked,
+        isAudio: $("modal-audio-check") ? $("modal-audio-check").checked : false,
         isbn: pendingBook.isbn || ""
     };
 
@@ -365,9 +394,19 @@ function updateRating(id, val) {
     if (book) { book.rating = Number(val); saveLibrary(true); }
 }
 
+// --- NEW FUNCTION TO SAVE EDITED DATE ---
+function updateReadDate(id, newDate) {
+    const book = library.read.find(b => b.id === id);
+    if (book) { 
+        book.dateRead = newDate; 
+        saveLibrary(true); 
+    }
+}
+
 async function ensureSheet() {
     if (spreadsheetId) return;
-    $("auth-btn").textContent = "Creating Sheet...";
+    const btn = $("auth-btn");
+    if(btn) btn.textContent = "Creating Sheet...";
     const createResp = await gapi.client.sheets.spreadsheets.create({ properties: { title: "My Book App Data" } });
     spreadsheetId = createResp.result.spreadsheetId;
     localStorage.setItem("sheetId", spreadsheetId);
@@ -382,7 +421,8 @@ async function doSync() {
     try {
         await ensureSheet();
         updateSheetLink();
-        $("auth-btn").textContent = "Downloading...";
+        const btn = $("auth-btn");
+        if(btn) btn.textContent = "Downloading...";
         const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range: DATA_RANGE });
         const rows = resp.result.values || [];
 
@@ -408,14 +448,16 @@ async function doSync() {
             library = newLib;
             saveLibrary(false);
         } else { await queueUpload(); }
-        $("auth-btn").textContent = "Synced ✅";
+        if(btn) btn.textContent = "Synced ✅";
         setSyncStatus("ok");
     } catch (e) {
         logError("Sync Error", e);
         setSyncStatus("error");
         if (getErrCode(e) === 404) {
             spreadsheetId = null; localStorage.removeItem("sheetId");
-            updateSheetLink(); $("auth-btn").textContent = "Sign In"; $("auth-btn").disabled = false;
+            updateSheetLink(); 
+            const btn = $("auth-btn");
+            if(btn) { btn.textContent = "Sign In"; btn.disabled = false; }
             alert("Sheet deleted. Please Sign In again.");
         }
     }
@@ -425,23 +467,24 @@ async function queueUpload() {
     if (isSyncing) { syncPending = true; return; }
     isSyncing = true;
     setSyncStatus("working");
-    $("auth-btn").textContent = "Saving...";
+    const btn = $("auth-btn");
+    if(btn) btn.textContent = "Saving...";
     try {
         try { await uploadData(); }
         catch (err) {
             if (err.status === 429 || err.status >= 500) { await sleep(2000); await uploadData(); }
             else throw err;
         }
-        $("auth-btn").textContent = "Synced ✅";
+        if(btn) btn.textContent = "Synced ✅";
         setSyncStatus("ok");
     } catch (e) {
         logError("Upload Error", e);
         setSyncStatus("error");
         if ([401, 403].includes(getErrCode(e))) {
-            $("auth-btn").textContent = "Sign In"; $("auth-btn").disabled = false;
+            if(btn) { btn.textContent = "Sign In"; btn.disabled = false; }
             gapi.client.setToken(null);
             alert("Session expired. Please sign in.");
-        } else { $("auth-btn").textContent = "Error ❌"; }
+        } else { if(btn) btn.textContent = "Error ❌"; }
     } finally {
         isSyncing = false;
         if (syncPending) { syncPending = false; setTimeout(queueUpload, 0); }
@@ -500,20 +543,28 @@ function showModal(book, scannedIsbn = "") {
     $("modal-title").textContent = book.title;
     $("modal-author").textContent = getAuthorName(book);
     $("modal-isbn").textContent = pendingBook.isbn ? `ISBN: ${pendingBook.isbn}` : "";
-    $("modal-audio-check").checked = false;
-    $("loan-date-row").style.display = "none";
-    $("modal-return-date").value = "";
+    
+    const audioCheck = $("modal-audio-check");
+    if(audioCheck) audioCheck.checked = false;
+    
+    if($("loan-date-row")) $("loan-date-row").style.display = "none";
+    if($("modal-return-date")) $("modal-return-date").value = "";
+    
     const cover = safeUrl(book.cover);
     const img = $("modal-img");
-    if (cover) { img.src = cover; img.style.display = "block"; }
-    else { img.removeAttribute("src"); img.style.display = "none"; }
-    $("modal-overlay").style.display = "flex";
+    if(img) {
+        if (cover) { img.src = cover; img.style.display = "block"; }
+        else { img.removeAttribute("src"); img.style.display = "none"; }
+    }
+    if($("modal-overlay")) $("modal-overlay").style.display = "flex";
 }
 
 async function handleManualAdd() {
-    const val = $("isbn-input").value.trim();
+    const el = $("isbn-input");
+    if(!el) return;
+    const val = el.value.trim();
     if (!val) return;
-    $("isbn-input").value = "";
+    el.value = "";
     const isNum = /^[\d-]+$/.test(val) && val.replace(/-/g,"").length >= 9;
     if(isNum) await fetchAndPrompt(val); else await searchAndPrompt(val);
 }
@@ -557,7 +608,8 @@ async function fetchAndPrompt(rawIsbn) {
 }
 
 async function startCamera() {
-    $("reader-container").style.display = "block";
+    const container = $("reader-container");
+    if(container) container.style.display = "block";
     if(html5QrCode) try{await html5QrCode.stop();}catch{}
     html5QrCode = new Html5Qrcode("reader");
     
@@ -576,19 +628,22 @@ async function startCamera() {
             await html5QrCode.start({ facingMode: "user" }, config, onSuccess);
         } catch (err2) {
             console.warn("Camera Error", err2);
-            $("reader-container").style.display="none"; 
+            if(container) container.style.display="none"; 
             alert("Camera Error (Check Permissions)");
         }
     }
 }
 async function stopCamera() {
-    $("reader-container").style.display = "none";
+    if($("reader-container")) $("reader-container").style.display = "none";
     if(html5QrCode) { try{await html5QrCode.stop();}catch{}; try{html5QrCode.clear();}catch{}; html5QrCode=null; }
 }
 
 function updateSheetLink() {
     const el = $("sheet-link");
-    if(spreadsheetId) { el.href=`https://docs.google.com/spreadsheets/d/${spreadsheetId}`; el.style.display='inline'; } else { el.style.display='none'; }
+    if(el) {
+        if(spreadsheetId) { el.href=`https://docs.google.com/spreadsheets/d/${spreadsheetId}`; el.style.display='inline'; } 
+        else { el.style.display='none'; }
+    }
 }
 
 function setSmartPlaceholder() {
@@ -600,57 +655,72 @@ function setSmartPlaceholder() {
 }
 
 // =======================
-// INITIALIZATION
+// INITIALIZATION (Defensive)
 // =======================
 window.addEventListener("DOMContentLoaded", () => {
     try {
         library = loadLibrary();
         
-        // Listeners
-        $("menu-btn").onclick = openMenu;
-        $("menu-overlay").onclick = closeMenu; 
-        $("modal-overlay").onclick = (e) => { if (e.target.id === "modal-overlay") closeModal(); };
+        // --- SAFE EVENT LISTENERS ---
+        if($("menu-btn")) $("menu-btn").onclick = openMenu;
+        if($("menu-overlay")) $("menu-overlay").onclick = closeMenu; 
+        if($("modal-overlay")) $("modal-overlay").onclick = (e) => { if (e.target.id === "modal-overlay") closeModal(); };
 
         const debouncedApplyFilters = debounce(applyFilters, 200);
-        $("filter-text").oninput = debouncedApplyFilters;
-        $("filter-year").oninput = (e) => {
-            e.target.value = e.target.value.replace(/\D/g, "").slice(0, 4);
-            debouncedApplyFilters();
-        };
-        $("filter-month").onchange = applyFilters;
+        
+        if($("filter-text")) $("filter-text").oninput = debouncedApplyFilters;
+        
+        if($("filter-year")) {
+            $("filter-year").oninput = (e) => {
+                e.target.value = e.target.value.replace(/\D/g, "").slice(0, 4);
+                debouncedApplyFilters();
+            };
+        }
+        
+        if($("filter-month")) $("filter-month").onchange = applyFilters;
 
-        $("btn-add").onclick = handleManualAdd;
-        $("isbn-input").onkeydown = (e) => { if(e.key==="Enter") handleManualAdd(); };
-        $("btn-scan").onclick = startCamera;
-        $("btn-stop-camera").onclick = stopCamera;
+        if($("btn-add")) $("btn-add").onclick = handleManualAdd;
+        if($("isbn-input")) $("isbn-input").onkeydown = (e) => { if(e.key==="Enter") handleManualAdd(); };
+        
+        if($("btn-scan")) $("btn-scan").onclick = startCamera;
+        if($("btn-stop-camera")) $("btn-stop-camera").onclick = stopCamera;
 
-        $("modal-add-read").onclick = () => confirmAdd("read");
-        $("modal-add-wish").onclick = () => confirmAdd("wishlist");
-        $("modal-add-loan").onclick = () => confirmAdd("loans");
-        $("modal-cancel").onclick = closeModal;
+        if($("modal-add-read")) $("modal-add-read").onclick = () => confirmAdd("read");
+        if($("modal-add-wish")) $("modal-add-wish").onclick = () => confirmAdd("wishlist");
+        if($("modal-add-loan")) $("modal-add-loan").onclick = () => confirmAdd("loans");
+        if($("modal-cancel")) $("modal-cancel").onclick = closeModal;
 
-        $("auth-btn").onclick = () => {
-            if(!tokenClient) return alert("Auth is still loading, try again in a moment.");
-            tokenClient.requestAccessToken({ prompt: "consent" });
-        };
-        $("reset-btn").onclick = hardReset;
+        if($("auth-btn")) {
+            $("auth-btn").onclick = () => {
+                if(!tokenClient) return alert("Auth is still loading, try again in a moment.");
+                tokenClient.requestAccessToken({ prompt: "consent" });
+            };
+        }
+        
+        if($("reset-btn")) $("reset-btn").onclick = hardReset;
 
-        document.querySelector(".tabs").addEventListener("click", (e) => {
-            const tab = e.target.closest(".tab");
-            if (!tab) return;
-            const shelf = tab.id.replace("tab-", "");
-            setActiveTab(shelf);
-        });
+        const tabsContainer = document.querySelector(".tabs");
+        if(tabsContainer) {
+            tabsContainer.addEventListener("click", (e) => {
+                const tab = e.target.closest(".tab");
+                if (!tab) return;
+                const shelf = tab.id.replace("tab-", "");
+                setActiveTab(shelf);
+            });
+        }
 
-        // UI Init
         const darkModeToggle = $("dark-mode-toggle");
-        if(localStorage.getItem("darkMode") === "true") { document.body.classList.add("dark-mode"); darkModeToggle.checked = true; }
-        darkModeToggle.onchange = (e) => {
-            if(e.target.checked) { document.body.classList.add("dark-mode"); localStorage.setItem("darkMode", "true"); }
-            else { document.body.classList.remove("dark-mode"); localStorage.setItem("darkMode", "false"); }
-        };
+        if(darkModeToggle) {
+            if(localStorage.getItem("darkMode") === "true") { document.body.classList.add("dark-mode"); darkModeToggle.checked = true; }
+            darkModeToggle.onchange = (e) => {
+                if(e.target.checked) { document.body.classList.add("dark-mode"); localStorage.setItem("darkMode", "true"); }
+                else { document.body.classList.remove("dark-mode"); localStorage.setItem("darkMode", "false"); }
+            };
+        }
 
-        $("year").textContent = new Date().getFullYear();
+        const yearSpan = $("year");
+        if(yearSpan) yearSpan.textContent = new Date().getFullYear();
+        
         setSyncStatus("idle");
         renderBooks();
         updateShelfCounts();
