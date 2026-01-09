@@ -57,7 +57,7 @@
     .menu-title { font-weight: bold; margin-bottom: 10px; color: var(--primary); display: block; }
     .menu-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 
-    /* --- MENU FORM (COMPACT YEAR) --- */
+    /* --- MENU FORM --- */
     .menu-input {
         width: 100%; box-sizing: border-box; padding: 10px 12px;
         border: 1px solid var(--border); border-radius: 8px;
@@ -65,10 +65,9 @@
         height: 42px; line-height: 20px;
     }
     
-    /* SPECIAL: Make Year input fit 4 digits perfectly */
+    /* Year input: fixed width but safe on mobile */
     #filter-year {
-        width: 7ch; min-width: 7ch; max-width: 9ch;
-        padding-left: 10px; padding-right: 10px;
+        width: 80px; text-align: center;
     }
 
     .menu-select {
@@ -77,19 +76,22 @@
         border-radius: 8px; background: var(--card); color: var(--text);
         font-size: 16px;
     }
-    
     .filter-grid {
-        display: grid; 
-        grid-template-columns: auto 1fr; /* Auto width for year, rest for month */
-        gap: 10px;
+        display: grid; grid-template-columns: auto 1fr; gap: 10px;
         align-items: end; margin-top: 10px;
     }
     .filter-field label { display: block; font-size: 0.8rem; color: var(--meta); margin-bottom: 6px; }
     .menu-actions { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 12px; }
 
-    /* COUNTERS */
-    .shelf-counters { display: flex; gap: 10px; flex-wrap: wrap; font-size: 0.9rem; color: var(--meta); }
-    .shelf-counters span { background: var(--isbn-bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 999px; }
+    /* REDESIGNED COUNTERS (Stats Bar) */
+    .shelf-counters { 
+        display: flex; justify-content: space-between; 
+        background: var(--isbn-bg); 
+        padding: 12px; border-radius: 8px; 
+        font-size: 0.85rem; color: var(--text);
+        border: 1px solid var(--border);
+    }
+    .shelf-counters span { font-weight: 600; }
     
     /* --- CONTROLS & TABS --- */
     #auth-btn { background: #4285F4; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: 500; font-size: 0.85rem; cursor: pointer; width: 100%; }
@@ -189,7 +191,7 @@
       <span class="menu-title">Shelves</span>
       <div class="shelf-counters">
         <span id="count-read">Read: 0</span>
-        <span id="count-wishlist">Wishlist: 0</span>
+        <span id="count-wishlist">Wish: 0</span>
         <span id="count-loans">Loans: 0</span>
       </div>
     </div>
@@ -245,7 +247,7 @@
   </div>
 
   <div class="controls">
-    <input type="text" id="isbn-input" placeholder="Scan or type an ISBN… or just name the book" />
+    <input type="text" id="isbn-input" placeholder="Search ISBN, Title, Author…" />
     <button class="action-btn" id="btn-add">Add</button>
     <button class="action-btn scan-btn" id="btn-scan">📷</button>
   </div>
@@ -364,26 +366,26 @@
         else dot.style.background = "#bbb"; 
     }
 
-    // UPDATE COUNTERS
+    // UPDATE COUNTERS (Only in Menu now)
     function updateShelfCounts() {
         const r = library.read?.length || 0;
         const w = library.wishlist?.length || 0;
         const l = library.loans?.length || 0;
 
-        // Update Tabs
+        // Clean Tabs
         const tRead = document.getElementById("tab-read");
         const tWish = document.getElementById("tab-wishlist");
         const tLoans = document.getElementById("tab-loans");
-        if(tRead) tRead.textContent = `Read (${r})`;
-        if(tWish) tWish.textContent = `Wishlist (${w})`;
-        if(tLoans) tLoans.textContent = `Loans (${l})`;
+        if(tRead) tRead.textContent = "Read";
+        if(tWish) tWish.textContent = "Wishlist";
+        if(tLoans) tLoans.textContent = "Loans";
 
-        // Update Menu Counters
+        // Update Menu Stats
         const cRead = document.getElementById("count-read");
         const cWish = document.getElementById("count-wishlist");
         const cLoans = document.getElementById("count-loans");
         if(cRead) cRead.textContent = `Read: ${r}`;
-        if(cWish) cWish.textContent = `Wishlist: ${w}`;
+        if(cWish) cWish.textContent = `Wish: ${w}`;
         if(cLoans) cLoans.textContent = `Loans: ${l}`;
     }
 
@@ -763,32 +765,6 @@
         }
     }
 
-    async function addToCalendar(book) {
-        if (!gapi?.client?.getToken?.()) return alert("Please Sign In to add Calendar reminders.");
-        if (!book.returnDate) return alert("No return date set for this book.");
-        if (!confirm(`Add reminder to Google Calendar for "${book.title}"?\n(Note: If you already added one, this creates a duplicate.)`)) return;
-
-        const dateObj = new Date(book.returnDate);
-        dateObj.setDate(dateObj.getDate() - 1);
-        const reminderDate = dateObj.toISOString().split('T')[0];
-
-        try {
-            await gapi.client.calendar.events.insert({
-                'calendarId': 'primary',
-                'resource': {
-                    'summary': `Return Library Book: ${book.title}`,
-                    'description': `Return to library. Book by ${getAuthorName(book)}.`,
-                    'start': { 'date': reminderDate }, 'end': { 'date': reminderDate },
-                    'reminders': { 'useDefault': false, 'overrides': [ {'method': 'popup', 'minutes': 9 * 60} ] }
-                }
-            });
-            alert("Calendar event created! 📅");
-        } catch (e) {
-            logError("Calendar Error", e);
-            alert("Could not add to Calendar. Check permissions.");
-        }
-    }
-
     function showModal(book, scannedIsbn = "") {
         pendingBook = book;
         if(scannedIsbn) pendingBook.isbn = scannedIsbn;
@@ -887,6 +863,18 @@
     }
 
     // =======================
+    // SMART PLACEHOLDER
+    // =======================
+    function setSmartPlaceholder() {
+        const el = $("isbn-input");
+        if (!el) return;
+        el.placeholder = window.matchMedia("(max-width: 420px)").matches
+            ? "Search ISBN, Title, Author…"
+            : "Scan or type an ISBN… or just name the book";
+    }
+    window.addEventListener("resize", setSmartPlaceholder);
+
+    // =======================
     // SAFE INITIALIZATION
     // =======================
     try {
@@ -940,7 +928,9 @@
         $("year").textContent = new Date().getFullYear();
         setSyncStatus("idle");
         renderBooks();
+        updateShelfCounts();
         updateSheetLink();
+        setSmartPlaceholder();
         
         console.log("Cloud Library Loaded OK");
 
