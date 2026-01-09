@@ -90,18 +90,21 @@ function setSyncStatus(state) {
 // =======================
 // LOGIC
 // =======================
+
 function updateShelfCounts() {
     const r = library.read?.length || 0;
     const w = library.wishlist?.length || 0;
     const l = library.loans?.length || 0;
 
+    // Menu Stats (Update ONLY the number, not the label)
+    if($("count-read")) $("count-read").textContent = r;
+    if($("count-wishlist")) $("count-wishlist").textContent = w;
+    if($("count-loans")) $("count-loans").textContent = l;
+    
+    // Tabs (Update text if needed, or leave static)
     if($("tab-read")) $("tab-read").textContent = "Read";
     if($("tab-wishlist")) $("tab-wishlist").textContent = "Wishlist";
     if($("tab-loans")) $("tab-loans").textContent = "Loans";
-
-    if($("count-read")) $("count-read").textContent = `Read: ${r}`;
-    if($("count-wishlist")) $("count-wishlist").textContent = `Wish: ${w}`;
-    if($("count-loans")) $("count-loans").textContent = `Loans: ${l}`;
 }
 
 function loadLibrary() {
