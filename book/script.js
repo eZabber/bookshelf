@@ -704,7 +704,7 @@ window.addEventListener("DOMContentLoaded", () => {
         if($("modal-add-wish")) $("modal-add-wish").onclick = () => confirmAdd("wishlist");
         if($("modal-add-loan")) $("modal-add-loan").onclick = () => confirmAdd("loans");
         if($("modal-cancel")) $("modal-cancel").onclick = closeModal;
-        if($("auth-btn")) { $("auth-btn").onclick = () => { if(!tokenClient) return alert("Loading..."); tokenClient.requestAccessToken({ prompt: "consent" }); }; }
+        if($("auth-btn")) { $("auth-btn").onclick = () => { if(!tokenClient) return alert("Loading..."); tokenClient.requestAccessToken({ prompt: "" }); }; }
         if($("reset-btn")) $("reset-btn").onclick = hardReset;
         const tabsContainer = document.querySelector(".tabs");
         if(tabsContainer) { tabsContainer.addEventListener("click", (e) => { const tab = e.target.closest(".tab"); if (!tab) return; const shelf = tab.id.replace("tab-", ""); setActiveTab(shelf); }); }
