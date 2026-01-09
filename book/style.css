@@ -35,6 +35,11 @@ header { display: flex; justify-content: space-between; align-items: center; mar
     transform: translateX(-100%); transition: transform 0.3s ease;
     z-index: 2000; padding: 20px; display: flex; flex-direction: column; gap: 15px;
     pointer-events: none;
+    
+    /* SCROLL FIXES */
+    overflow-y: auto; 
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 50px; /* Space at bottom so Reset button isn't hidden */
 }
 #side-menu.open { transform: translateX(0); pointer-events: auto; }
 
@@ -115,87 +120,6 @@ header { display: flex; justify-content: space-between; align-items: center; mar
     color: var(--primary);
 }
 
-/* --- DATE EDITING --- */
-.date-label {
-    font-size: 0.85rem;
-    color: var(--meta);
-    margin-right: 4px;
-}
-.date-input-edit {
-    border: 1px solid var(--border);
-    background: var(--bg);
-    color: var(--text);
-    border-radius: 4px;
-    padding: 2px 4px;
-    font-family: inherit;
-    font-size: 0.8rem;
-    cursor: pointer;
-    width: 110px;
-}
-
-/* --- CARD MENU (Three Dots) --- */
-.card-menu-container {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 10;
-}
-
-.dots-btn {
-    background: transparent;
-    border: none;
-    font-size: 1.2rem;
-    color: var(--meta);
-    cursor: pointer;
-    padding: 5px 10px;
-    border-radius: 50%;
-    transition: background 0.2s;
-}
-.dots-btn:hover, .dots-btn:active {
-    background: rgba(0,0,0,0.1);
-    color: var(--text);
-}
-
-.menu-dropdown {
-    display: none;
-    position: absolute;
-    right: 0;
-    top: 30px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    box-shadow: 0 4px 12px var(--shadow);
-    border-radius: 8px;
-    width: 140px;
-    overflow: hidden;
-    flex-direction: column;
-}
-.menu-dropdown.show { display: flex; }
-
-.menu-item {
-    background: none;
-    border: none;
-    width: 100%;
-    padding: 12px;
-    text-align: left;
-    font-size: 0.9rem;
-    color: var(--text);
-    cursor: pointer;
-    border-bottom: 1px solid var(--border);
-}
-.menu-item:last-child { border-bottom: none; }
-.menu-item:hover { background: var(--bg); }
-
-/* Edit Date Input (Hidden by default) */
-.date-edit-input {
-    display: none;
-    font-size: 0.85rem;
-    padding: 4px;
-    border: 1px solid var(--accent);
-    border-radius: 4px;
-    background: var(--bg);
-    color: var(--text);
-}
-
 /* --- CONTROLS & TABS --- */
 #auth-btn { background: #4285F4; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: 500; font-size: 0.85rem; cursor: pointer; width: 100%; }
 #auth-btn:disabled { background: #ccc; cursor: not-allowed; }
@@ -241,6 +165,21 @@ ul { list-style: none; padding: 0; }
 .btn-cal { border: 1px solid var(--loan); color: var(--loan); background: none; padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; }
 
 select.rating { display: block; margin-top: 5px; padding: 4px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem; background: var(--card); color: var(--text); }
+
+/* --- DATE EDITING --- */
+.date-label { font-size: 0.85rem; color: var(--meta); margin-right: 4px; }
+.date-input-edit { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 4px; padding: 2px 4px; font-family: inherit; font-size: 0.8rem; cursor: pointer; width: 110px; }
+
+/* --- CARD MENU (Three Dots) --- */
+.card-menu-container { position: absolute; top: 10px; right: 10px; z-index: 10; }
+.dots-btn { background: transparent; border: none; font-size: 1.2rem; color: var(--meta); cursor: pointer; padding: 5px 10px; border-radius: 50%; transition: background 0.2s; }
+.dots-btn:hover, .dots-btn:active { background: rgba(0,0,0,0.1); color: var(--text); }
+.menu-dropdown { display: none; position: absolute; right: 0; top: 30px; background: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 12px var(--shadow); border-radius: 8px; width: 140px; overflow: hidden; flex-direction: column; }
+.menu-dropdown.show { display: flex; }
+.menu-item { background: none; border: none; width: 100%; padding: 12px; text-align: left; font-size: 0.9rem; color: var(--text); cursor: pointer; border-bottom: 1px solid var(--border); }
+.menu-item:last-child { border-bottom: none; }
+.menu-item:hover { background: var(--bg); }
+.date-edit-input { display: none; font-size: 0.85rem; padding: 4px; border: 1px solid var(--accent); border-radius: 4px; background: var(--bg); color: var(--text); }
 
 /* --- MODAL --- */
 #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 3000; align-items: center; justify-content: center; }
