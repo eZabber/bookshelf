@@ -115,6 +115,24 @@ header { display: flex; justify-content: space-between; align-items: center; mar
     color: var(--primary);
 }
 
+/* --- DATE EDITING --- */
+.date-label {
+    font-size: 0.85rem;
+    color: var(--meta);
+    margin-right: 4px;
+}
+.date-input-edit {
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    border-radius: 4px;
+    padding: 2px 4px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+    width: 110px;
+}
+
 /* --- CONTROLS & TABS --- */
 #auth-btn { background: #4285F4; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: 500; font-size: 0.85rem; cursor: pointer; width: 100%; }
 #auth-btn:disabled { background: #ccc; cursor: not-allowed; }
