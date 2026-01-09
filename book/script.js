@@ -14,7 +14,7 @@ const DATA_RANGE = `${SHEET_NAME}!A2:J999`;
 const HEADER = ["ID", "Title", "Author", "Shelf", "Rating", "Cover", "Date", "ReturnDate", "Audio", "ISBN"];
 
 // =======================
-// STATE
+// STATE & DOM
 // =======================
 let tokenClient = null;
 let gapiInited = false, gisInited = false;
@@ -25,15 +25,18 @@ let html5QrCode = null, scanLocked = false, pendingBook = null;
 let isSyncing = false, syncPending = false;
 let filterState = { text: "", year: "", month: "" };
 
-// Helper to find elements
 const $ = (id) => document.getElementById(id);
+// Note: 'list', 'sideMenu', 'menuOverlay' are found inside init to ensure DOM is ready
 
 // =======================
-// HELPERS
+// HELPERS & CORE
 // =======================
 function logError(msg, err) {
-    $("debug-log").style.display = "block";
-    $("debug-log").textContent = "ERROR: " + msg + "\nDETAILS: " + safeStringify(err);
+    const log = $("debug-log");
+    if(log) {
+        log.style.display = "block";
+        log.textContent = "ERROR: " + msg + "\nDETAILS: " + safeStringify(err);
+    }
     console.error(msg, err);
 }
 function safeStringify(x) { try { return JSON.stringify(x, null, 2); } catch { return String(x); } }
@@ -66,28 +69,26 @@ function setSyncStatus(state) {
     else dot.style.background = "#bbb"; 
 }
 
-// =======================
-// CORE FUNCTIONS
-// =======================
+// UPDATE COUNTERS (Only in Menu now)
 function updateShelfCounts() {
     const r = library.read?.length || 0;
     const w = library.wishlist?.length || 0;
     const l = library.loans?.length || 0;
 
-    // Tabs
-    const tRead = $("tab-read");
+    // Clean Tabs
+    const tRead = document.getElementById("tab-read");
+    const tWish = document.getElementById("tab-wishlist");
+    const tLoans = document.getElementById("tab-loans");
     if(tRead) tRead.textContent = "Read";
-    const tWish = $("tab-wishlist");
     if(tWish) tWish.textContent = "Wishlist";
-    const tLoans = $("tab-loans");
     if(tLoans) tLoans.textContent = "Loans";
 
-    // Menu Stats
-    const cRead = $("count-read");
+    // Update Menu Stats
+    const cRead = document.getElementById("count-read");
+    const cWish = document.getElementById("count-wishlist");
+    const cLoans = document.getElementById("count-loans");
     if(cRead) cRead.textContent = `Read: ${r}`;
-    const cWish = $("count-wishlist");
     if(cWish) cWish.textContent = `Wish: ${w}`;
-    const cLoans = $("count-loans");
     if(cLoans) cLoans.textContent = `Loans: ${l}`;
 }
 
@@ -112,6 +113,9 @@ function saveLibrary(shouldSync, skipRender = false) {
     if (shouldSync && gapi?.client?.getToken?.()) queueUpload();
 }
 
+// =======================
+// LOGIC & UI FUNCTIONS
+// =======================
 function openMenu() { 
     $("side-menu").classList.add("open"); 
     $("menu-overlay").classList.add("open"); 
@@ -127,13 +131,14 @@ function clearFilters() {
     $("filter-text").value = "";
     $("filter-year").value = "";
     $("filter-month").value = "";
+    filterState = { text: "", year: "", month: "" };
     applyFilters();
 }
 
 function renderBooks() {
     const list = $("book-list");
-    if (!list) return; // Safety check
-    
+    if(!list) return;
+
     list.innerHTML = "";
     let items = library[currentShelf] || [];
     
@@ -158,7 +163,7 @@ function renderBooks() {
         const li = document.createElement("li"); li.className = "book-card";
         const info = document.createElement("div"); info.className = "book-info";
         
-        // Badges
+        // --- BADGES ROW ---
         const badges = document.createElement("div");
         badges.className = "badges-row";
         
@@ -222,7 +227,7 @@ function renderBooks() {
 
         const delBtn = document.createElement("button"); 
         delBtn.className = "btn-del"; 
-        delBtn.textContent = "🗑️"; 
+        delBtn.textContent = "🗑️"; // ICON ONLY
         delBtn.onclick = () => deleteBook(b.id);
         actions.appendChild(delBtn);
 
@@ -629,6 +634,7 @@ window.addEventListener("DOMContentLoaded", () => {
         $("year").textContent = new Date().getFullYear();
         setSyncStatus("idle");
         renderBooks();
+        updateShelfCounts();
         updateSheetLink();
         setSmartPlaceholder();
         window.addEventListener("resize", setSmartPlaceholder);
