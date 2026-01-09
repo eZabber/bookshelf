@@ -14,7 +14,7 @@ const DATA_RANGE = `${SHEET_NAME}!A2:J999`;
 const HEADER = ["ID", "Title", "Author", "Shelf", "Rating", "Cover", "Date", "ReturnDate", "Audio", "ISBN"];
 
 // =======================
-// STATE & DOM
+// STATE
 // =======================
 let tokenClient = null;
 let gapiInited = false, gisInited = false;
@@ -25,13 +25,11 @@ let html5QrCode = null, scanLocked = false, pendingBook = null;
 let isSyncing = false, syncPending = false;
 let filterState = { text: "", year: "", month: "" };
 
+// Helper to find elements
 const $ = (id) => document.getElementById(id);
-const list = $("book-list"); 
-const sideMenu = $("side-menu"), menuOverlay = $("menu-overlay");
-const body = document.body;
 
 // =======================
-// HELPERS & CORE
+// HELPERS
 // =======================
 function logError(msg, err) {
     $("debug-log").style.display = "block";
@@ -68,26 +66,28 @@ function setSyncStatus(state) {
     else dot.style.background = "#bbb"; 
 }
 
-// UPDATE COUNTERS (Only in Menu now)
+// =======================
+// CORE FUNCTIONS
+// =======================
 function updateShelfCounts() {
     const r = library.read?.length || 0;
     const w = library.wishlist?.length || 0;
     const l = library.loans?.length || 0;
 
-    // Clean Tabs
-    const tRead = document.getElementById("tab-read");
-    const tWish = document.getElementById("tab-wishlist");
-    const tLoans = document.getElementById("tab-loans");
+    // Tabs
+    const tRead = $("tab-read");
     if(tRead) tRead.textContent = "Read";
+    const tWish = $("tab-wishlist");
     if(tWish) tWish.textContent = "Wishlist";
+    const tLoans = $("tab-loans");
     if(tLoans) tLoans.textContent = "Loans";
 
-    // Update Menu Stats
-    const cRead = document.getElementById("count-read");
-    const cWish = document.getElementById("count-wishlist");
-    const cLoans = document.getElementById("count-loans");
+    // Menu Stats
+    const cRead = $("count-read");
     if(cRead) cRead.textContent = `Read: ${r}`;
+    const cWish = $("count-wishlist");
     if(cWish) cWish.textContent = `Wish: ${w}`;
+    const cLoans = $("count-loans");
     if(cLoans) cLoans.textContent = `Loans: ${l}`;
 }
 
@@ -112,18 +112,15 @@ function saveLibrary(shouldSync, skipRender = false) {
     if (shouldSync && gapi?.client?.getToken?.()) queueUpload();
 }
 
-// =======================
-// LOGIC & UI FUNCTIONS
-// =======================
 function openMenu() { 
-    sideMenu.classList.add("open"); 
-    menuOverlay.classList.add("open"); 
-    body.style.overflow = "hidden"; 
+    $("side-menu").classList.add("open"); 
+    $("menu-overlay").classList.add("open"); 
+    document.body.style.overflow = "hidden"; 
 }
 function closeMenu() { 
-    sideMenu.classList.remove("open"); 
-    menuOverlay.classList.remove("open"); 
-    body.style.overflow = ""; 
+    $("side-menu").classList.remove("open"); 
+    $("menu-overlay").classList.remove("open"); 
+    document.body.style.overflow = ""; 
 }
 
 function clearFilters() {
@@ -134,6 +131,9 @@ function clearFilters() {
 }
 
 function renderBooks() {
+    const list = $("book-list");
+    if (!list) return; // Safety check
+    
     list.innerHTML = "";
     let items = library[currentShelf] || [];
     
@@ -158,7 +158,7 @@ function renderBooks() {
         const li = document.createElement("li"); li.className = "book-card";
         const info = document.createElement("div"); info.className = "book-info";
         
-        // --- BADGES ROW ---
+        // Badges
         const badges = document.createElement("div");
         badges.className = "badges-row";
         
@@ -222,7 +222,7 @@ function renderBooks() {
 
         const delBtn = document.createElement("button"); 
         delBtn.className = "btn-del"; 
-        delBtn.textContent = "🗑️"; // ICON ONLY
+        delBtn.textContent = "🗑️"; 
         delBtn.onclick = () => deleteBook(b.id);
         actions.appendChild(delBtn);
 
@@ -345,7 +345,7 @@ function updateRating(id, val) {
 }
 
 // =======================
-// AUTH & SYNC
+// AUTH & SYNC (Global)
 // =======================
 function gapiLoaded() {
     gapi.load("client", async () => {
@@ -470,32 +470,6 @@ async function uploadData() {
     }
 }
 
-async function addToCalendar(book) {
-    if (!gapi?.client?.getToken?.()) return alert("Please Sign In to add Calendar reminders.");
-    if (!book.returnDate) return alert("No return date set for this book.");
-    if (!confirm(`Add reminder to Google Calendar for "${book.title}"?\n(Note: If you already added one, this creates a duplicate.)`)) return;
-
-    const dateObj = new Date(book.returnDate);
-    dateObj.setDate(dateObj.getDate() - 1);
-    const reminderDate = dateObj.toISOString().split('T')[0];
-
-    try {
-        await gapi.client.calendar.events.insert({
-            'calendarId': 'primary',
-            'resource': {
-                'summary': `Return Library Book: ${book.title}`,
-                'description': `Return to library. Book by ${getAuthorName(book)}.`,
-                'start': { 'date': reminderDate }, 'end': { 'date': reminderDate },
-                'reminders': { 'useDefault': false, 'overrides': [ {'method': 'popup', 'minutes': 9 * 60} ] }
-            }
-        });
-        alert("Calendar event created! 📅");
-    } catch (e) {
-        logError("Calendar Error", e);
-        alert("Could not add to Calendar. Check permissions.");
-    }
-}
-
 function showModal(book, scannedIsbn = "") {
     pendingBook = book;
     if(scannedIsbn) pendingBook.isbn = scannedIsbn;
@@ -593,9 +567,6 @@ function updateSheetLink() {
     if(spreadsheetId) { el.href=`https://docs.google.com/spreadsheets/d/${spreadsheetId}`; el.style.display='inline'; } else { el.style.display='none'; }
 }
 
-// =======================
-// SMART PLACEHOLDER
-// =======================
 function setSmartPlaceholder() {
     const el = $("isbn-input");
     if (!el) return;
@@ -603,73 +574,70 @@ function setSmartPlaceholder() {
         ? "Search ISBN, Title, Author…"
         : "Scan or type an ISBN… or just name the book";
 }
-window.addEventListener("resize", setSmartPlaceholder);
-window.addEventListener("orientationchange", setSmartPlaceholder);
 
 // =======================
-// SAFE INITIALIZATION
+// SAFE INITIALIZATION (Wait for DOM)
 // =======================
-try {
-    library = loadLibrary();
-    
-    // Listeners assigned safely after functions defined
-    $("menu-btn").onclick = openMenu;
-    menuOverlay.onclick = closeMenu; 
-    $("modal-overlay").onclick = (e) => { if (e.target.id === "modal-overlay") closeModal(); };
+window.addEventListener("DOMContentLoaded", () => {
+    try {
+        library = loadLibrary();
+        
+        // Listeners
+        $("menu-btn").onclick = openMenu;
+        $("menu-overlay").onclick = closeMenu; 
+        $("modal-overlay").onclick = (e) => { if (e.target.id === "modal-overlay") closeModal(); };
 
-    const debouncedApplyFilters = debounce(applyFilters, 200);
-    $("filter-text").oninput = debouncedApplyFilters;
-    $("filter-year").oninput = (e) => {
-        e.target.value = e.target.value.replace(/\D/g, "").slice(0, 4);
-        debouncedApplyFilters();
-    };
-    $("filter-month").onchange = applyFilters;
+        const debouncedApplyFilters = debounce(applyFilters, 200);
+        $("filter-text").oninput = debouncedApplyFilters;
+        $("filter-year").oninput = (e) => {
+            e.target.value = e.target.value.replace(/\D/g, "").slice(0, 4);
+            debouncedApplyFilters();
+        };
+        $("filter-month").onchange = applyFilters;
 
-    $("btn-add").onclick = handleManualAdd;
-    $("isbn-input").onkeydown = (e) => { if(e.key==="Enter") handleManualAdd(); };
-    $("btn-scan").onclick = startCamera;
-    $("btn-stop-camera").onclick = stopCamera;
+        $("btn-add").onclick = handleManualAdd;
+        $("isbn-input").onkeydown = (e) => { if(e.key==="Enter") handleManualAdd(); };
+        $("btn-scan").onclick = startCamera;
+        $("btn-stop-camera").onclick = stopCamera;
 
-    $("modal-add-read").onclick = () => confirmAdd("read");
-    $("modal-add-wish").onclick = () => confirmAdd("wishlist");
-    $("modal-add-loan").onclick = () => confirmAdd("loans");
-    $("modal-cancel").onclick = closeModal;
+        $("modal-add-read").onclick = () => confirmAdd("read");
+        $("modal-add-wish").onclick = () => confirmAdd("wishlist");
+        $("modal-add-loan").onclick = () => confirmAdd("loans");
+        $("modal-cancel").onclick = closeModal;
 
-    $("auth-btn").onclick = () => {
-        if(!tokenClient) return alert("Auth is still loading, try again in a moment.");
-        tokenClient.requestAccessToken({ prompt: "consent" });
-    };
-    $("reset-btn").onclick = hardReset;
+        $("auth-btn").onclick = () => {
+            if(!tokenClient) return alert("Auth is still loading, try again in a moment.");
+            tokenClient.requestAccessToken({ prompt: "consent" });
+        };
+        $("reset-btn").onclick = hardReset;
 
-    // NEW: Event Delegation for Tabs (Crash Proof)
-    document.querySelector(".tabs").addEventListener("click", (e) => {
-        const tab = e.target.closest(".tab");
-        if (!tab) return;
-        const shelf = tab.id.replace("tab-", "");
-        setActiveTab(shelf);
-    });
+        document.querySelector(".tabs").addEventListener("click", (e) => {
+            const tab = e.target.closest(".tab");
+            if (!tab) return;
+            const shelf = tab.id.replace("tab-", "");
+            setActiveTab(shelf);
+        });
 
-    // UI Init
-    const darkModeToggle = $("dark-mode-toggle");
-    if(localStorage.getItem("darkMode") === "true") { body.classList.add("dark-mode"); darkModeToggle.checked = true; }
-    darkModeToggle.onchange = (e) => {
-        if(e.target.checked) { body.classList.add("dark-mode"); localStorage.setItem("darkMode", "true"); }
-        else { body.classList.remove("dark-mode"); localStorage.setItem("darkMode", "false"); }
-    };
+        // UI Init
+        const darkModeToggle = $("dark-mode-toggle");
+        if(localStorage.getItem("darkMode") === "true") { document.body.classList.add("dark-mode"); darkModeToggle.checked = true; }
+        darkModeToggle.onchange = (e) => {
+            if(e.target.checked) { document.body.classList.add("dark-mode"); localStorage.setItem("darkMode", "true"); }
+            else { document.body.classList.remove("dark-mode"); localStorage.setItem("darkMode", "false"); }
+        };
 
-    $("year").textContent = new Date().getFullYear();
-    setSyncStatus("idle");
-    renderBooks();
-    updateShelfCounts();
-    updateSheetLink();
-    setSmartPlaceholder();
-    
-    console.log("Cloud Library Loaded OK");
+        $("year").textContent = new Date().getFullYear();
+        setSyncStatus("idle");
+        renderBooks();
+        updateSheetLink();
+        setSmartPlaceholder();
+        window.addEventListener("resize", setSmartPlaceholder);
+        window.addEventListener("orientationchange", setSmartPlaceholder);
+        
+        console.log("Cloud Library Loaded OK");
 
-} catch (err) {
-    logError("App Start Failed", err);
-    alert("App failed to start. Check debug log.");
-}
-</script>
-</body>
-</html>
+    } catch (err) {
+        logError("App Start Failed", err);
+        alert("App failed to start. Check debug log.");
+    }
+});
