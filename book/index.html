@@ -39,8 +39,16 @@
     </div>
 
     <div class="menu-section">
-        <div style="text-align:center;">
-            <a id="sheet-link" target="_blank" href="#" style="display:none; color:var(--accent); font-size:0.9rem; text-decoration:none;">↗️ Open Google Sheet</a>
+        <label class="menu-title" id="menu-data">Data & Backup</label>
+        
+        <button id="btn-export" class="btn-sm" style="width:100%; margin-bottom: 10px; border: 1px solid var(--accent); color: var(--accent); font-weight:600;">
+            Download Backup (JSON)
+        </button>
+        
+        <button id="reset-btn" class="btn-sm btn-del" style="width:100%;">Reset App Data</button>
+        
+        <div style="margin-top:10px; text-align:center;">
+            <a id="sheet-link" target="_blank" href="#" style="display:none; color:var(--meta); font-size:0.8rem; text-decoration:none; border-bottom:1px dotted var(--meta);">↗️ Open Google Sheet</a>
         </div>
     </div>
     
@@ -106,10 +114,6 @@
         <div class="menu-actions">
             <button class="btn-sm" id="btn-clear-filters" style="width:100%;">Clear Filters</button>
         </div>
-    </div>
-
-    <div class="menu-section">
-        <button id="reset-btn" class="btn-sm btn-del" style="width:100%;">Reset App Data</button>
     </div>
   </div>
 
