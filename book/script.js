@@ -1,9 +1,12 @@
 /* =========================================================
-   MY BOOKSHELF APP — CLEAN UI & FIXED FILTERING
+   MY BOOKSHELF APP — FINAL PRODUCTION
+   - Drive-file scope (Privacy first)
+   - Manual Cloud Sync (Save/Load via Picker)
+   - Clear "Logged In" status
    ========================================================= */
 
 const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
-// ADD YOUR API KEY HERE
+// ADD YOUR API KEY HERE (Required for Picker)
 const DEVELOPER_KEY = ""; 
 
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
@@ -30,22 +33,28 @@ const TRANSLATIONS = {
     clear: "Clear Filters", reset: "Reset App Data",
     integrations: "Integrations", calConn: "Connect Calendar", calDesc: "Enable for background syncing.",
     data: "Data & Backup", 
+    export: "Export to File (JSON)", import: "Import from File",
     
     // UI
     cloudSection: "Cloud Sync (Google Drive)",
-    btnSaveCloud: "Save to Drive ☁️",
-    btnLoadCloud: "Load from Drive 📂",
-    saveSuccess: "Saved! ✅",
-    saving: "Saving...",
+    btnSaveCloud: "Save ☁️",
+    btnLoadCloud: "Load 📂",
     
     dark: "Dark Mode", lang: "Language",
     search: "Search ISBN, Title, Author...", add: "Add",
-    signIn: "Sign In", working: "...", synced: "Synced",
+    
+    // AUTH STATUS
+    signIn: "Sign In", 
+    working: "...", 
+    synced: "Logged In", // Changed from "Synced"
+    
     markRead: "Mark Read", unread: "↩︎ Unread", delete: "Delete?",
     finished: "Finished:", due: "Due:", audio: "🎧 Audio", reminder: "📅 Reminder",
     modalAudio: "🎧 Audio?", modalReturn: "📅 Return", cancel: "Cancel",
     changeDate: "📅 Change Date", copyTitle: "📋 Copy Title",
     importSuccess: "Success! ✅",
+    cloudSaved: "Saved to Drive! ✅",
+    cloudLoaded: "Loaded from Drive! ✅",
     calAdded: "Event added! 📅",
     filterStats: "Showing {0} of {1} books",
     clearBtn: "Clear",
@@ -54,7 +63,7 @@ const TRANSLATIONS = {
     dateRequired: "Date?",
     pickerTitle: "Select your Book Data Sheet",
     signInRequired: "Please Sign In first.",
-    confirmLoad: "Overwrite local data with data from Drive?"
+    confirmLoad: "This will overwrite your local library with data from Drive. Continue?"
   },
   fi: {
     read: "Luetut", wishlist: "Toivelista", loans: "Lainassa",
@@ -64,20 +73,25 @@ const TRANSLATIONS = {
     integrations: "Integraatiot", calConn: "Yhdistä kalenteri", calDesc: "Käytä taustasynkronointia.",
     data: "Tiedot & Varmuuskopio", 
     
-    cloudSection: "Pilvitallennus (Google Drive)",
-    btnSaveCloud: "Tallenna Driveen ☁️",
-    btnLoadCloud: "Lataa Drivestä 📂",
-    saveSuccess: "Tallennettu! ✅",
-    saving: "Tallennetaan...",
+    cloudSection: "Pilvitallennus (Drive)",
+    btnSaveCloud: "Tallenna ☁️",
+    btnLoadCloud: "Lataa 📂",
     
     dark: "Tumma tila", lang: "Kieli",
     search: "Etsi ISBN, Nimi, Kirjailija...", add: "Lisää",
-    signIn: "Kirjaudu", working: "...", synced: "Synkattu",
+    
+    // AUTH STATUS
+    signIn: "Kirjaudu", 
+    working: "...", 
+    synced: "Kirjautunut", // Changed from "Synkattu"
+    
     markRead: "Merkitse luetuksi", unread: "↩︎ Lukematon", delete: "Poista?",
     finished: "Luettu:", due: "Eräpäivä:", audio: "🎧 Ääni", reminder: "📅 Muistutus",
     modalAudio: "🎧 Äänikirja?", modalReturn: "📅 Palautus", cancel: "Peruuta",
     changeDate: "📅 Muuta päivää", copyTitle: "📋 Kopioi nimi",
     importSuccess: "Onnistui! ✅",
+    cloudSaved: "Tallennettu Driveen! ✅",
+    cloudLoaded: "Ladattu Drivestä! ✅",
     calAdded: "Tapahtuma lisätty! 📅",
     filterStats: "Näytetään {0} / {1} kirjaa",
     clearBtn: "Tyhjennä",
@@ -86,7 +100,7 @@ const TRANSLATIONS = {
     dateRequired: "Päivämäärä?",
     pickerTitle: "Valitse kirjataulukkosi",
     signInRequired: "Kirjaudu ensin.",
-    confirmLoad: "Korvataanko paikalliset tiedot Drivestä ladatuilla?"
+    confirmLoad: "Tämä korvaa paikalliset kirjat Drivestä ladatuilla tiedoilla. Jatketaanko?"
   },
   et: {
     read: "Loetud", wishlist: "Soovinimekiri", loans: "Laenatud",
@@ -96,20 +110,25 @@ const TRANSLATIONS = {
     integrations: "Integratsioonid", calConn: "Ühenda kalender", calDesc: "Luba taustal sünkroonimine.",
     data: "Andmed ja varukoopia", 
     
-    cloudSection: "Pilvesalvestus (Google Drive)",
-    btnSaveCloud: "Salvesta Drive'i ☁️",
-    btnLoadCloud: "Lae Drive'ist 📂",
-    saveSuccess: "Salvestatud! ✅",
-    saving: "Salvestamine...",
+    cloudSection: "Pilvesalvestus (Drive)",
+    btnSaveCloud: "Salvesta ☁️",
+    btnLoadCloud: "Lae 📂",
 
     dark: "Tume režiim", lang: "Keel",
     search: "Otsi ISBN, Pealkiri, Autor...", add: "Lisa",
-    signIn: "Logi sisse", working: "...", synced: "Sünkroonitud",
+    
+    // AUTH STATUS
+    signIn: "Logi sisse", 
+    working: "...", 
+    synced: "Sisse logitud", // Changed from "Sünkroonitud"
+    
     markRead: "Märgi loetuks", unread: "↩︎ Lugemata", delete: "Kustuta?",
     finished: "Loetud:", due: "Tähtaeg:", audio: "🎧 Audio", reminder: "📅 Meeldetuletus",
     modalAudio: "🎧 Audioraamat?", modalReturn: "📅 Tagastus", cancel: "Loobu",
     changeDate: "📅 Muuda kuupäeva", copyTitle: "📋 Kopeeri pealkiri",
     importSuccess: "Õnnestus! ✅",
+    cloudSaved: "Salvestatud Drive'i! ✅",
+    cloudLoaded: "Laetud Drive'ist! ✅",
     calAdded: "Sündmus lisatud! 📅",
     filterStats: "Kuvatakse {0} / {1} raamatut",
     clearBtn: "Tühjenda",
@@ -118,7 +137,7 @@ const TRANSLATIONS = {
     dateRequired: "Kuupäev?",
     pickerTitle: "Vali oma raamatutabel",
     signInRequired: "Palun logi esmalt sisse.",
-    confirmLoad: "Kirjutan kohalikud andmed üle? Jätka?"
+    confirmLoad: "See kirjutab kohalikud andmed üle Drive'i andmetega. Jätka?"
   }
 };
 
@@ -204,7 +223,10 @@ function setSyncStatus(state) {
     if (state === "working") dot.style.background = "#f1c40f"; else if (state === "synced") dot.style.background = "#2ecc71"; else if (state === "error") dot.style.background = "#e74c3c"; else dot.style.background = "#bbb";
   }
   if (btn) {
-    if (state === "working") btn.textContent = t("working"); else if (state === "synced") btn.textContent = t("synced"); else if (state === "error") btn.textContent = t("error"); else btn.textContent = t("signIn");
+    if (state === "working") btn.textContent = t("working"); 
+    else if (state === "synced") btn.textContent = t("synced"); // Now displays "Logged In"
+    else if (state === "error") btn.textContent = t("error"); 
+    else btn.textContent = t("signIn");
   }
 }
 
@@ -327,7 +349,7 @@ function renderBooks() {
       const dateDiv = document.createElement("div");
       const dateSpan = document.createElement("span"); dateSpan.id = `date-display-${b.id}`; dateSpan.textContent = `${t("finished")} ${b.dateRead}`;
       const dateInput = document.createElement("input"); dateInput.type = "date"; dateInput.id = `date-input-${b.id}`; dateInput.className = "date-edit-input";
-      dateInput.style.display = "none";
+      dateInput.style.display = "none"; // Hide calendar
       dateInput.value = String(b.dateRead || "");
       dateInput.onchange = (e) => updateReadDate(b.id, e.target.value);
       dateInput.onblur = () => setTimeout(() => { dateInput.style.display = "none"; dateSpan.style.display = "inline"; }, 200);
@@ -481,7 +503,7 @@ async function handleCloudSave() {
   setSyncStatus("synced");
   
   // Feedback UI
-  btn.textContent = t("saveSuccess");
+  btn.textContent = t("cloudSaved");
   setTimeout(() => { btn.textContent = t("btnSaveCloud"); }, 2500);
 }
 
@@ -595,9 +617,12 @@ async function uploadData() {
 }
 
 /* =========================
-   16) CAMERA & SEARCH
+   16) CAMERA & SEARCH & EXPORT
    ========================= */
-// Removed JSON export logic from UI (keeping helpers if needed later)
+function exportData() { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library, null, 2)); const a = document.createElement("a"); a.setAttribute("href", dataStr); a.setAttribute("download", "my_bookshelf_" + new Date().toISOString().split("T")[0] + ".json"); document.body.appendChild(a); a.click(); a.remove(); }
+function triggerImport() { $("import-file")?.click(); }
+function importData(event) { const file = event?.target?.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { try { const imported = JSON.parse(e.target.result); if (!imported?.read) return alert("Invalid"); library = imported; saveLibrary({shouldSync:true}); alert(t("importSuccess")); } catch {} }; reader.readAsText(file); }
+
 async function fetchOpenLibrary(isbn) { try { const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&jscmd=data&format=json`); const data = await res.json(); const key = `ISBN:${isbn}`; if (data?.[key]) { const b = data[key]; return { title: b.title, authors: b.authors || [{ name: "Unknown" }], cover: b.cover?.medium || b.cover?.small || null, isbn }; } } catch {} return null; }
 async function fetchFinna(isbn) { try { const res = await fetch(`https://api.finna.fi/v1/search?lookfor=isbn:${isbn}&type=AllFields&field[]=title&field[]=buildings&field[]=images`); const data = await res.json(); if (data?.resultCount > 0) { const b = data.records[0]; return { title: b.title, authors: [{ name: b.buildings?.[0]?.translated || "Unknown" }], cover: b.images?.[0] ? `https://api.finna.fi${b.images[0]}` : null, isbn }; } } catch {} return null; }
 async function fetchGoogleBooks(isbn) { try { const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`); const data = await res.json(); if (data?.totalItems > 0) { const v = data.items[0].volumeInfo; return { title: v.title, authors: (v.authors||[]).map(a=>({name:a})), cover: v.imageLinks?.thumbnail?.replace("http:","https:"), isbn }; } } catch {} return null; }
