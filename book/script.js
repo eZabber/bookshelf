@@ -2,8 +2,12 @@
 // CONFIG & TRANSLATIONS
 // =======================
 const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
-const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar.events";
-const DISCOVERY = [ "https://sheets.googleapis.com/$discovery/rest?version=v4", "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest" ];
+const SHEETS_SCOPE = "https://www.googleapis.com/auth/drive.file";
+const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+const DISCOVERY = [ 
+    "https://sheets.googleapis.com/$discovery/rest?version=v4", 
+    "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest" 
+];
 const SHEET_NAME = "Sheet1";
 const HEADER_RANGE = `${SHEET_NAME}!A1:J1`;
 const DATA_RANGE = `${SHEET_NAME}!A2:J999`;
@@ -17,12 +21,13 @@ const TRANSLATIONS = {
         clear: "Clear Filters", reset: "Reset App Data",
         dark: "Dark Mode", lang: "Language",
         search: "Search ISBN, Title, Author...", add: "Add",
-        signIn: "Sign In with Google", working: "Working...", synced: "Synced ✅", 
-        downloading: "Downloading...", saving: "Saving...", error: "Error ❌",
+        signIn: "Sign In", working: "...", synced: "Synced", 
+        downloading: "Loading...", saving: "Saving...", error: "Error",
         markRead: "Mark Read", unread: "↩︎ Unread", delete: "Delete?",
         finished: "Finished:", due: "Due:", audio: "🎧 Audio", reminder: "📅 Reminder",
         modalAudio: "🎧 Audio?", modalReturn: "📅 Return", cancel: "Cancel",
-        changeDate: "📅 Change Date", copyTitle: "📋 Copy Title"
+        changeDate: "📅 Change Date", copyTitle: "📋 Copy Title",
+        calPermit: "Enable Calendar access to set reminders?"
     },
     fi: {
         read: "Luetut", wishlist: "Toivelista", loans: "Lainassa",
@@ -31,12 +36,13 @@ const TRANSLATIONS = {
         clear: "Tyhjennä", reset: "Nollaa tiedot",
         dark: "Tumma tila", lang: "Kieli",
         search: "Etsi ISBN, Nimi, Kirjailija...", add: "Lisää",
-        signIn: "Kirjaudu Googlella", working: "Työskennellään...", synced: "Synkattu ✅", 
-        downloading: "Ladataan...", saving: "Tallennetaan...", error: "Virhe ❌",
+        signIn: "Kirjaudu", working: "...", synced: "Synkattu", 
+        downloading: "Ladataan...", saving: "Tallennetaan...", error: "Virhe",
         markRead: "Merkitse luetuksi", unread: "↩︎ Lukematon", delete: "Poista?",
         finished: "Luettu:", due: "Eräpäivä:", audio: "🎧 Ääni", reminder: "📅 Muistutus",
         modalAudio: "🎧 Äänikirja?", modalReturn: "📅 Palautus", cancel: "Peruuta",
-        changeDate: "📅 Muuta päivää", copyTitle: "📋 Kopioi nimi"
+        changeDate: "📅 Muuta päivää", copyTitle: "📋 Kopioi nimi",
+        calPermit: "Salli kalenterin käyttö muistutuksia varten?"
     },
     et: {
         read: "Loetud", wishlist: "Soovinimekiri", loans: "Laenatud",
@@ -45,12 +51,13 @@ const TRANSLATIONS = {
         clear: "Tühjenda", reset: "Lähtesta andmed",
         dark: "Tume režiim", lang: "Keel",
         search: "Otsi ISBN, Pealkiri, Autor...", add: "Lisa",
-        signIn: "Logi sisse Google'iga", working: "Töötan...", synced: "Sünkroonitud ✅", 
-        downloading: "Laadin...", saving: "Salvestan...", error: "Viga ❌",
+        signIn: "Logi sisse", working: "...", synced: "Sünkroonitud", 
+        downloading: "Laadin...", saving: "Salvestan...", error: "Viga",
         markRead: "Märgi loetuks", unread: "↩︎ Lugemata", delete: "Kustuta?",
         finished: "Loetud:", due: "Tähtaeg:", audio: "🎧 Audio", reminder: "📅 Meeldetuletus",
         modalAudio: "🎧 Audioraamat?", modalReturn: "📅 Tagastus", cancel: "Loobu",
-        changeDate: "📅 Muuda kuupäeva", copyTitle: "📋 Kopeeri pealkiri"
+        changeDate: "📅 Muuda kuupäeva", copyTitle: "📋 Kopeeri pealkiri",
+        calPermit: "Luba kalendri ligipääs meeldetuletusteks?"
     }
 };
 
@@ -65,10 +72,12 @@ let currentShelf = "read";
 let library = { read: [], wishlist: [], loans: [] }; 
 let html5QrCode = null, scanLocked = false, pendingBook = null;
 let isSyncing = false, syncPending = false;
+let pendingCalendarBook = null; // Track book waiting for permission
 let filterState = { text: "", year: "", month: "", rating: "" };
 
 const $ = (id) => document.getElementById(id);
 const t = (key) => TRANSLATIONS[currentLang][key] || key;
+function setText(id, text) { const el = $(id); if (el) el.textContent = text; }
 
 // =======================
 // LANGUAGE LOGIC
@@ -76,48 +85,43 @@ const t = (key) => TRANSLATIONS[currentLang][key] || key;
 function setLanguage(lang) {
     currentLang = lang;
     localStorage.setItem("appLang", lang);
-    $("language-select").value = lang;
+    if($("language-select")) $("language-select").value = lang;
 
-    // Static UI
-    $("tab-read").textContent = t("read");
-    $("tab-wishlist").textContent = t("wishlist");
-    $("tab-loans").textContent = t("loans");
+    setText("tab-read", t("read"));
+    setText("tab-wishlist", t("wishlist"));
+    setText("tab-loans", t("loans"));
     
-    $("menu-lang").textContent = t("lang");
-    $("menu-settings").textContent = t("settings");
-    $("menu-shelves").textContent = t("shelves");
-    $("menu-display").textContent = t("display");
-    $("menu-filter").textContent = t("filter");
+    setText("menu-lang", t("lang"));
+    setText("menu-settings", t("settings"));
+    setText("menu-shelves", t("shelves"));
+    setText("menu-display", t("display"));
+    setText("menu-filter", t("filter"));
     
-    $("label-stat-read").textContent = t("read");
-    $("label-stat-wish").textContent = t("wishlist");
-    $("label-stat-loans").textContent = t("loans");
+    setText("label-stat-read", t("read"));
+    setText("label-stat-wish", t("wishlist"));
+    setText("label-stat-loans", t("loans"));
     
-    $("label-darkmode").textContent = t("dark");
-    $("label-year").textContent = t("year");
-    $("label-month").textContent = t("month");
-    $("label-rating").textContent = t("rating");
+    setText("label-darkmode", t("dark"));
+    setText("label-year", t("year"));
+    setText("label-month", t("month"));
+    setText("label-rating", t("rating"));
     
-    // Removed: $("btn-apply-filters").textContent = t("apply"); 
-    $("btn-clear-filters").textContent = t("clear");
-    $("reset-btn").textContent = t("reset");
+    setText("btn-clear-filters", t("clear"));
+    setText("reset-btn", t("reset"));
+    setText("btn-add", t("add"));
+    if($("isbn-input")) $("isbn-input").placeholder = t("search");
     
-    $("btn-add").textContent = t("add");
-    $("isbn-input").placeholder = t("search");
-    
-    // Auth Button
     const authBtn = $("auth-btn");
     if(authBtn && !authBtn.disabled && authBtn.textContent.includes("Sign In")) {
         authBtn.textContent = t("signIn");
     }
 
-    // Modal
-    $("modal-add-read").textContent = t("add") + " -> " + t("read");
-    $("modal-add-wish").textContent = t("add") + " -> " + t("wishlist");
-    $("modal-add-loan").textContent = t("add") + " -> " + t("loans");
-    $("modal-cancel").textContent = t("cancel");
-    $("label-audio").textContent = t("modalAudio");
-    $("label-return").textContent = t("modalReturn");
+    setText("modal-add-read", t("add") + " -> " + t("read"));
+    setText("modal-add-wish", t("add") + " -> " + t("wishlist"));
+    setText("modal-add-loan", t("add") + " -> " + t("loans"));
+    setText("modal-cancel", t("cancel"));
+    setText("label-audio", t("modalAudio"));
+    setText("label-return", t("modalReturn"));
 
     renderBooks();
 }
@@ -132,14 +136,23 @@ function gapiLoaded() {
     });
 }
 function gisLoaded() {
+    // Initial scope: JUST SHEETS (Less scary)
     tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID, scope: SCOPES,
+        client_id: CLIENT_ID, scope: SHEETS_SCOPE,
         callback: async (resp) => {
             if (resp.error) return logError("Auth Fail", resp);
             gapi.client.setToken(resp);
-            const btn = $("auth-btn");
-            if(btn) btn.textContent = t("working");
-            await doSync();
+            
+            // If we were waiting for calendar perm, do that now
+            if (pendingCalendarBook && google.accounts.oauth2.hasGrantedAllScopes(resp, CAL_SCOPE)) {
+                await addToCalendar(pendingCalendarBook, true);
+                pendingCalendarBook = null;
+            } else {
+                // Otherwise, standard sync
+                const btn = $("auth-btn");
+                if(btn) btn.textContent = t("working");
+                await doSync();
+            }
         }
     });
     gisInited = true; maybeEnableAuth();
@@ -201,9 +214,9 @@ function updateShelfCounts() {
     const r = library.read?.length || 0;
     const w = library.wishlist?.length || 0;
     const l = library.loans?.length || 0;
-    if($("count-read")) $("count-read").textContent = r;
-    if($("count-wishlist")) $("count-wishlist").textContent = w;
-    if($("count-loans")) $("count-loans").textContent = l;
+    setText("count-read", r);
+    setText("count-wishlist", w);
+    setText("count-loans", l);
 }
 
 function loadLibrary() {
@@ -601,10 +614,34 @@ async function uploadData() {
         });
     }
 }
-async function addToCalendar(book) {
-    if (!gapi?.client?.getToken?.()) return alert("Sign In first.");
-    const dateObj = new Date(book.returnDate); dateObj.setDate(dateObj.getDate() - 1);
+
+// === UPGRADED CALENDAR FUNCTION ===
+async function addToCalendar(book, skipCheck = false) {
+    if (!gapi?.client?.getToken?.()) return alert(t("signIn") + " first");
+
+    // 1. Check if we have calendar permissions
+    const token = gapi.client.getToken();
+    const hasCalAccess = google.accounts.oauth2.hasGrantedAllScopes(token, CAL_SCOPE);
+
+    // 2. If NO access, ask for it
+    if (!hasCalAccess && !skipCheck) {
+        if (!confirm(t("calPermit"))) return;
+        
+        pendingCalendarBook = book; // Remember which book we were adding
+        
+        // Request UPGRADE scope (Sheets + Calendar)
+        tokenClient.requestAccessToken({ 
+            prompt: '', // Force popup if needed, or use '' for auto
+            scope: SHEETS_SCOPE + " " + CAL_SCOPE 
+        });
+        return; // Wait for callback in gisLoaded
+    }
+
+    // 3. If YES access, add event
+    const dateObj = new Date(book.returnDate); 
+    dateObj.setDate(dateObj.getDate() - 1);
     const reminderDate = dateObj.toISOString().split('T')[0];
+    
     try {
         await gapi.client.calendar.events.insert({
             'calendarId': 'primary',
@@ -615,8 +652,12 @@ async function addToCalendar(book) {
             }
         });
         alert(t("reminder") + " ✅");
-    } catch (e) { logError("Calendar", e); alert("Calendar Error"); }
+    } catch (e) { 
+        logError("Calendar", e); 
+        alert("Calendar Error"); 
+    }
 }
+
 function showModal(book, scannedIsbn = "") {
     pendingBook = book; if(scannedIsbn) pendingBook.isbn = scannedIsbn;
     $("modal-title").textContent = book.title; $("modal-author").textContent = getAuthorName(book);
