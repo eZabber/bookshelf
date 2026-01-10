@@ -1,14 +1,22 @@
 /* =========================================================
-   MY BOOKSHELF APP — FINAL + PICKER
+   MY BOOKSHELF APP — FINAL PRODUCTION (Drive-file scoped)
+   - Consent screen no longer says "all Google Sheets"
+   - Multi-device sync via Picker
+   - Calendar scope requested only when needed
    ========================================================= */
 
-const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
+/* =========================
+   1) CONFIG & TRANSLATIONS
+   ========================= */
 
-// Only drive.file needed. Picker grants access to selected file.
-const SCOPES = [
-  "https://www.googleapis.com/auth/drive.file",
-  "https://www.googleapis.com/auth/calendar.events"
-];
+const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
+// LISÄÄ TÄHÄN GOOGLE CLOUD CONSOLESTA LUOTU API KEY (Picker vaatii tämän usein)
+const DEVELOPER_KEY = ""; 
+
+// Minimal permission: Only create/edit files created by this app
+const DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+// Calendar scope requested later on-demand
+const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 
 const DISCOVERY = [
   "https://sheets.googleapis.com/$discovery/rest?version=v4",
@@ -20,9 +28,10 @@ const SPREADSHEET_TITLE = "My Book App Data";
 const SHEET_NAME = "Sheet1";
 const HEADER = ["ID", "Title", "Author", "Shelf", "Rating", "Cover", "Date", "ReturnDate", "Audio", "ISBN"];
 
-const HEADER_RANGE = `${SHEET_NAME}!A1:J1`;
-const WRITE_RANGE = `${SHEET_NAME}!A2`;
-const DATA_RANGE = `${SHEET_NAME}!A2:J999`;
+// Default range for Sheet1
+const HEADER_RANGE = `Sheet1!A1:J1`; 
+const WRITE_RANGE = `Sheet1!A2`;
+const DATA_RANGE = `Sheet1!A2:J999`;
 
 const TRANSLATIONS = {
   en: {
@@ -32,7 +41,7 @@ const TRANSLATIONS = {
     clear: "Clear Filters", reset: "Reset App Data",
     integrations: "Integrations", calConn: "Connect Calendar", calDesc: "Enable for background syncing. Disable for web link.",
     data: "Data & Backup", export: "Download Backup (JSON)", import: "Restore Backup",
-    linkSheet: "Find Existing Sheet", // Changed text
+    linkSheet: "Link Existing Sheet",
     dark: "Dark Mode", lang: "Language",
     search: "Search ISBN, Title, Author...", add: "Add",
     signIn: "Sign In", working: "...", synced: "Synced",
@@ -46,10 +55,11 @@ const TRANSLATIONS = {
     filterStats: "Showing {0} of {1} books",
     clearBtn: "Clear",
     invalidIsbn: "Invalid ISBN",
-    sheetMissing: "Sheet missing. Please link it again.",
+    sheetMissing: "Sheet missing/deleted. Please link again.",
     sessionExpired: "Session expired.",
     dateRequired: "Date?",
-    pickerTitle: "Select your Book Data Sheet"
+    pickerTitle: "Select your Book Data Sheet",
+    signInRequired: "Please Sign In first."
   },
   fi: {
     read: "Luetut", wishlist: "Toivelista", loans: "Lainassa",
@@ -58,7 +68,7 @@ const TRANSLATIONS = {
     clear: "Tyhjennä", reset: "Nollaa tiedot",
     integrations: "Integraatiot", calConn: "Yhdistä kalenteri", calDesc: "Käytä taustasynkronointia. Poista käytöstä verkkolinkille.",
     data: "Tiedot & Varmuuskopio", export: "Lataa varmuuskopio (JSON)", import: "Palauta varmuuskopio",
-    linkSheet: "Etsi olemassa oleva taulukko",
+    linkSheet: "Yhdistä olemassa olevaan taulukkoon",
     dark: "Tumma tila", lang: "Kieli",
     search: "Etsi ISBN, Nimi, Kirjailija...", add: "Lisää",
     signIn: "Kirjaudu", working: "...", synced: "Synkattu",
@@ -75,7 +85,8 @@ const TRANSLATIONS = {
     sheetMissing: "Taulukko puuttuu. Yhdistä uudelleen.",
     sessionExpired: "Istunto vanheni.",
     dateRequired: "Päivämäärä?",
-    pickerTitle: "Valitse kirjataulukkosi"
+    pickerTitle: "Valitse kirjataulukkosi",
+    signInRequired: "Kirjaudu ensin."
   },
   et: {
     read: "Loetud", wishlist: "Soovinimekiri", loans: "Laenatud",
@@ -84,7 +95,7 @@ const TRANSLATIONS = {
     clear: "Tühjenda", reset: "Lähtesta andmed",
     integrations: "Integratsioonid", calConn: "Ühenda kalender", calDesc: "Luba taustal sünkroonimine. Keela veebilingi jaoks.",
     data: "Andmed ja varukoopia", export: "Lae alla varukoopia (JSON)", import: "Taasta varukoopia",
-    linkSheet: "Leia olemasolev tabel",
+    linkSheet: "Ühenda olemasolev tabel",
     dark: "Tume režiim", lang: "Keel",
     search: "Otsi ISBN, Pealkiri, Autor...", add: "Lisa",
     signIn: "Logi sisse", working: "...", synced: "Sünkroonitud",
@@ -101,7 +112,8 @@ const TRANSLATIONS = {
     sheetMissing: "Tabel puudub. Ühenda uuesti.",
     sessionExpired: "Seanss aegus.",
     dateRequired: "Kuupäev?",
-    pickerTitle: "Vali oma raamatutabel"
+    pickerTitle: "Vali oma raamatutabel",
+    signInRequired: "Palun logi esmalt sisse."
   }
 };
 
@@ -406,7 +418,7 @@ function loadPicker() {
 }
 
 async function pickSpreadsheet() {
-  if (!accessToken) return alert("Please sign in first.");
+  if (!accessToken) return alert(t("signInRequired"));
   
   await loadPicker();
   
@@ -418,6 +430,7 @@ async function pickSpreadsheet() {
     const picker = new google.picker.PickerBuilder()
       .addView(view)
       .setOAuthToken(accessToken)
+      .setDeveloperKey(DEVELOPER_KEY) // Ensures picker loads
       .setTitle(t("pickerTitle"))
       .setCallback((data) => {
         if (data.action === google.picker.Action.PICKED) {
@@ -441,8 +454,8 @@ async function linkManually() {
       spreadsheetId = fileId;
       setSyncStatus("working");
       await doSync();
-      alert("Linked successfully!");
-      location.reload();
+      // No reload, just refresh state
+      alert("Linked successfully! Syncing...");
     }
   } catch (err) {
     if (err !== "Cancelled") console.error(err);
@@ -472,7 +485,7 @@ function gapiLoaded() { gapi.load("client", async () => { try { await gapi.clien
 function gisLoaded() {
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
-    scope: SCOPES.join(" "),
+    scope: DRIVE_FILE_SCOPE,
     callback: async (resp) => {
       if (resp?.error) return logError("Auth Fail", resp);
       
@@ -489,13 +502,23 @@ function gisLoaded() {
 }
 function maybeEnableAuth() { if (!gapiInited || !gisInited) return; const btn = $("auth-btn"); if (btn) { btn.disabled = false; if (!isSyncing) btn.textContent = t("signIn"); } }
 
+// ✅ SAFE CREATION: Uses Drive API instead of Sheets API
 async function ensureSheet() {
   if (spreadsheetId) return;
   setSyncStatus("working");
   try {
-    const createResp = await gapi.client.sheets.spreadsheets.create({ properties: { title: SPREADSHEET_TITLE }, sheets: [{ properties: { title: SHEET_NAME } }] });
-    spreadsheetId = createResp.result.spreadsheetId;
-    await gapi.client.sheets.spreadsheets.values.update({ spreadsheetId, range: HEADER_RANGE, valueInputOption: "RAW", resource: { values: [HEADER] } });
+    // 1. Create file with Drive API (works with drive.file scope)
+    const createResp = await gapi.client.drive.files.create({
+      resource: { name: SPREADSHEET_TITLE, mimeType: "application/vnd.google-apps.spreadsheet" },
+      fields: "id"
+    });
+    spreadsheetId = createResp.result.id;
+    
+    // 2. Init header with Sheets API
+    await gapi.client.sheets.spreadsheets.values.update({
+        spreadsheetId, range: HEADER_RANGE, valueInputOption: "RAW", resource: { values: [HEADER] }
+    });
+    
     localStorage.setItem(LS.SHEET_ID, spreadsheetId);
     updateSheetLink();
   } catch (e) { logError("Sheet Init Error", e); setSyncStatus("error"); }
@@ -504,7 +527,7 @@ async function ensureSheet() {
 async function doSync() {
   setSyncStatus("working");
   try {
-    await ensureSheet();
+    await ensureSheet(); // Will create NEW if ID missing (or link via Picker if user did that)
     updateSheetLink();
     const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range: DATA_RANGE });
     const rows = resp?.result?.values || [];
@@ -526,6 +549,27 @@ async function doSync() {
 
 async function queueUpload() { if (isSyncing) { syncPending = true; return; } isSyncing = true; setSyncStatus("working"); try { try { await uploadData(); } catch (err) { if (err?.status === 429 || err?.status >= 500) { await sleep(2000); await uploadData(); } else { throw err; } } setSyncStatus("synced"); } catch (e) { logError("Upload Error", e); setSyncStatus("error"); const code = getErrCode(e); if (code === 401 || code === 403) { gapi.client.setToken(null); alert(t("sessionExpired")); setSyncStatus("idle"); } } finally { isSyncing = false; if (syncPending) { syncPending = false; setTimeout(queueUpload, 0); } } }
 async function uploadData() { if (!spreadsheetId) return; const rows = []; ["read", "wishlist", "loans"].forEach((shelf) => { (library[shelf] || []).forEach((b) => { rows.push([ b.id, b.title || "Unknown", getAuthorName(b), shelf, Number(b.rating || 0), b.cover ? String(b.cover) : "null", b.dateRead || "", b.returnDate || "", b.isAudio ? "TRUE" : "FALSE", b.isbn || "" ]); }); }); await gapi.client.sheets.spreadsheets.values.clear({ spreadsheetId, range: DATA_RANGE }); if (rows.length > 0) { await gapi.client.sheets.spreadsheets.values.update({ spreadsheetId, range: WRITE_RANGE, valueInputOption: "RAW", resource: { values: rows } }); } }
+
+/* =========================
+   16) CALENDAR WRAPPERS
+   ========================= */
+function processCalendar(book) {
+  const calToggle = $("cal-connect-toggle"); const isConnected = calToggle ? !!calToggle.checked : false;
+  if (isConnected) {
+    if (!gapi?.client?.getToken?.()) { alert(t("signInRequired")); return; }
+    if (!hasScope(CAL_SCOPE)) {
+      pendingCalendarBook = book;
+      // Request BOTH scopes so we don't lose Drive access
+      const scopeStr = `${DRIVE_FILE_SCOPE} ${CAL_SCOPE}`;
+      addGrantedScopes(scopeStr);
+      tokenClient.requestAccessToken({ prompt: "", scope: scopeStr });
+      return;
+    }
+    apiAddCalendar(book);
+  } else { magicLinkCalendar(book); }
+}
+async function apiAddCalendar(book) { if (!book?.returnDate) return alert("No date set"); const { start, end } = getReminderDates(book.returnDate); try { await gapi.client.calendar.events.insert({ calendarId: "primary", resource: { summary: `Return: ${book.title}`, description: `Book by ${getAuthorName(book)}.`, start: { date: start }, end: { date: end }, reminders: { useDefault: false, overrides: [{ method: "popup", minutes: 9 * 60 }] } } }); alert(t("calAdded")); } catch (e) { logError("Cal API", e); alert("Error adding to Calendar"); } }
+function magicLinkCalendar(book) { if (!book?.returnDate) return alert("No date set"); const { start, end } = getReminderDates(book.returnDate); const sStr = start.replace(/-/g, ""); const eStr = end.replace(/-/g, ""); const title = encodeURIComponent("Return: " + (book.title || "Book")); const details = encodeURIComponent(`Book by ${getAuthorName(book)}.\n\n(Added via My BookShelf App)`); const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${sStr}/${eStr}`; window.open(url, "_blank"); }
 
 /* =========================
    17) INIT
@@ -556,7 +600,16 @@ window.addEventListener("DOMContentLoaded", () => {
 
     const calToggle = $("cal-connect-toggle"); if (calToggle) { calToggle.checked = localStorage.getItem(LS.CAL_SYNC) === "true"; calToggle.onchange = (e) => localStorage.setItem(LS.CAL_SYNC, e.target.checked ? "true" : "false"); }
     const tabsContainer = document.querySelector(".tabs"); if (tabsContainer) { tabsContainer.addEventListener("click", (e) => { const tab = e.target.closest(".tab"); if (!tab?.id) return; const shelf = tab.id.replace("tab-", ""); if (["read", "wishlist", "loans"].includes(shelf)) setActiveTab(shelf); }); }
-    const darkModeToggle = $("dark-mode-toggle"); if (darkModeToggle) { if (localStorage.getItem(LS.DARK) === "true") { document.body.classList.add("dark-mode"); darkModeToggle.checked = true; } darkModeToggle.onchange = (e) => { if (e.target.checked) { document.body.classList.add("dark-mode"); localStorage.setItem("LS.DARK", "true"); } else { document.body.classList.remove("dark-mode"); localStorage.setItem("LS.DARK", "false"); } }; }
+    
+    // FIXED DARK MODE LOGIC
+    const darkModeToggle = $("dark-mode-toggle");
+    if (darkModeToggle) {
+      if (localStorage.getItem(LS.DARK) === "true") { document.body.classList.add("dark-mode"); darkModeToggle.checked = true; }
+      darkModeToggle.onchange = (e) => {
+        if (e.target.checked) { document.body.classList.add("dark-mode"); localStorage.setItem(LS.DARK, "true"); }
+        else { document.body.classList.remove("dark-mode"); localStorage.setItem(LS.DARK, "false"); }
+      };
+    }
     setText("year", new Date().getFullYear());
     setSyncStatus("idle"); setLanguage(currentLang); updateShelfCounts(); updateSheetLink(); setSmartPlaceholder();
     window.addEventListener("resize", setSmartPlaceholder); window.addEventListener("orientationchange", setSmartPlaceholder);
