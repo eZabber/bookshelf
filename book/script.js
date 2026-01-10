@@ -2,8 +2,11 @@
 // 1. CONFIG & TRANSLATIONS
 // =======================
 const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
-const SHEETS_SCOPE = "https://www.googleapis.com/auth/drive.file";
+
+// CHANGED: Use specific Spreadsheets scope (not full Drive)
+const SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets"; 
 const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+
 const DISCOVERY = [ 
     "https://sheets.googleapis.com/$discovery/rest?version=v4", 
     "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
@@ -93,6 +96,7 @@ let appStatus = "idle";
 let filterState = { text: "", year: "", month: "", rating: "" };
 let pendingCalendarBook = null;
 
+// Safe selectors
 const $ = (id) => document.getElementById(id);
 const t = (key) => TRANSLATIONS[currentLang][key] || key;
 
@@ -139,7 +143,7 @@ function addGrantedScopes(scopeString) {
     localStorage.setItem("granted_scopes", merged);
 }
 
-// Date Helpers
+// Date Helpers (Timezone Safe)
 function getReminderDates(returnDateStr) {
     const [y, m, d] = returnDateStr.split('-').map(Number);
     const returnObj = new Date(y, m - 1, d, 12, 0, 0); 
@@ -532,8 +536,7 @@ function setLanguage(lang) {
 }
 
 function clearFilters() {
-    const textInput = $("filter-text");
-    if(textInput) textInput.value = "";
+    if($("filter-text")) $("filter-text").value = "";
     if($("filter-year")) $("filter-year").value = "";
     if($("filter-month")) $("filter-month").value = "";
     if($("filter-rating")) $("filter-rating").value = "";
@@ -543,11 +546,11 @@ function clearFilters() {
 }
 
 function applyFilters() {
-    const textInput = $("filter-text"); // RENAMED FROM 't'
+    const t = $("filter-text");
     const y = $("filter-year");
     const m = $("filter-month");
     const r = $("filter-rating");
-    if(textInput) filterState.text = textInput.value.toLowerCase();
+    if(t) filterState.text = t.value.toLowerCase();
     if(y) filterState.year = y.value;
     if(m) filterState.month = m.value;
     if(r) filterState.rating = r.value;
@@ -567,15 +570,10 @@ function renderBooks() {
 
     if (term || filterState.year || filterState.month || filterState.rating) {
         visibleItems = allItems.filter(b => {
-            const titleLc = (b.title || "").toLowerCase();
-            const authorLc = (getAuthorName(b) || "").toLowerCase();
-            const isbnLc = (b.isbn || "").replace(/[\s-]/g, "").toLowerCase();
-            
             const matchText = !term || 
-                titleLc.includes(term) || 
-                authorLc.includes(term) ||
-                isbnLc.includes(cleanTerm);
-            
+                b.title.toLowerCase().includes(term) || 
+                getAuthorName(b).toLowerCase().includes(term) ||
+                (b.isbn && b.isbn.replace(/[\s-]/g, "").toLowerCase().includes(cleanTerm));
             let dateStr = currentShelf === 'read' ? b.dateRead : (currentShelf === 'loans' ? b.returnDate : "");
             const matchYear = !filterState.year || (dateStr && dateStr.startsWith(filterState.year));
             const matchMonth = !filterState.month || (dateStr && dateStr.substring(5,7) === filterState.month);
@@ -588,13 +586,11 @@ function renderBooks() {
     const totalCount = allItems.length;
     const filteredCount = visibleItems.length;
     
-    // Status Bar Logic
     const statusEl = $("filter-status");
     if (statusEl) {
         if (totalCount !== filteredCount) {
             statusEl.style.display = "flex";
             const msg = t("filterStats").replace("{0}", filteredCount).replace("{1}", totalCount);
-            // NOTE: Using a real button listener would be better but this is safe enough for now
             statusEl.innerHTML = `<span>${msg}</span> <span class="filter-clear-link" onclick="clearFilters()">${t("clearBtn")}</span>`;
         } else {
             statusEl.style.display = "none";
@@ -626,7 +622,7 @@ function renderBooks() {
                 const dateInput = document.getElementById(`date-input-${b.id}`);
                 if(dateSpan && dateInput) {
                     dateSpan.style.display = "none"; dateInput.style.display = "inline-block"; dateInput.focus(); 
-                    try { dateInput.showPicker(); } catch {} 
+                    try { dateInput.showPicker(); } catch {}
                 }
             };
             dropdown.appendChild(editDateBtn);
@@ -678,7 +674,9 @@ function renderBooks() {
         const actions = document.createElement("div"); actions.className = "actions";
         if (currentShelf === 'read') {
             const sel = document.createElement("select"); sel.className = "rating";
-            sel.innerHTML = `<option value="0">...</option>` + [1,2,3,4,5].map(n => `<option value="${n}" ${b.rating===n?'selected':''}>${'⭐'.repeat(n)}</option>`).join('');
+            // FIXED: CAST TO NUMBER FOR CORRECT SELECTION
+            const currentRating = Number(b.rating || 0);
+            sel.innerHTML = `<option value="0">...</option>` + [1,2,3,4,5].map(n => `<option value="${n}" ${currentRating===n?'selected':''}>${'⭐'.repeat(n)}</option>`).join('');
             sel.onchange = (e) => updateRating(b.id, e.target.value);
             info.appendChild(sel);
             const unreadBtn = document.createElement("button"); unreadBtn.className = "btn-sm btn-unread"; unreadBtn.textContent = t("unread");
@@ -700,7 +698,6 @@ function renderBooks() {
 
 function showModal(book, scannedIsbn = "") {
     pendingBook = book; if(scannedIsbn) pendingBook.isbn = scannedIsbn;
-    // Fix: Use setText instead of unsafe direct access
     setText("modal-title", book.title || "Unknown"); 
     setText("modal-author", getAuthorName(book));
     setText("modal-isbn", pendingBook.isbn ? `ISBN: ${pendingBook.isbn}` : "");
@@ -734,6 +731,9 @@ function confirmAdd(targetShelf) {
     if (targetShelf === 'loans') {
         const row = $("loan-date-row");
         const input = $("modal-return-date");
+        // FIXED: SAFETY CHECK
+        if (!row || !input) return alert("Error: Missing loan fields.");
+        
         if (row.style.display === "none") {
             row.style.display = "flex";
             const d = new Date(); d.setDate(d.getDate() + 14);
