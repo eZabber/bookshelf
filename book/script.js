@@ -6,9 +6,9 @@ const SHEETS_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const DISCOVERY = [ 
     "https://sheets.googleapis.com/$discovery/rest?version=v4", 
+    "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
     "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"
 ];
-// "Sheet1" is the default tab name created by the API. 
 const SPREADSHEET_TITLE = "My Book App Data";
 const HEADER_RANGE = `Sheet1!A1:J1`;
 const WRITE_RANGE = `Sheet1!A2`;
@@ -94,47 +94,138 @@ function setText(id, text) { const el = $(id); if (el) el.textContent = text; }
 // --- SCOPE HELPERS ---
 function hasScope(scope) {
     const s = (localStorage.getItem("granted_scopes") || "").trim();
-    // Split by spaces to avoid partial matching
     return s.split(/\s+/).includes(scope);
 }
-
 function addGrantedScopes(scopeString) {
     if (!scopeString) return;
     const current = (localStorage.getItem("granted_scopes") || "").trim();
-    // Merge new scopes with old, remove duplicates
     const merged = (current + " " + scopeString).split(/\s+/).filter((v, i, a) => a.indexOf(v) === i && v).join(" ");
     localStorage.setItem("granted_scopes", merged);
 }
 
 // --- DATE HELPER (Timezone Safe) ---
 function getReminderDates(returnDateStr) {
-    // 1. Parse YYYY-MM-DD manually to avoid UTC shifts
     const [y, m, d] = returnDateStr.split('-').map(Number);
-    
-    // 2. Create Date objects set to NOON (12:00) to prevent DST/Timezone midnight shifts
-    const returnObj = new Date(y, m - 1, d, 12, 0, 0);
-    
-    // 3. Reminder Start = Return Date - 1 Day
+    const returnObj = new Date(y, m - 1, d, 12, 0, 0); // Noon
     const startObj = new Date(returnObj);
-    startObj.setDate(startObj.getDate() - 1);
-    
-    // 4. Reminder End = Start + 1 Day (For Google Calendar All-Day exclusivity)
+    startObj.setDate(startObj.getDate() - 1); // Day Before
     const endObj = new Date(startObj);
-    endObj.setDate(endObj.getDate() + 1);
+    endObj.setDate(endObj.getDate() + 1); // Exclusive End
     
-    // 5. Format back to YYYY-MM-DD
     const formatDate = (date) => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     };
-
     return { start: formatDate(startObj), end: formatDate(endObj) };
 }
 
 // =======================
-// LANGUAGE LOGIC
+// DATA FETCHING (THE NEW LOGIC)
+// =======================
+
+// 1. OpenLibrary (International)
+async function fetchOpenLibrary(isbn) {
+    try {
+        const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&jscmd=data&format=json`);
+        const data = await res.json();
+        const key = `ISBN:${isbn}`;
+        if (data[key]) {
+            const b = data[key];
+            return {
+                title: b.title,
+                authors: b.authors || [{ name: "Unknown" }],
+                cover: b.cover?.medium || b.cover?.small || null,
+                isbn: isbn
+            };
+        }
+    } catch {}
+    return null;
+}
+
+// 2. Finna API (Finland)
+async function fetchFinna(isbn) {
+    try {
+        // Look for ISBN, request Title and Author (Buildings) and Images
+        const res = await fetch(`https://api.finna.fi/v1/search?lookfor=isbn:${isbn}&type=AllFields&field[]=title&field[]=buildings&field[]=images`);
+        const data = await res.json();
+        if (data.resultCount > 0) {
+            const b = data.records[0];
+            let coverUrl = null;
+            if (b.images && b.images.length > 0) {
+                coverUrl = `https://api.finna.fi${b.images[0]}`;
+            }
+            // Authors in Finna are under 'buildings' sometimes or non-standard fields, we try to parse
+            let authorName = "Unknown";
+            if (b.buildings && b.buildings.length > 0) {
+                // Finna structure is complex, this is a simplified fetch
+                authorName = b.buildings[0].translated || "Unknown"; 
+            }
+            
+            return {
+                title: b.title,
+                authors: [{ name: authorName }],
+                cover: coverUrl,
+                isbn: isbn
+            };
+        }
+    } catch {}
+    return null;
+}
+
+// 3. Google Books API (Great fallback for Estonia/World)
+async function fetchGoogleBooks(isbn) {
+    try {
+        const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+        const data = await res.json();
+        if (data.totalItems > 0) {
+            const b = data.items[0].volumeInfo;
+            return {
+                title: b.title,
+                authors: (b.authors || []).map(a => ({ name: a })),
+                cover: b.imageLinks?.thumbnail?.replace('http:', 'https:') || null,
+                isbn: isbn
+            };
+        }
+    } catch {}
+    return null;
+}
+
+// === MAIN SEARCH FUNCTION ===
+async function fetchAndPrompt(rawIsbn) {
+    const clean = rawIsbn.replace(/\D/g, "");
+    if (clean.length !== 10 && clean.length !== 13) { 
+        scanLocked = false; 
+        return alert("Invalid ISBN"); 
+    }
+
+    // WATERFALL SEARCH
+    let book = await fetchOpenLibrary(clean);
+    
+    if (!book) {
+        console.log("OpenLib failed, trying Finna...");
+        book = await fetchFinna(clean);
+    }
+    
+    if (!book) {
+        console.log("Finna failed, trying Google Books...");
+        book = await fetchGoogleBooks(clean);
+    }
+
+    if (book) {
+        showModal(book, clean);
+    } else {
+        if (confirm("Book not found. Search manually?")) {
+            await searchAndPrompt("ISBN " + clean);
+        } else {
+            scanLocked = false;
+        }
+    }
+}
+
+// =======================
+// UI & CORE LOGIC
 // =======================
 function setLanguage(lang) {
     currentLang = lang;
@@ -190,9 +281,6 @@ function setLanguage(lang) {
     renderBooks();
 }
 
-// =======================
-// AUTH FUNCTIONS
-// =======================
 function gapiLoaded() {
     gapi.load("client", async () => {
         try { await gapi.client.init({ discoveryDocs: DISCOVERY }); gapiInited = true; maybeEnableAuth(); } 
@@ -204,24 +292,14 @@ function gisLoaded() {
         client_id: CLIENT_ID, scope: SHEETS_SCOPE,
         callback: async (resp) => {
             if (resp.error) return logError("Auth Fail", resp);
-            
-            // 1. Store Granted Scopes locally
             addGrantedScopes(resp.scope);
-            
-            // 2. Set Token
             gapi.client.setToken(resp);
             
-            // 3. Check if we were waiting for Calendar Upgrade
             if (pendingCalendarBook) {
-                // Check our local record if we have the scope
-                if (hasScope(CAL_SCOPE)) {
-                    await apiAddCalendar(pendingCalendarBook);
-                }
+                if (hasScope(CAL_SCOPE)) await apiAddCalendar(pendingCalendarBook);
                 pendingCalendarBook = null;
                 return;
             }
-
-            // 4. Standard Sync
             setSyncStatus("working");
             await doSync();
         }
@@ -238,60 +316,6 @@ function maybeEnableAuth() {
     }
 }
 
-// =======================
-// HELPERS
-// =======================
-function logError(msg, err) {
-    const log = $("debug-log");
-    if(log) {
-        log.style.display = "block";
-        const details = err.message || (typeof err === 'object' ? JSON.stringify(err, Object.getOwnPropertyNames(err)) : String(err));
-        log.textContent = "ERROR: " + msg + "\nDETAILS: " + details;
-    }
-    console.error(msg, err);
-}
-function safeStringify(x) { try { return JSON.stringify(x, null, 2); } catch { return String(x); } }
-function makeId() { 
-    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
-function todayISO() { return new Date().toISOString().split("T")[0]; }
-function getAuthorName(b) { return (b?.authors?.[0]?.name || "Unknown").toString(); }
-function normKey(b) { return ((b?.title || "") + "|" + getAuthorName(b)).toLowerCase().trim(); }
-function safeUrl(url) {
-    if(!url) return "";
-    try { const u = new URL(url); return (u.protocol === "http:" || u.protocol === "https:") ? u.href : ""; }
-    catch { return ""; }
-}
-function getErrCode(e) { return e?.status ?? e?.result?.error?.code ?? null; }
-async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-function debounce(fn, ms = 300) {
-    let t;
-    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
-}
-
-function setSyncStatus(state) {
-    appStatus = state; 
-    const dot = $("sync-dot");
-    const btn = $("auth-btn");
-    
-    if (dot) {
-        if (state === "working") dot.style.background = "#f1c40f"; 
-        else if (state === "synced") dot.style.background = "#2ecc71"; 
-        else if (state === "error") dot.style.background = "#e74c3c"; 
-        else dot.style.background = "#bbb"; 
-    }
-    if (btn) {
-        if (state === "working") btn.textContent = t("working");
-        else if (state === "synced") btn.textContent = t("synced");
-        else if (state === "error") btn.textContent = t("error");
-        else btn.textContent = t("signIn");
-    }
-}
-
-// =======================
-// CORE LOGIC
-// =======================
 function updateShelfCounts() {
     const r = library.read?.length || 0;
     const w = library.wishlist?.length || 0;
@@ -322,7 +346,6 @@ function saveLibrary(shouldSync, skipRender = false) {
     if (shouldSync && gapi?.client?.getToken?.()) queueUpload();
 }
 
-// --- DATA FUNCTIONS ---
 function exportData() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library, null, 2));
     const downloadAnchorNode = document.createElement('a');
@@ -419,7 +442,6 @@ function renderBooks() {
     items.slice().reverse().forEach(b => {
         const li = document.createElement("li"); li.className = "book-card";
         
-        // --- MENU ---
         const menuContainer = document.createElement("div");
         menuContainer.className = "card-menu-container";
         const dotsBtn = document.createElement("button");
@@ -461,7 +483,6 @@ function renderBooks() {
 
         const info = document.createElement("div"); info.className = "book-info";
         
-        // BADGES
         const badges = document.createElement("div");
         badges.className = "badges-row";
         if(b.returnDate && currentShelf === 'loans') {
@@ -519,7 +540,6 @@ function renderBooks() {
             info.appendChild(isbnPill);
         }
 
-        // ACTIONS
         const actions = document.createElement("div"); actions.className = "actions";
         if (currentShelf === 'read') {
             const sel = document.createElement("select"); sel.className = "rating";
@@ -557,10 +577,7 @@ function renderBooks() {
 function processCalendar(book) {
     const isConnected = $('cal-connect-toggle').checked;
     if (isConnected) {
-        // Try API
         if (!gapi?.client?.getToken?.()) return alert("Please Sign In first.");
-        
-        // Use our robust scope checker
         if (!hasScope(CAL_SCOPE)) {
             pendingCalendarBook = book;
             tokenClient.requestAccessToken({ prompt: '', scope: SHEETS_SCOPE + " " + CAL_SCOPE });
@@ -568,14 +585,12 @@ function processCalendar(book) {
             apiAddCalendar(book);
         }
     } else {
-        // Magic Link
         magicLinkCalendar(book);
     }
 }
 
 async function apiAddCalendar(book) {
     if (!book.returnDate) return alert("No date set");
-    // Use Helper
     const { start, end } = getReminderDates(book.returnDate);
 
     try {
@@ -585,7 +600,7 @@ async function apiAddCalendar(book) {
                 'summary': `Return: ${book.title}`, 
                 'description': `Book by ${getAuthorName(book)}.`,
                 'start': { 'date': start }, 
-                'end': { 'date': end }, // Exclusive End Date
+                'end': { 'date': end }, 
                 'reminders': { 'useDefault': false, 'overrides': [ {'method': 'popup', 'minutes': 9 * 60} ] }
             }
         });
@@ -595,16 +610,11 @@ async function apiAddCalendar(book) {
 
 function magicLinkCalendar(book) {
     if (!book.returnDate) return alert("No date set");
-    
-    // Use Helper for correct Day-Before Logic
     const { start, end } = getReminderDates(book.returnDate);
-    
     const sStr = start.replace(/-/g, "");
     const eStr = end.replace(/-/g, "");
-    
     const title = encodeURIComponent("Return: " + book.title);
     const details = encodeURIComponent("Book by " + getAuthorName(book) + "\n\n(Added via My BookShelf App)");
-    
     const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${sStr}/${eStr}`;
     window.open(url, '_blank');
 }
@@ -613,20 +623,14 @@ async function ensureSheet() {
     if (spreadsheetId) return;
     const btn = $("auth-btn");
     setSyncStatus("working");
-    
-    // Per user feedback: Don't search drive. Trust localStorage or create new.
     try {
         const createResp = await gapi.client.sheets.spreadsheets.create({ properties: { title: SPREADSHEET_TITLE } });
         spreadsheetId = createResp.result.spreadsheetId;
-        
-        // Initialize Header
         await gapi.client.sheets.spreadsheets.values.update({
             spreadsheetId, range: HEADER_RANGE, valueInputOption: "RAW", resource: { values: [HEADER] }
         });
-        
         localStorage.setItem("sheetId", spreadsheetId);
         updateSheetLink();
-        
     } catch (e) {
         logError("Sheet Init Error", e);
         setSyncStatus("error");
@@ -638,7 +642,6 @@ async function doSync() {
     try {
         await ensureSheet();
         updateSheetLink();
-        // Check local first
         const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range: DATA_RANGE });
         const rows = resp.result.values || [];
         if (rows.length > 0) {
@@ -659,7 +662,6 @@ async function doSync() {
         setSyncStatus("synced");
     } catch (e) {
         logError("Sync Error", e); setSyncStatus("error");
-        // If 404 (Deleted), clear ID and try again next time (it will create new)
         if (getErrCode(e) === 404) {
             spreadsheetId = null; localStorage.removeItem("sheetId"); updateSheetLink(); 
             setSyncStatus("idle");
@@ -696,9 +698,7 @@ async function uploadData() {
             ]);
         });
     });
-    // Clear old data
     await gapi.client.sheets.spreadsheets.values.clear({ spreadsheetId, range: DATA_RANGE });
-    // Write new data (Use correct WRITE_RANGE constant)
     if (rows.length > 0) {
         await gapi.client.sheets.spreadsheets.values.update({
             spreadsheetId, range: WRITE_RANGE, valueInputOption: "RAW", resource: { values: rows }
@@ -714,9 +714,6 @@ function setSmartPlaceholder() {
     el.placeholder = window.matchMedia("(max-width: 420px)").matches ? "..." : t("search");
 }
 
-// =======================
-// ACTION FUNCTIONS (RESTORED)
-// =======================
 function closeModal() { 
     if($("modal-overlay")) $("modal-overlay").style.display = "none"; 
     if($("loan-date-row")) $("loan-date-row").style.display = "none";
@@ -827,13 +824,29 @@ async function searchAndPrompt(query) {
 async function fetchAndPrompt(rawIsbn) {
     const clean = rawIsbn.replace(/\D/g, "");
     if(clean.length!==10 && clean.length!==13) { scanLocked=false; return alert("Invalid ISBN"); }
-    try {
-        const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${clean}&jscmd=data&format=json`);
-        const data = await res.json();
-        if (!data[`ISBN:${clean}`]) { if(confirm("Search text?")) await searchAndPrompt("ISBN " + clean); else scanLocked = false; return; }
-        const b = data[`ISBN:${clean}`];
-        showModal({ title: b.title, authors: b.authors || [{name:"Unknown"}], cover: b.cover?.medium || null }, clean); 
-    } catch { scanLocked=false; alert("Fetch Error"); }
+    
+    // WATERFALL SEARCH
+    let book = await fetchOpenLibrary(clean);
+    
+    if (!book) {
+        console.log("OpenLib failed, trying Finna...");
+        book = await fetchFinna(clean);
+    }
+    
+    if (!book) {
+        console.log("Finna failed, trying Google Books...");
+        book = await fetchGoogleBooks(clean);
+    }
+
+    if (book) {
+        showModal(book, clean);
+    } else {
+        if (confirm("Book not found. Search manually?")) {
+            await searchAndPrompt("ISBN " + clean);
+        } else {
+            scanLocked = false;
+        }
+    }
 }
 
 async function startCamera() {
@@ -870,7 +883,7 @@ window.addEventListener("DOMContentLoaded", () => {
         // LANGUAGE
         if($("language-select")) $("language-select").onchange = (e) => setLanguage(e.target.value);
 
-        // FILTERS (Instant)
+        // FILTERS
         const debouncedApply = debounce(applyFilters, 200);
         if($("filter-text")) $("filter-text").oninput = debouncedApply;
         if($("filter-year")) $("filter-year").oninput = (e) => {
@@ -891,7 +904,6 @@ window.addEventListener("DOMContentLoaded", () => {
         if($("modal-add-loan")) $("modal-add-loan").onclick = () => confirmAdd("loans");
         if($("modal-cancel")) $("modal-cancel").onclick = closeModal;
         if($("auth-btn")) { 
-            // FIXED: Removed prompt:'consent' so it doesn't force popup every time
             $("auth-btn").onclick = () => { 
                 if(!tokenClient) return alert("Loading..."); 
                 tokenClient.requestAccessToken({ prompt: "" }); 
@@ -900,12 +912,11 @@ window.addEventListener("DOMContentLoaded", () => {
         
         if($("reset-btn")) $("reset-btn").onclick = hardReset;
         
-        // NEW EXPORT/IMPORT LISTENERS
         if($("btn-export")) $("btn-export").onclick = exportData;
         if($("btn-import")) $("btn-import").onclick = triggerImport;
         if($("import-file")) $("import-file").onchange = importData;
         
-        // CALENDAR TOGGLE LOCALSTORAGE
+        // CALENDAR TOGGLE
         const calToggle = $("cal-connect-toggle");
         if(calToggle) {
             calToggle.checked = localStorage.getItem("calSync") === "true";
@@ -924,7 +935,6 @@ window.addEventListener("DOMContentLoaded", () => {
         const yearSpan = $("year"); if(yearSpan) yearSpan.textContent = new Date().getFullYear();
         
         setSyncStatus("idle");
-        // INIT LANGUAGE & RENDER
         setLanguage(currentLang);
         updateShelfCounts();
         updateSheetLink();
