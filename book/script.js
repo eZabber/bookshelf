@@ -6,11 +6,13 @@ const SHEETS_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const DISCOVERY = [ 
     "https://sheets.googleapis.com/$discovery/rest?version=v4", 
-    "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
     "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"
 ];
-const SHEET_NAME = "My Book App Data";
+// "Sheet1" is the default tab name created by the API. 
+// "My Book App Data" is the filename in Drive.
+const SPREADSHEET_TITLE = "My Book App Data";
 const HEADER_RANGE = `Sheet1!A1:J1`;
+const WRITE_RANGE = `Sheet1!A2`; // Fixed range
 const DATA_RANGE = `Sheet1!A2:J999`;
 const HEADER = ["ID", "Title", "Author", "Shelf", "Rating", "Cover", "Date", "ReturnDate", "Audio", "ISBN"];
 
@@ -90,6 +92,19 @@ const $ = (id) => document.getElementById(id);
 const t = (key) => TRANSLATIONS[currentLang][key] || key;
 function setText(id, text) { const el = $(id); if (el) el.textContent = text; }
 
+// --- SCOPE HELPERS (Fix for Issue #2) ---
+function hasScope(scope) {
+    const s = localStorage.getItem("granted_scopes") || "";
+    return s.includes(scope);
+}
+function addGrantedScopes(scopeString) {
+    if (!scopeString) return;
+    const current = localStorage.getItem("granted_scopes") || "";
+    // Simple merge logic
+    const merged = (current + " " + scopeString).split(" ").filter((v, i, a) => a.indexOf(v) === i && v).join(" ");
+    localStorage.setItem("granted_scopes", merged);
+}
+
 // =======================
 // LANGUAGE LOGIC
 // =======================
@@ -161,17 +176,24 @@ function gisLoaded() {
         client_id: CLIENT_ID, scope: SHEETS_SCOPE,
         callback: async (resp) => {
             if (resp.error) return logError("Auth Fail", resp);
+            
+            // 1. Store Granted Scopes locally (Robust tracking)
+            addGrantedScopes(resp.scope);
+            
+            // 2. Set Token
             gapi.client.setToken(resp);
             
-            // Handle pending calendar upgrade
+            // 3. Check if we were waiting for Calendar Upgrade
             if (pendingCalendarBook) {
-                if(google.accounts.oauth2.hasGrantedAllScopes(resp, CAL_SCOPE)) {
+                // Now check our local record if we have the scope
+                if (hasScope(CAL_SCOPE)) {
                     await apiAddCalendar(pendingCalendarBook);
                 }
                 pendingCalendarBook = null;
                 return;
             }
 
+            // 4. Standard Sync
             setSyncStatus("working");
             await doSync();
         }
@@ -200,7 +222,6 @@ function logError(msg, err) {
     }
     console.error(msg, err);
 }
-function safeStringify(x) { try { return JSON.stringify(x, null, 2); } catch { return String(x); } }
 function makeId() { 
     if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -507,12 +528,13 @@ function renderBooks() {
 function processCalendar(book) {
     const isConnected = $('cal-connect-toggle').checked;
     if (isConnected) {
-        // Try API
+        // 1. Check if Signed In
         if (!gapi?.client?.getToken?.()) return alert("Please Sign In first.");
-        const hasCalAccess = google.accounts.oauth2.hasGrantedAllScopes(gapi.client.getToken(), CAL_SCOPE);
         
-        if (!hasCalAccess) {
+        // 2. Check Local Scope Tracker
+        if (!hasScope(CAL_SCOPE)) {
             pendingCalendarBook = book;
+            // Ask for upgrade
             tokenClient.requestAccessToken({ prompt: '', scope: SHEETS_SCOPE + " " + CAL_SCOPE });
         } else {
             apiAddCalendar(book);
@@ -541,10 +563,18 @@ async function apiAddCalendar(book) {
 
 function magicLinkCalendar(book) {
     if (!book.returnDate) return alert("No date set");
-    const cleanDate = book.returnDate.replace(/-/g, ""); 
+    // Date Logic Fix: End date must be Start + 1 Day for Google Templates to show single day correctly
+    const start = new Date(book.returnDate);
+    const end = new Date(book.returnDate);
+    end.setDate(end.getDate() + 1);
+    
+    const sStr = start.toISOString().split('T')[0].replace(/-/g, "");
+    const eStr = end.toISOString().split('T')[0].replace(/-/g, "");
+    
     const title = encodeURIComponent("Return: " + book.title);
     const details = encodeURIComponent("Book by " + getAuthorName(book) + "\n\n(Added via My BookShelf App)");
-    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${cleanDate}/${cleanDate}`;
+    
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${sStr}/${eStr}`;
     window.open(url, '_blank');
 }
 
@@ -553,25 +583,16 @@ async function ensureSheet() {
     const btn = $("auth-btn");
     setSyncStatus("working");
     
-    // 1. Search for existing file
+    // Per user feedback: Don't search drive. Trust localStorage or create new.
     try {
-        const query = `name = '${SHEET_NAME}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`;
-        const resp = await gapi.client.drive.files.list({ q: query, spaces: 'drive', fields: 'files(id, name)' });
-        const files = resp.result.files;
+        const createResp = await gapi.client.sheets.spreadsheets.create({ properties: { title: SPREADSHEET_TITLE } });
+        spreadsheetId = createResp.result.spreadsheetId;
         
-        if (files && files.length > 0) {
-            // Found it!
-            spreadsheetId = files[0].id;
-            console.log("Found existing sheet:", spreadsheetId);
-        } else {
-            // Create new
-            const createResp = await gapi.client.sheets.spreadsheets.create({ properties: { title: SHEET_NAME } });
-            spreadsheetId = createResp.result.spreadsheetId;
-            // Initialize Header
-            await gapi.client.sheets.spreadsheets.values.update({
-                spreadsheetId, range: HEADER_RANGE, valueInputOption: "RAW", resource: { values: [HEADER] }
-            });
-        }
+        // Initialize Header
+        await gapi.client.sheets.spreadsheets.values.update({
+            spreadsheetId, range: HEADER_RANGE, valueInputOption: "RAW", resource: { values: [HEADER] }
+        });
+        
         localStorage.setItem("sheetId", spreadsheetId);
         updateSheetLink();
         
@@ -586,6 +607,7 @@ async function doSync() {
     try {
         await ensureSheet();
         updateSheetLink();
+        // Check local first
         const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range: DATA_RANGE });
         const rows = resp.result.values || [];
         if (rows.length > 0) {
@@ -606,10 +628,11 @@ async function doSync() {
         setSyncStatus("synced");
     } catch (e) {
         logError("Sync Error", e); setSyncStatus("error");
+        // If 404 (Deleted), clear ID and try again next time (it will create new)
         if (getErrCode(e) === 404) {
             spreadsheetId = null; localStorage.removeItem("sheetId"); updateSheetLink(); 
             setSyncStatus("idle");
-            alert("Sheet deleted.");
+            alert("Sheet deleted/missing. Will recreate on next sync.");
         }
     }
 }
@@ -642,10 +665,12 @@ async function uploadData() {
             ]);
         });
     });
+    // Clear old data
     await gapi.client.sheets.spreadsheets.values.clear({ spreadsheetId, range: DATA_RANGE });
+    // Write new data (Use correct WRITE_RANGE constant)
     if (rows.length > 0) {
         await gapi.client.sheets.spreadsheets.values.update({
-            spreadsheetId, range: `${SHEET_NAME}!A2`, valueInputOption: "RAW", resource: { values: rows }
+            spreadsheetId, range: WRITE_RANGE, valueInputOption: "RAW", resource: { values: rows }
         });
     }
 }
@@ -659,8 +684,96 @@ function setSmartPlaceholder() {
 }
 
 // =======================
-// MISSING FUNCTIONS (RESTORED)
+// ACTION FUNCTIONS (RESTORED)
 // =======================
+function closeModal() { 
+    if($("modal-overlay")) $("modal-overlay").style.display = "none"; 
+    if($("loan-date-row")) $("loan-date-row").style.display = "none";
+    pendingBook = null; scanLocked = false; 
+}
+
+function hardReset() {
+    if (!confirm("Reset?")) return;
+    localStorage.clear();
+    location.reload();
+}
+
+function confirmAdd(targetShelf) {
+    if (!pendingBook) return;
+    const key = normKey(pendingBook);
+    const exists = library[targetShelf].some(b => normKey(b) === key);
+    if (exists && !confirm("Duplicate?")) { closeModal(); return; }
+
+    let retDate = "";
+    if (targetShelf === 'loans') {
+        const row = $("loan-date-row");
+        const input = $("modal-return-date");
+        if (row.style.display === "none") {
+            row.style.display = "flex";
+            const d = new Date(); d.setDate(d.getDate() + 14);
+            input.value = d.toISOString().split('T')[0];
+            return; 
+        } 
+        retDate = input.value;
+        if(!retDate) return alert("Date?");
+    }
+
+    const newBook = {
+        id: makeId(),
+        title: pendingBook.title || "Unknown",
+        authors: pendingBook.authors || [{name:"Unknown"}],
+        rating: 0,
+        cover: safeUrl(pendingBook.cover) || null,
+        dateRead: targetShelf === 'read' ? todayISO() : "",
+        returnDate: retDate,
+        isAudio: $("modal-audio-check") ? $("modal-audio-check").checked : false,
+        isbn: pendingBook.isbn || ""
+    };
+
+    library[targetShelf].push(newBook);
+    closeModal();
+    setActiveTab(targetShelf);
+    if(targetShelf === 'loans' && retDate) processCalendar(newBook);
+    saveLibrary(true, true); 
+}
+
+function moveToRead(id) {
+    let fromShelf = library.wishlist.find(b => b.id === id) ? 'wishlist' : 'loans';
+    const idx = library[fromShelf].findIndex(b => b.id === id);
+    if (idx === -1) return;
+    const book = library[fromShelf][idx];
+    library[fromShelf].splice(idx, 1);
+    book.dateRead = todayISO(); book.returnDate = ""; book.rating = 0;
+    library.read.push(book);
+    setActiveTab('read'); saveLibrary(true, true);
+}
+
+function moveToWishlist(id) {
+    const idx = library.read.findIndex(b => b.id === id);
+    if (idx === -1) return;
+    const book = library.read[idx];
+    library.read.splice(idx, 1);
+    book.dateRead = ""; book.rating = 0; 
+    library.wishlist.push(book);
+    setActiveTab('wishlist'); saveLibrary(true, true);
+}
+
+function deleteBook(id) {
+    if (!confirm(t("delete"))) return;
+    library[currentShelf] = library[currentShelf].filter(b => b.id !== id);
+    saveLibrary(true);
+}
+
+function updateRating(id, val) {
+    const book = library.read.find(b => b.id === id);
+    if (book) { book.rating = Number(val); saveLibrary(true); }
+}
+
+function updateReadDate(id, newDate) {
+    const book = library.read.find(b => b.id === id);
+    if (book) { book.dateRead = newDate; saveLibrary(true); }
+}
+
 async function handleManualAdd() {
     const el = $("isbn-input"); if(!el) return;
     const val = el.value.trim(); if (!val) return;
@@ -746,7 +859,13 @@ window.addEventListener("DOMContentLoaded", () => {
         if($("modal-add-wish")) $("modal-add-wish").onclick = () => confirmAdd("wishlist");
         if($("modal-add-loan")) $("modal-add-loan").onclick = () => confirmAdd("loans");
         if($("modal-cancel")) $("modal-cancel").onclick = closeModal;
-        if($("auth-btn")) { $("auth-btn").onclick = () => { if(!tokenClient) return alert("Loading..."); tokenClient.requestAccessToken({ prompt: "consent" }); }; }
+        if($("auth-btn")) { 
+            // FIXED: Removed prompt:'consent' so it doesn't force popup every time
+            $("auth-btn").onclick = () => { 
+                if(!tokenClient) return alert("Loading..."); 
+                tokenClient.requestAccessToken({ prompt: "" }); 
+            }; 
+        }
         
         if($("reset-btn")) $("reset-btn").onclick = hardReset;
         
