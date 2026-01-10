@@ -89,6 +89,7 @@ let pendingCalendarBook = null;
 
 const $ = (id) => document.getElementById(id);
 const t = (key) => TRANSLATIONS[currentLang][key] || key;
+// Safe text setter
 function setText(id, text) { const el = $(id); if (el) el.textContent = text; }
 
 // --- SCOPE HELPERS ---
@@ -418,7 +419,8 @@ function renderBooks() {
 
         if(currentShelf === 'loans' && b.returnDate) {
             const calBtn = document.createElement("button"); calBtn.className = "btn-cal"; calBtn.textContent = t("reminder");
-            calBtn.onclick = () => processCalendar(b); actions.appendChild(calBtn);
+            calBtn.onclick = () => processCalendar(b);
+            actions.appendChild(calBtn);
         }
         info.appendChild(actions); li.appendChild(info); list.appendChild(li);
     });
@@ -534,6 +536,166 @@ async function uploadData() {
     }
 }
 
+function updateSheetLink() {
+    const el = $("sheet-link"); if(el) { if(spreadsheetId) { el.href=`https://docs.google.com/spreadsheets/d/${spreadsheetId}`; el.style.display='inline'; } else { el.style.display='none'; } }
+}
+function setSmartPlaceholder() {
+    const el = $("isbn-input"); if (!el) return;
+    el.placeholder = window.matchMedia("(max-width: 420px)").matches ? "..." : t("search");
+}
+
+// =======================
+// ACTION FUNCTIONS (RESTORED)
+// =======================
+function closeModal() { 
+    if($("modal-overlay")) $("modal-overlay").style.display = "none"; 
+    if($("loan-date-row")) $("loan-date-row").style.display = "none";
+    pendingBook = null; scanLocked = false; 
+}
+
+function hardReset() {
+    if (!confirm("Reset?")) return;
+    localStorage.clear();
+    location.reload();
+}
+
+function confirmAdd(targetShelf) {
+    if (!pendingBook) return;
+    const key = normKey(pendingBook);
+    const exists = library[targetShelf].some(b => normKey(b) === key);
+    if (exists && !confirm("Duplicate?")) { closeModal(); return; }
+
+    let retDate = "";
+    if (targetShelf === 'loans') {
+        const row = $("loan-date-row");
+        const input = $("modal-return-date");
+        if (row.style.display === "none") {
+            row.style.display = "flex";
+            const d = new Date(); d.setDate(d.getDate() + 14);
+            input.value = d.toISOString().split('T')[0];
+            return; 
+        } 
+        retDate = input.value;
+        if(!retDate) return alert("Date?");
+    }
+
+    const newBook = {
+        id: makeId(),
+        title: pendingBook.title || "Unknown",
+        authors: pendingBook.authors || [{name:"Unknown"}],
+        rating: 0,
+        cover: safeUrl(pendingBook.cover) || null,
+        dateRead: targetShelf === 'read' ? todayISO() : "",
+        returnDate: retDate,
+        isAudio: $("modal-audio-check") ? $("modal-audio-check").checked : false,
+        isbn: pendingBook.isbn || ""
+    };
+
+    library[targetShelf].push(newBook);
+    closeModal();
+    setActiveTab(targetShelf);
+    if(targetShelf === 'loans' && retDate) processCalendar(newBook);
+    saveLibrary(true, true); 
+}
+
+function moveToRead(id) {
+    let fromShelf = library.wishlist.find(b => b.id === id) ? 'wishlist' : 'loans';
+    const idx = library[fromShelf].findIndex(b => b.id === id);
+    if (idx === -1) return;
+    const book = library[fromShelf][idx];
+    library[fromShelf].splice(idx, 1);
+    book.dateRead = todayISO(); book.returnDate = ""; book.rating = 0;
+    library.read.push(book);
+    setActiveTab('read'); saveLibrary(true, true);
+}
+
+function moveToWishlist(id) {
+    const idx = library.read.findIndex(b => b.id === id);
+    if (idx === -1) return;
+    const book = library.read[idx];
+    library.read.splice(idx, 1);
+    book.dateRead = ""; book.rating = 0; 
+    library.wishlist.push(book);
+    setActiveTab('wishlist'); saveLibrary(true, true);
+}
+
+function deleteBook(id) {
+    if (!confirm(t("delete"))) return;
+    library[currentShelf] = library[currentShelf].filter(b => b.id !== id);
+    saveLibrary(true);
+}
+
+function updateRating(id, val) {
+    const book = library.read.find(b => b.id === id);
+    if (book) { book.rating = Number(val); saveLibrary(true); }
+}
+
+function updateReadDate(id, newDate) {
+    const book = library.read.find(b => b.id === id);
+    if (book) { book.dateRead = newDate; saveLibrary(true); }
+}
+
+function processCalendar(book) {
+    const calToggle = $('cal-connect-toggle');
+    const isConnected = calToggle ? calToggle.checked : false; // Safe check
+    
+    if (isConnected) {
+        if (!gapi?.client?.getToken?.()) return alert("Please Sign In first.");
+        if (!hasScope(CAL_SCOPE)) {
+            pendingCalendarBook = book;
+            tokenClient.requestAccessToken({ prompt: '', scope: SHEETS_SCOPE + " " + CAL_SCOPE });
+        } else {
+            apiAddCalendar(book);
+        }
+    } else {
+        magicLinkCalendar(book);
+    }
+}
+
+async function apiAddCalendar(book) {
+    if (!book.returnDate) return alert("No date set");
+    const { start, end } = getReminderDates(book.returnDate);
+
+    try {
+        await gapi.client.calendar.events.insert({
+            'calendarId': 'primary',
+            'resource': {
+                'summary': `Return: ${book.title}`, 
+                'description': `Book by ${getAuthorName(book)}.`,
+                'start': { 'date': start }, 
+                'end': { 'date': end }, 
+                'reminders': { 'useDefault': false, 'overrides': [ {'method': 'popup', 'minutes': 9 * 60} ] }
+            }
+        });
+        alert(t("calAdded"));
+    } catch(e) { logError("Cal API", e); alert("Error adding to Calendar"); }
+}
+
+function magicLinkCalendar(book) {
+    if (!book.returnDate) return alert("No date set");
+    const { start, end } = getReminderDates(book.returnDate);
+    const sStr = start.replace(/-/g, "");
+    const eStr = end.replace(/-/g, "");
+    const title = encodeURIComponent("Return: " + book.title);
+    const details = encodeURIComponent("Book by " + getAuthorName(book) + "\n\n(Added via My BookShelf App)");
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${sStr}/${eStr}`;
+    window.open(url, '_blank');
+}
+
+async function startCamera() {
+    const container = $("reader-container"); if(container) container.style.display = "block";
+    if(html5QrCode) try{await html5QrCode.stop();}catch{}
+    html5QrCode = new Html5Qrcode("reader");
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    const onSuccess = async (txt) => { if(scanLocked) return; scanLocked = true; await stopCamera(); await fetchAndPrompt(txt); };
+    try { await html5QrCode.start({ facingMode: "environment" }, config, onSuccess); } catch (err) { try { await html5QrCode.start({ facingMode: "user" }, config, onSuccess); } catch (err2) { if(container) container.style.display="none"; alert("Camera Error"); } }
+}
+
+async function stopCamera() {
+    if($("reader-container")) $("reader-container").style.display = "none";
+    if(html5QrCode) { try{await html5QrCode.stop();}catch{}; try{html5QrCode.clear();}catch{}; html5QrCode=null; }
+}
+
 // =======================
 // INITIALIZATION
 // =======================
@@ -551,6 +713,7 @@ window.addEventListener("DOMContentLoaded", () => {
             if (!isDropdown && !isBtn) { document.querySelectorAll('.menu-dropdown.show').forEach(d => d.classList.remove('show')); }
         });
 
+        // SAFE: These element IDs must match index.html
         if($("language-select")) $("language-select").onchange = (e) => setLanguage(e.target.value);
 
         const debouncedApply = debounce(applyFilters, 200);
@@ -558,8 +721,9 @@ window.addEventListener("DOMContentLoaded", () => {
         if($("filter-year")) $("filter-year").oninput = (e) => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 4); debouncedApply(); };
         if($("filter-month")) $("filter-month").onchange = applyFilters;
         if($("filter-rating")) $("filter-rating").onchange = applyFilters;
+        
+        // SAFE: Check if buttons exist before adding listeners
         if($("btn-clear-filters")) $("btn-clear-filters").onclick = clearFilters;
-
         if($("btn-add")) $("btn-add").onclick = handleManualAdd;
         if($("isbn-input")) $("isbn-input").onkeydown = (e) => { if(e.key==="Enter") handleManualAdd(); };
         if($("btn-scan")) $("btn-scan").onclick = startCamera;
@@ -568,17 +732,22 @@ window.addEventListener("DOMContentLoaded", () => {
         if($("modal-add-wish")) $("modal-add-wish").onclick = () => confirmAdd("wishlist");
         if($("modal-add-loan")) $("modal-add-loan").onclick = () => confirmAdd("loans");
         if($("modal-cancel")) $("modal-cancel").onclick = closeModal;
+        
         if($("auth-btn")) { 
             $("auth-btn").onclick = () => { 
                 if(!tokenClient) return alert("Loading..."); 
                 tokenClient.requestAccessToken({ prompt: "" }); 
             }; 
         }
+        
         if($("reset-btn")) $("reset-btn").onclick = hardReset;
+        
+        // SAFE: These new buttons might be missing in old HTML
         if($("btn-export")) $("btn-export").onclick = exportData;
         if($("btn-import")) $("btn-import").onclick = triggerImport;
         if($("import-file")) $("import-file").onchange = importData;
         
+        // CALENDAR TOGGLE LOCALSTORAGE
         const calToggle = $("cal-connect-toggle");
         if(calToggle) {
             calToggle.checked = localStorage.getItem("calSync") === "true";
