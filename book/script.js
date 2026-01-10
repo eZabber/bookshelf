@@ -1,5 +1,5 @@
 /* =========================================================
-   MY BOOKSHELF APP — REWRITE (safe + clean)
+   MY BOOKSHELF APP — FINAL PRODUCTION VERSION
    ========================================================= */
 
 /* =========================
@@ -602,6 +602,10 @@ function renderBooks() {
       dateInput.type = "date";
       dateInput.id = `date-input-${b.id}`;
       dateInput.className = "date-edit-input";
+      
+      // FIX: Ensure it is hidden by default
+      dateInput.style.display = "none";
+      
       dateInput.value = String(b.dateRead || "");
       dateInput.onchange = (e) => updateReadDate(b.id, e.target.value);
       dateInput.onblur = () => setTimeout(() => {
