@@ -2,19 +2,18 @@
    MY BOOKSHELF APP — DRIVE APPDATA (HIDDEN JSON) VERSION
    - Cloud Sync: Google Drive appDataFolder (hidden)
    - No Google Sheets API, no "all spreadsheets" permission
-   - Optional Calendar integration via separate auth on demand
+   - Optional Calendar integration via separate consent on demand
    ========================================================= */
 
 /* =========================
    1) CONFIG
    ========================= */
-
 const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
 
-// Optional but recommended: set your API key (for quota / reliability)
-const DEVELOPER_KEY = ""; // <-- put your API key here (optional)
+// Optional: API key (recommended for stability/quotas). Leave "" if not using.
+const DEVELOPER_KEY = "";
 
-// Scopes
+// Scopes (Drive appData ONLY; Calendar only when user asks)
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 
@@ -24,7 +23,6 @@ const DISCOVERY = [
   "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"
 ];
 
-// Drive appdata file name
 const CLOUD_JSON_NAME = "my_bookshelf.json";
 
 /* =========================
@@ -135,7 +133,6 @@ const TRANSLATIONS = {
 /* =========================
    3) STATE & UTILS
    ========================= */
-
 const LS = {
   LANG: "appLang",
   LIB: "myLibrary",
@@ -147,8 +144,6 @@ const LS = {
 let currentLang = localStorage.getItem(LS.LANG) || "en";
 
 let driveTokenClient = null;
-let calTokenClient = null;
-
 let gapiInited = false;
 let gisInited = false;
 
@@ -164,7 +159,6 @@ let syncPending = false;
 let appStatus = "idle";
 let filterState = { text: "", year: "", month: "", rating: "" };
 
-// Cloud file id in appDataFolder
 let cloudFileId = localStorage.getItem(LS.CLOUD_FILE_ID) || null;
 
 const $ = (id) => document.getElementById(id);
@@ -172,8 +166,8 @@ const t = (key) => (TRANSLATIONS[currentLang]?.[key] ?? key);
 
 function setText(id, text) { const el = $(id); if (el) el.textContent = String(text ?? ""); }
 function addClick(id, handler) { const el = $(id); if (el) el.onclick = handler; }
-
 function logError(msg, err) { console.error(msg, err); }
+
 function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 function todayISO() { return new Date().toISOString().split("T")[0]; }
 
@@ -187,15 +181,12 @@ function safeUrl(url) {
 function getAuthorName(book) { return String(book?.authors?.[0]?.name || "Unknown"); }
 function normKey(book) { return `${book?.title || ""}|${getAuthorName(book)}`.toLowerCase().trim(); }
 
-function getErrCode(e) {
-  // fetch errors won't have status here; gapi errors usually do
-  return e?.status ?? e?.result?.error?.code ?? null;
+function isDriveSignedIn() {
+  return !!gapi?.client?.getToken?.();
 }
 
-function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
-
 function requireSignedInDrive() {
-  if (!gapi?.client?.getToken?.()) {
+  if (!isDriveSignedIn()) {
     alert(t("signInRequired"));
     return false;
   }
@@ -204,6 +195,7 @@ function requireSignedInDrive() {
 
 function setSyncStatus(state) {
   appStatus = state;
+
   const dot = $("sync-dot");
   const btn = $("auth-btn");
 
@@ -214,9 +206,10 @@ function setSyncStatus(state) {
     else dot.style.background = "#bbb";
   }
 
+  // Header login button (NOT in menu)
   if (btn) {
     if (state === "working") btn.textContent = t("working");
-    else if (state === "synced") btn.textContent = t("synced");
+    else if (isDriveSignedIn()) btn.textContent = t("synced");
     else btn.textContent = t("signIn");
   }
 }
@@ -224,7 +217,6 @@ function setSyncStatus(state) {
 /* =========================
    4) LOCAL STORAGE
    ========================= */
-
 function loadLibrary() {
   try {
     const raw = JSON.parse(localStorage.getItem(LS.LIB));
@@ -238,7 +230,10 @@ function saveLibrary({ shouldSync = false, skipRender = false } = {}) {
   updateShelfCounts();
   if (!skipRender) renderBooks();
 
-  if (shouldSync && requireSignedInDrive()) queueUpload();
+  // IMPORTANT FIX:
+  // Do NOT pop up "Please sign in" just because user edits local data.
+  // Only auto-sync if already signed in.
+  if (shouldSync && isDriveSignedIn()) queueUpload();
 }
 
 function updateShelfCounts() {
@@ -250,7 +245,6 @@ function updateShelfCounts() {
 /* =========================
    5) UI & FILTERS
    ========================= */
-
 function openMenu() {
   $("side-menu")?.classList.add("open");
   $("menu-overlay")?.classList.add("open");
@@ -274,7 +268,6 @@ function setSmartPlaceholder() {
   if (el) el.placeholder = t("search");
 }
 
-// With appDataFolder there is no visible sheet link
 function updateCloudLink() {
   const el = $("sheet-link");
   if (el) el.style.display = "none";
@@ -408,9 +401,9 @@ function renderBooks() {
     const li = document.createElement("li");
     li.className = "book-card";
 
-    // Dots menu
     const menuContainer = document.createElement("div");
     menuContainer.className = "card-menu-container";
+
     const dotsBtn = document.createElement("button");
     dotsBtn.className = "dots-btn";
     dotsBtn.innerHTML = "⋮";
@@ -450,7 +443,6 @@ function renderBooks() {
     menuContainer.appendChild(dropdown);
     li.appendChild(menuContainer);
 
-    // Thumbnail
     const coverUrl = safeUrl(b?.cover);
     const thumb = document.createElement(coverUrl ? "img" : "div");
     thumb.className = "book-thumb";
@@ -462,11 +454,9 @@ function renderBooks() {
     }
     li.appendChild(thumb);
 
-    // Info
     const info = document.createElement("div");
     info.className = "book-info";
 
-    // Badges
     const badges = document.createElement("div");
     badges.className = "badges-row";
 
@@ -499,6 +489,7 @@ function renderBooks() {
 
     if (currentShelf === "read" && b?.dateRead) {
       const dateDiv = document.createElement("div");
+
       const dateSpan = document.createElement("span");
       dateSpan.id = `date-display-${b.id}`;
       dateSpan.textContent = `${t("finished")} ${b.dateRead}`;
@@ -530,7 +521,6 @@ function renderBooks() {
       info.appendChild(isbnPill);
     }
 
-    // Actions
     const actions = document.createElement("div");
     actions.className = "actions";
 
@@ -580,7 +570,6 @@ function renderBooks() {
 /* =========================
    6) MODAL ADD FLOW
    ========================= */
-
 function showModal(book, scannedIsbn = "") {
   pendingBook = { ...book };
   if (scannedIsbn) pendingBook.isbn = scannedIsbn;
@@ -605,12 +594,12 @@ function showModal(book, scannedIsbn = "") {
     else { img.removeAttribute("src"); img.style.display = "none"; }
   }
 
-  if ($("modal-overlay")) $("modal-overlay").style.display = "flex";
+  $("modal-overlay") && ($("modal-overlay").style.display = "flex");
 }
 
 function closeModal() {
-  if ($("modal-overlay")) $("modal-overlay").style.display = "none";
-  if ($("loan-date-row")) $("loan-date-row").style.display = "none";
+  $("modal-overlay") && ($("modal-overlay").style.display = "none");
+  $("loan-date-row") && ($("loan-date-row").style.display = "none");
   pendingBook = null;
   scanLocked = false;
 }
@@ -628,7 +617,6 @@ function confirmAdd(targetShelf) {
     const input = $("modal-return-date");
     if (!row || !input) { alert("Error: Missing loan fields."); return; }
 
-    // first click shows date row
     if (row.style.display === "none") {
       row.style.display = "flex";
       const d = new Date();
@@ -657,15 +645,12 @@ function confirmAdd(targetShelf) {
   library[targetShelf].push(newBook);
   closeModal();
   setActiveTab(targetShelf);
-
-  // Optional calendar (if toggle enabled + user chooses reminder button later, or here)
   saveLibrary({ shouldSync: true, skipRender: true });
 }
 
 /* =========================
    7) ACTIONS
    ========================= */
-
 function moveToRead(id) {
   const fromShelf = library.wishlist.find((b) => b.id === id) ? "wishlist" : "loans";
   const idx = library[fromShelf].findIndex((b) => b.id === id);
@@ -725,9 +710,8 @@ function hardReset() {
 }
 
 /* =========================
-   8) GOOGLE AUTH (DRIVE + OPTIONAL CAL)
+   8) GOOGLE AUTH (DRIVE)
    ========================= */
-
 function gapiLoaded() {
   gapi.load("client", async () => {
     try {
@@ -739,12 +723,12 @@ function gapiLoaded() {
       maybeEnableAuth();
     } catch (e) {
       logError("GAPI Init Fail", e);
+      setSyncStatus("error");
     }
   });
 }
 
 function gisLoaded() {
-  // Drive-only token client (keeps consent minimal)
   driveTokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: DRIVE_SCOPE,
@@ -756,24 +740,7 @@ function gisLoaded() {
       }
       gapi.client.setToken(resp);
       setSyncStatus("synced");
-
-      // On sign-in, try to find existing cloud file (no creation yet)
-      await findCloudFileIfExists();
-    }
-  });
-
-  // Calendar token client (only used if user triggers calendar features)
-  calTokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: CAL_SCOPE,
-    callback: async (resp) => {
-      if (resp?.error) {
-        logError("Calendar Auth Fail", resp);
-        return;
-      }
-      // Merge token into gapi client (replaces token)
-      // We must keep Drive too for cloud sync. Requesting Calendar-only token may drop Drive scope depending on GIS.
-      // So we request BOTH scopes when enabling calendar to keep Drive working.
+      await findCloudFileIfExists(); // just cache if exists
     }
   });
 
@@ -784,53 +751,35 @@ function gisLoaded() {
 function maybeEnableAuth() {
   if (!gapiInited || !gisInited) return;
   const btn = $("auth-btn");
-  if (btn) {
-    btn.disabled = false;
-    btn.textContent = t("signIn");
-  }
+  if (btn) btn.disabled = false;
+  setSyncStatus(appStatus);
 }
 
-async function signInDrive() {
+// Header button: if signed in show "Logged In" (no action), if not -> sign in
+async function onAuthButtonClick() {
   if (!driveTokenClient) return;
+
+  if (isDriveSignedIn()) {
+    // Optional: you could add a sign-out flow (GIS tokens are short-lived),
+    // but typical pattern is just "logged in" indicator.
+    return;
+  }
   setSyncStatus("working");
   driveTokenClient.requestAccessToken({ prompt: "" });
-}
-
-/**
- * When calendar is needed we request BOTH scopes in one token,
- * so we don't accidentally lose Drive permissions.
- */
-async function ensureCalendarAuth() {
-  if (!confirm(t("calNeedAuth"))) return false;
-
-  return new Promise((resolve) => {
-    const comboClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: `${DRIVE_SCOPE} ${CAL_SCOPE}`,
-      callback: (resp) => {
-        if (resp?.error) { logError("Combo Auth Fail", resp); resolve(false); return; }
-        gapi.client.setToken(resp);
-        resolve(true);
-      }
-    });
-    comboClient.requestAccessToken({ prompt: "" });
-  });
 }
 
 /* =========================
    9) DRIVE APPDATA JSON SYNC
    ========================= */
-
 async function findCloudFileIfExists() {
-  if (!requireSignedInDrive()) return null;
-
-  // If we already have a cached file id, trust it
+  if (!isDriveSignedIn()) return null;
   if (cloudFileId) return cloudFileId;
 
   try {
     const resp = await gapi.client.drive.files.list({
       spaces: "appDataFolder",
-      q: `name='${CLOUD_JSON_NAME}' and 'appDataFolder' in parents and trashed=false`,
+      // IMPORTANT FIX: in appDataFolder, don't filter by parents; just name + trashed
+      q: `name='${CLOUD_JSON_NAME}' and trashed=false`,
       fields: "files(id,name,modifiedTime)"
     });
 
@@ -852,7 +801,6 @@ async function ensureCloudFile() {
   const existing = await findCloudFileIfExists();
   if (existing) return existing;
 
-  // Create new JSON file in appDataFolder
   try {
     setSyncStatus("working");
     const token = gapi.client.getToken()?.access_token;
@@ -869,16 +817,16 @@ async function ensureCloudFile() {
     const fileId = await driveMultipartCreate(metadata, body, token);
     cloudFileId = fileId;
     localStorage.setItem(LS.CLOUD_FILE_ID, cloudFileId);
+
     setSyncStatus("synced");
     return cloudFileId;
   } catch (e) {
-    logError("ensureCloudFile create", e);
+    logError("ensureCloudFile", e);
     setSyncStatus("error");
     return null;
   }
 }
 
-// Upload local -> cloud (JSON)
 async function handleCloudSave() {
   if (!requireSignedInDrive()) return;
 
@@ -894,10 +842,7 @@ async function handleCloudSave() {
     const token = gapi.client.getToken()?.access_token;
     if (!token) throw new Error("No token");
 
-    const metadata = {
-      name: CLOUD_JSON_NAME,
-      mimeType: "application/json"
-    };
+    const metadata = { name: CLOUD_JSON_NAME, mimeType: "application/json" };
     const body = JSON.stringify({ library, version: 1, updatedAt: new Date().toISOString() });
 
     await driveMultipartUpdate(fileId, metadata, body, token);
@@ -908,7 +853,8 @@ async function handleCloudSave() {
   } catch (e) {
     logError("handleCloudSave", e);
     setSyncStatus("error");
-    if (getErrCode(e) === 401) {
+    // If token expired, reset
+    if (String(e?.message || "").includes("401")) {
       gapi.client.setToken(null);
       alert(t("sessionExpired"));
       setSyncStatus("idle");
@@ -917,7 +863,6 @@ async function handleCloudSave() {
   }
 }
 
-// Download cloud -> local (JSON)
 async function handleCloudLoad() {
   if (!requireSignedInDrive()) return;
   if (!confirm(t("confirmLoad"))) return;
@@ -947,12 +892,13 @@ async function handleCloudLoad() {
 }
 
 async function queueUpload() {
+  if (!isDriveSignedIn()) return;
   if (isSyncing) { syncPending = true; return; }
+
   isSyncing = true;
   setSyncStatus("working");
 
   try {
-    // silent save (no button UX)
     const fileId = await ensureCloudFile();
     if (!fileId) return;
 
@@ -967,7 +913,7 @@ async function queueUpload() {
   } catch (e) {
     logError("queueUpload", e);
     setSyncStatus("error");
-    if (getErrCode(e) === 401) {
+    if (String(e?.message || "").includes("401")) {
       gapi.client.setToken(null);
       alert(t("sessionExpired"));
       setSyncStatus("idle");
@@ -982,9 +928,8 @@ async function queueUpload() {
 }
 
 /* =========================
-   10) DRIVE UPLOAD/DOWNLOAD HELPERS (FETCH)
+   10) DRIVE HELPERS (FETCH)
    ========================= */
-
 function buildMultipartBody(metadataObj, fileContent, boundary) {
   const delimiter = `--${boundary}`;
   const closeDelim = `--${boundary}--`;
@@ -1048,7 +993,6 @@ async function driveDownloadFile(fileId, token) {
 /* =========================
    11) CAMERA + BOOK LOOKUPS
    ========================= */
-
 async function fetchOpenLibrary(isbn) {
   try {
     const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&jscmd=data&format=json`);
@@ -1180,7 +1124,6 @@ async function stopCamera() {
 /* =========================
    12) EXPORT / IMPORT LOCAL JSON
    ========================= */
-
 function exportData() {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library, null, 2));
   const a = document.createElement("a");
@@ -1214,7 +1157,6 @@ function importData(event) {
 /* =========================
    13) CALENDAR (OPTIONAL)
    ========================= */
-
 function getReminderDates(returnDateStr) {
   const [y, m, d] = returnDateStr.split("-").map(Number);
   const returnObj = new Date(y, m - 1, d, 12, 0, 0);
@@ -1231,6 +1173,23 @@ function getReminderDates(returnDateStr) {
   return { start: fmt(startObj), end: fmt(endObj) };
 }
 
+async function ensureCalendarAuth() {
+  if (!confirm(t("calNeedAuth"))) return false;
+
+  return new Promise((resolve) => {
+    const comboClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: `${DRIVE_SCOPE} ${CAL_SCOPE}`,
+      callback: (resp) => {
+        if (resp?.error) { logError("Combo Auth Fail", resp); resolve(false); return; }
+        gapi.client.setToken(resp);
+        resolve(true);
+      }
+    });
+    comboClient.requestAccessToken({ prompt: "" });
+  });
+}
+
 async function processCalendar(book) {
   if (!book?.returnDate) return alert(t("dateRequired"));
 
@@ -1239,7 +1198,8 @@ async function processCalendar(book) {
 
   if (!useApi) return magicLinkCalendar(book);
 
-  // Need calendar auth (with Drive too)
+  if (!requireSignedInDrive()) return;
+
   const ok = await ensureCalendarAuth();
   if (!ok) return;
 
@@ -1279,7 +1239,6 @@ function magicLinkCalendar(book) {
 /* =========================
    14) INIT
    ========================= */
-
 window.addEventListener("DOMContentLoaded", () => {
   try {
     library = loadLibrary();
@@ -1296,13 +1255,12 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if ($("language-select")) $("language-select").onchange = (e) => setLanguage(e.target.value);
 
-    // Cloud controls injection (same as you had)
+    // Cloud controls injection (menu section)
     const exportBtn = $("btn-export");
     if (exportBtn && !$("cloud-controls")) {
       const style = document.createElement("style");
       style.innerHTML = `
         #cloud-controls { margin-top:15px; padding-top:15px; border-top:1px solid var(--border-color, #ccc); }
-        #cloud-header, #local-header { margin:0 0 8px 0; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; opacity:0.6; }
         .cloud-btn-row { display:flex; gap:10px; margin-bottom:10px; }
         .cloud-action-btn { flex:1; padding:10px; border:1px solid currentColor; background:none; border-radius:6px; cursor:pointer; font-size:0.9rem; display:flex; align-items:center; justify-content:center; gap:6px; opacity:0.8; transition:all 0.2s; color:inherit; }
         .cloud-action-btn:hover { opacity:1; background:rgba(128,128,128,0.1); }
@@ -1342,7 +1300,8 @@ window.addEventListener("DOMContentLoaded", () => {
     addClick("modal-add-loan", () => confirmAdd("loans"));
     addClick("modal-cancel", closeModal);
 
-    addClick("auth-btn", signInDrive);
+    // HEADER login button (on app, not menu)
+    addClick("auth-btn", onAuthButtonClick);
 
     addClick("reset-btn", hardReset);
     addClick("btn-export", exportData);
@@ -1378,11 +1337,13 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
     setText("year", new Date().getFullYear());
-    setSyncStatus("idle");
     updateShelfCounts();
     updateCloudLink();
     setSmartPlaceholder();
     setLanguage(currentLang);
+
+    // If the user is already signed in (token exists from session), reflect it
+    setSyncStatus("idle");
 
     window.addEventListener("resize", setSmartPlaceholder);
     window.addEventListener("orientationchange", setSmartPlaceholder);
@@ -1390,10 +1351,11 @@ window.addEventListener("DOMContentLoaded", () => {
     console.log("App Ready (Drive appData JSON)");
   } catch (e) {
     logError("Init", e);
+    setSyncStatus("error");
   }
 });
 
-// Expose callbacks for script tags
+// Expose callbacks for Google script tags
 window.gapiLoaded = gapiLoaded;
 window.gisLoaded = gisLoaded;
 window.clearFilters = clearFilters;
