@@ -4,6 +4,7 @@
    - No Google Sheets API, no spreadsheets permissions
    - Calendar integration removed (uses Google Calendar "magic link" only)
    - Works with your UPDATED HTML (no integrations section/toggle)
+   - Includes Filter Status Bar ("Showing X of Y" + Clear)
    ========================================================= */
 
 (() => {
@@ -258,12 +259,10 @@
   function toast(msg, ms = 2500) {
     const el = $("debug-log");
     const text = String(msg ?? "");
-
     if (!el) return alert(text);
 
     el.textContent = text;
     el.classList.add("show");
-
     clearTimeout(el._t);
     el._t = setTimeout(() => el.classList.remove("show"), ms);
   }
@@ -431,6 +430,7 @@
 
     // Menu headings/labels (only those that exist in your updated HTML)
     setText("menu-settings", t("settings"));
+    setText("menu-lang", t("lang"));
     setText("menu-shelves", t("shelves"));
     setText("menu-display", t("display"));
     setText("menu-filter", t("filter"));
@@ -535,30 +535,33 @@
     return { allItems, visibleItems };
   }
 
+  // ✅ Filter status bar (showing X / Y + clear link)
   function renderFilterStatus(allCount, visibleCount) {
     const statusEl = $("filter-status");
     if (!statusEl) return;
 
-    if (allCount !== visibleCount) {
-      statusEl.style.display = "flex";
-      statusEl.textContent = "";
-
-      const msg = t("filterStats")
-        .replace("{0}", String(visibleCount))
-        .replace("{1}", String(allCount));
-
-      const left = document.createElement("span");
-      left.textContent = msg;
-
-      const right = document.createElement("span");
-      right.className = "filter-clear-link";
-      right.textContent = t("clearBtn");
-      right.addEventListener("click", clearFilters);
-
-      statusEl.append(left, right);
-    } else {
+    if (allCount === visibleCount) {
       statusEl.style.display = "none";
+      statusEl.textContent = "";
+      return;
     }
+
+    statusEl.style.display = "flex";
+    statusEl.textContent = "";
+
+    const msg = t("filterStats")
+      .replace("{0}", String(visibleCount))
+      .replace("{1}", String(allCount));
+
+    const left = document.createElement("span");
+    left.textContent = msg;
+
+    const right = document.createElement("span");
+    right.className = "filter-clear-link";
+    right.textContent = t("clearBtn");
+    right.addEventListener("click", clearFilters);
+
+    statusEl.append(left, right);
   }
 
   /* =========================
@@ -766,7 +769,7 @@
     delBtn.addEventListener("click", () => deleteBook(book.id));
     actions.appendChild(delBtn);
 
-    // Calendar integration removed from API; keep only magic link for loans
+    // Calendar magic link for loans
     if (currentShelf === "loans" && book?.returnDate) {
       const calBtn = document.createElement("button");
       calBtn.className = "btn-cal";
@@ -872,14 +875,12 @@
     pendingBook = null;
     scanLocked = false;
 
-    // Safety: stop camera if still running
     if (html5QrCode) stopCamera();
   }
 
   function confirmAdd(targetShelf) {
     if (!pendingBook) return;
 
-    // Duplicate detection across all shelves
     const key = normKey(pendingBook);
     const allBooks = [...(library.read || []), ...(library.wishlist || []), ...(library.loans || [])];
     const exists = allBooks.some((b) => normKey(b) === key);
@@ -898,7 +899,6 @@
         return;
       }
 
-      // First click shows date row (two-step UX)
       if (row.style.display === "none") {
         row.style.display = "flex";
         const d = new Date();
@@ -931,7 +931,6 @@
     closeModal();
     setActiveTab(targetShelf);
 
-    // Auto sync if signed in
     saveLibrary({ shouldSync: true, skipRender: true });
   }
 
@@ -1043,7 +1042,6 @@
         window.gapi.client.setToken(resp);
         setSyncStatus("synced");
 
-        // On sign-in, attempt to find existing cloud file (no creation yet)
         await findCloudFileIfExists();
       }
     });
@@ -1074,7 +1072,6 @@
   async function findCloudFileIfExists() {
     if (!requireSignedInDrive()) return null;
 
-    // Validate cached id first
     if (cloudFileId) {
       try {
         await window.gapi.client.drive.files.get({
@@ -1173,7 +1170,6 @@
       setSyncStatus("error");
       toast("Cloud sync failed. Try again.", 3500);
 
-      // Token expired
       if (String(e?.message || "").includes("401")) {
         window.gapi.client.setToken(null);
         toast(t("sessionExpired"), 3500);
@@ -1249,13 +1245,12 @@
       logError("queueUpload", e);
       setSyncStatus("error");
 
-      // If token expired
       if (String(e?.message || "").includes("401")) {
         window.gapi.client.setToken(null);
         toast(t("sessionExpired"), 3500);
         setSyncStatus("idle");
       } else {
-        const delay = Math.min(30000, 1000 * Math.pow(2, Math.min(uploadFailCount, 5))); // 1s..32s
+        const delay = Math.min(30000, 1000 * Math.pow(2, Math.min(uploadFailCount, 5)));
         toast(`Cloud sync failed. Retry in ${Math.round(delay / 1000)}s`, 2500);
         setTimeout(() => {
           if (isDriveSignedIn()) queueUpload();
@@ -1429,7 +1424,6 @@
   async function fetchAndPrompt(rawIsbn) {
     const clean = String(rawIsbn).replace(/\D/g, "");
 
-    // ISBN length validation (10 or 13)
     if (![10, 13].includes(clean.length)) return toast(t("invalidIsbn"));
 
     const book =
@@ -1458,7 +1452,6 @@
      ========================= */
 
   async function startCamera() {
-    // If already running, do nothing
     if (html5QrCode) return;
 
     const c = $("reader-container");
@@ -1483,8 +1476,7 @@
           await fetchAndPrompt(txt);
         }
       );
-    } catch (e) {
-      // fallback try user camera
+    } catch {
       try {
         await html5QrCode.start(
           { facingMode: "user" },
@@ -1609,7 +1601,6 @@
     const exportBtn = $("btn-export");
     if (!exportBtn) return;
 
-    // only once
     if ($("cloud-controls")) return;
 
     const cloudDiv = document.createElement("div");
@@ -1644,61 +1635,49 @@
     try {
       library = loadLibrary();
 
-      // Menu open/close
       addClick("menu-btn", openMenu);
       addClick("menu-overlay", closeMenu);
 
-      // Close modal when clicking outside content
       addClick("modal-overlay", (e) => {
         if (e.target?.id === "modal-overlay") closeModal();
       });
 
-      // Global click closes dots dropdowns
       document.addEventListener("click", (e) => {
         const insideDropdown = e.target.closest?.(".menu-dropdown");
         const insideDots = e.target.closest?.(".dots-btn");
         if (!insideDropdown && !insideDots) closeAnyDropdowns();
       });
 
-      // Language
       $("language-select")?.addEventListener("change", (e) => setLanguage(e.target.value));
 
-      // Inject Cloud controls into Data & Backup
       injectCloudControls();
 
-      // Filters
       addClick("btn-clear-filters", clearFilters);
       $("filter-text")?.addEventListener("input", applyFilters);
       $("filter-year")?.addEventListener("input", applyFilters);
       $("filter-month")?.addEventListener("change", applyFilters);
       $("filter-rating")?.addEventListener("change", applyFilters);
 
-      // Add/Search
       addClick("btn-add", handleManualAdd);
       $("isbn-input")?.addEventListener("keydown", (e) => {
         if (e.key === "Enter") handleManualAdd();
       });
 
-      // Camera
       addClick("btn-scan", startCamera);
       addClick("btn-stop-camera", stopCamera);
 
-      // Modal buttons
       addClick("modal-add-read", () => confirmAdd("read"));
       addClick("modal-add-wish", () => confirmAdd("wishlist"));
       addClick("modal-add-loan", () => confirmAdd("loans"));
       addClick("modal-cancel", closeModal);
 
-      // Auth (header button)
       addClick("auth-btn", signInDrive);
 
-      // Data & backup
       addClick("reset-btn", hardReset);
       addClick("btn-export", exportData);
       addClick("btn-import", triggerImport);
       $("import-file")?.addEventListener("change", importData);
 
-      // Dark mode
       const darkToggle = $("dark-mode-toggle");
       if (darkToggle) {
         if (localStorage.getItem(LS.DARK) === "true") {
@@ -1716,16 +1695,13 @@
         });
       }
 
-      // Tabs
       document.querySelector(".tabs")?.addEventListener("click", (e) => {
         const tab = e.target.closest(".tab");
         if (tab) setActiveTab(tab.id.replace("tab-", ""));
       });
 
-      // Footer year
       setText("year", new Date().getFullYear());
 
-      // Initial UI
       setSyncStatus(isDriveSignedIn() ? "synced" : "idle");
       updateShelfCounts();
       setSmartPlaceholder();
