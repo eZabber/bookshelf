@@ -1,12 +1,11 @@
 /* =========================================================
-   MY BOOKSHELF APP — FINAL POLISHED (Pretty UI)
+   MY BOOKSHELF APP — CLEAN UI & FIXED FILTERING
    ========================================================= */
 
 const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
-// LISÄÄ TÄHÄN GOOGLE CLOUD CONSOLESTA LUOTU API KEY
+// ADD YOUR API KEY HERE
 const DEVELOPER_KEY = ""; 
 
-// Scopes
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 
@@ -31,12 +30,13 @@ const TRANSLATIONS = {
     clear: "Clear Filters", reset: "Reset App Data",
     integrations: "Integrations", calConn: "Connect Calendar", calDesc: "Enable for background syncing.",
     data: "Data & Backup", 
-    export: "Export to File (JSON)", import: "Import from File",
     
     // UI
     cloudSection: "Cloud Sync (Google Drive)",
-    btnSaveCloud: "Save ☁️",
-    btnLoadCloud: "Load 📂",
+    btnSaveCloud: "Save to Drive ☁️",
+    btnLoadCloud: "Load from Drive 📂",
+    saveSuccess: "Saved! ✅",
+    saving: "Saving...",
     
     dark: "Dark Mode", lang: "Language",
     search: "Search ISBN, Title, Author...", add: "Add",
@@ -46,8 +46,6 @@ const TRANSLATIONS = {
     modalAudio: "🎧 Audio?", modalReturn: "📅 Return", cancel: "Cancel",
     changeDate: "📅 Change Date", copyTitle: "📋 Copy Title",
     importSuccess: "Success! ✅",
-    cloudSaved: "Saved to Drive! ✅",
-    cloudLoaded: "Loaded from Drive! ✅",
     calAdded: "Event added! 📅",
     filterStats: "Showing {0} of {1} books",
     clearBtn: "Clear",
@@ -56,7 +54,7 @@ const TRANSLATIONS = {
     dateRequired: "Date?",
     pickerTitle: "Select your Book Data Sheet",
     signInRequired: "Please Sign In first.",
-    confirmLoad: "This will overwrite your local library with data from Drive. Continue?"
+    confirmLoad: "Overwrite local data with data from Drive?"
   },
   fi: {
     read: "Luetut", wishlist: "Toivelista", loans: "Lainassa",
@@ -65,11 +63,12 @@ const TRANSLATIONS = {
     clear: "Tyhjennä", reset: "Nollaa tiedot",
     integrations: "Integraatiot", calConn: "Yhdistä kalenteri", calDesc: "Käytä taustasynkronointia.",
     data: "Tiedot & Varmuuskopio", 
-    export: "Lataa tiedostona (JSON)", import: "Palauta tiedostosta",
     
-    cloudSection: "Pilvitallennus (Drive)",
-    btnSaveCloud: "Tallenna ☁️",
-    btnLoadCloud: "Lataa 📂",
+    cloudSection: "Pilvitallennus (Google Drive)",
+    btnSaveCloud: "Tallenna Driveen ☁️",
+    btnLoadCloud: "Lataa Drivestä 📂",
+    saveSuccess: "Tallennettu! ✅",
+    saving: "Tallennetaan...",
     
     dark: "Tumma tila", lang: "Kieli",
     search: "Etsi ISBN, Nimi, Kirjailija...", add: "Lisää",
@@ -79,8 +78,6 @@ const TRANSLATIONS = {
     modalAudio: "🎧 Äänikirja?", modalReturn: "📅 Palautus", cancel: "Peruuta",
     changeDate: "📅 Muuta päivää", copyTitle: "📋 Kopioi nimi",
     importSuccess: "Onnistui! ✅",
-    cloudSaved: "Tallennettu Driveen! ✅",
-    cloudLoaded: "Ladattu Drivestä! ✅",
     calAdded: "Tapahtuma lisätty! 📅",
     filterStats: "Näytetään {0} / {1} kirjaa",
     clearBtn: "Tyhjennä",
@@ -89,7 +86,7 @@ const TRANSLATIONS = {
     dateRequired: "Päivämäärä?",
     pickerTitle: "Valitse kirjataulukkosi",
     signInRequired: "Kirjaudu ensin.",
-    confirmLoad: "Tämä korvaa paikalliset kirjat Drivestä ladatuilla tiedoilla. Jatketaanko?"
+    confirmLoad: "Korvataanko paikalliset tiedot Drivestä ladatuilla?"
   },
   et: {
     read: "Loetud", wishlist: "Soovinimekiri", loans: "Laenatud",
@@ -98,11 +95,12 @@ const TRANSLATIONS = {
     clear: "Tühjenda", reset: "Lähtesta andmed",
     integrations: "Integratsioonid", calConn: "Ühenda kalender", calDesc: "Luba taustal sünkroonimine.",
     data: "Andmed ja varukoopia", 
-    export: "Lae alla failina (JSON)", import: "Taasta failist",
     
-    cloudSection: "Pilvesalvestus (Drive)",
-    btnSaveCloud: "Salvesta ☁️",
-    btnLoadCloud: "Lae 📂",
+    cloudSection: "Pilvesalvestus (Google Drive)",
+    btnSaveCloud: "Salvesta Drive'i ☁️",
+    btnLoadCloud: "Lae Drive'ist 📂",
+    saveSuccess: "Salvestatud! ✅",
+    saving: "Salvestamine...",
 
     dark: "Tume režiim", lang: "Keel",
     search: "Otsi ISBN, Pealkiri, Autor...", add: "Lisa",
@@ -112,8 +110,6 @@ const TRANSLATIONS = {
     modalAudio: "🎧 Audioraamat?", modalReturn: "📅 Tagastus", cancel: "Loobu",
     changeDate: "📅 Muuda kuupäeva", copyTitle: "📋 Kopeeri pealkiri",
     importSuccess: "Õnnestus! ✅",
-    cloudSaved: "Salvestatud Drive'i! ✅",
-    cloudLoaded: "Laetud Drive'ist! ✅",
     calAdded: "Sündmus lisatud! 📅",
     filterStats: "Kuvatakse {0} / {1} raamatut",
     clearBtn: "Tühjenda",
@@ -122,7 +118,7 @@ const TRANSLATIONS = {
     dateRequired: "Kuupäev?",
     pickerTitle: "Vali oma raamatutabel",
     signInRequired: "Palun logi esmalt sisse.",
-    confirmLoad: "See kirjutab kohalikud andmed üle Drive'i andmetega. Jätka?"
+    confirmLoad: "Kirjutan kohalikud andmed üle? Jätka?"
   }
 };
 
@@ -187,12 +183,13 @@ function saveLibrary({ shouldSync = false, skipRender = false } = {}) {
   localStorage.setItem(LS.LIB, JSON.stringify(library));
   updateShelfCounts();
   if (!skipRender) renderBooks();
+  // We only Auto-Sync if ID exists and user has signed in
   if (shouldSync && spreadsheetId && gapi?.client?.getToken?.()) queueUpload();
 }
 function updateShelfCounts() { setText("count-read", library.read?.length || 0); setText("count-wishlist", library.wishlist?.length || 0); setText("count-loans", library.loans?.length || 0); }
 
 /* =========================
-   4) UI
+   4) UI & FILTERS
    ========================= */
 function openMenu() { $("side-menu")?.classList.add("open"); $("menu-overlay")?.classList.add("open"); document.body.style.overflow = "hidden"; }
 function closeMenu() { $("side-menu")?.classList.remove("open"); $("menu-overlay")?.classList.remove("open"); document.body.style.overflow = ""; }
@@ -215,16 +212,17 @@ function setLanguage(lang) {
   currentLang = lang; localStorage.setItem(LS.LANG, lang);
   const sel = $("language-select"); if (sel) sel.value = lang;
   
+  // Updates texts
   setText("tab-read", t("read")); setText("tab-wishlist", t("wishlist")); setText("tab-loans", t("loans"));
   setText("menu-lang", t("lang")); setText("menu-settings", t("settings")); setText("menu-shelves", t("shelves"));
   setText("menu-display", t("display")); setText("menu-filter", t("filter"));
   setText("menu-integrations", t("integrations")); setText("label-cal-conn", t("calConn")); setText("cal-desc", t("calDesc"));
   setText("menu-data", t("data")); 
   
-  // Update Cloud UI
+  // Update Buttons
   setText("cloud-header", t("cloudSection"));
-  setText("btn-save-drive", t("btnSaveCloud"));
-  setText("btn-load-drive", t("btnLoadCloud"));
+  if($("btn-save-drive")) $("btn-save-drive").textContent = t("btnSaveCloud");
+  if($("btn-load-drive")) $("btn-load-drive").textContent = t("btnLoadCloud");
   
   setText("label-stat-read", t("read")); setText("label-stat-wish", t("wishlist")); setText("label-stat-loans", t("loans"));
   setText("label-darkmode", t("dark")); setText("label-year", t("year")); setText("label-month", t("month")); setText("label-rating", t("rating"));
@@ -236,11 +234,23 @@ function setLanguage(lang) {
   renderBooks();
 }
 
-function clearFilters() { if ($("filter-text")) $("filter-text").value = ""; if ($("filter-year")) $("filter-year").value = ""; if ($("filter-month")) $("filter-month").value = ""; if ($("filter-rating")) $("filter-rating").value = ""; filterState = { text: "", year: "", month: "", rating: "" }; applyFilters(); closeMenu(); }
+// ---- FIXED FILTERING LOGIC ----
+function clearFilters() { 
+    if ($("filter-text")) $("filter-text").value = ""; 
+    if ($("filter-year")) $("filter-year").value = ""; 
+    if ($("filter-month")) $("filter-month").value = ""; 
+    if ($("filter-rating")) $("filter-rating").value = ""; 
+    filterState = { text: "", year: "", month: "", rating: "" }; 
+    applyFilters(); 
+    closeMenu(); 
+}
+
 function applyFilters() {
   const textEl = $("filter-text"); const yEl = $("filter-year"); const mEl = $("filter-month"); const rEl = $("filter-rating");
   if (textEl) filterState.text = (textEl.value || "").toLowerCase();
-  if (yEl) filterState.year = yEl.value || ""; if (mEl) filterState.month = mEl.value || ""; if (rEl) filterState.rating = rEl.value || "";
+  if (yEl) filterState.year = yEl.value || ""; 
+  if (mEl) filterState.month = mEl.value || ""; 
+  if (rEl) filterState.rating = rEl.value || "";
   renderBooks();
 }
 
@@ -248,20 +258,31 @@ function renderBooks() {
   const list = $("book-list"); if (!list) return; list.innerHTML = "";
   const allItems = Array.isArray(library[currentShelf]) ? library[currentShelf] : [];
   let visibleItems = allItems;
-  const term = (filterState.text || "").toLowerCase(); const cleanTerm = term.replace(/[\s-]/g, "");
+  
+  const term = (filterState.text || "").toLowerCase(); 
+  const cleanTerm = term.replace(/[\s-]/g, "");
 
+  // Robust Filtering
   if (term || filterState.year || filterState.month || filterState.rating) {
     visibleItems = allItems.filter((b) => {
-      const titleLc = String(b?.title || "").toLowerCase(); const authorLc = getAuthorName(b).toLowerCase(); const isbnLc = String(b?.isbn || "").replace(/[\s-]/g, "").toLowerCase();
+      const titleLc = String(b.title || "").toLowerCase(); 
+      const authorLc = getAuthorName(b).toLowerCase(); 
+      const isbnLc = String(b.isbn || "").replace(/[\s-]/g, "").toLowerCase();
+      
       const matchText = !term || titleLc.includes(term) || authorLc.includes(term) || isbnLc.includes(cleanTerm);
-      const dateStr = currentShelf === "read" ? String(b?.dateRead || "") : currentShelf === "loans" ? String(b?.returnDate || "") : "";
-      const matchYear = !filterState.year || (dateStr && dateStr.startsWith(filterState.year));
-      const matchMonth = !filterState.month || (dateStr && dateStr.substring(5, 7) === filterState.month);
-      const matchRating = !filterState.rating || (Number(b?.rating || 0) === Number(filterState.rating));
+      
+      const dateStr = currentShelf === "read" ? String(b.dateRead || "") : currentShelf === "loans" ? String(b.returnDate || "") : "";
+      
+      const matchYear = !filterState.year || dateStr.startsWith(filterState.year);
+      const matchMonth = !filterState.month || (dateStr.length >= 7 && dateStr.substring(5, 7) === filterState.month);
+      const matchRating = !filterState.rating || (Number(b.rating || 0) === Number(filterState.rating));
+      
       return matchText && matchYear && matchMonth && matchRating;
     });
   }
+  
   updateShelfCounts();
+  
   const statusEl = $("filter-status");
   if (statusEl) {
     if (allItems.length !== visibleItems.length) {
@@ -428,6 +449,9 @@ function requireSignedIn() { if (!gapi?.client?.getToken?.()) { alert(t("signInR
 // Logic: If ID exists -> Update it. If NO ID -> Create New & Update.
 async function handleCloudSave() {
   if (!requireSignedIn()) return;
+  const btn = $("btn-save-drive");
+  const origText = btn.textContent;
+  btn.textContent = t("saving");
   setSyncStatus("working");
   
   if (!spreadsheetId) {
@@ -448,13 +472,17 @@ async function handleCloudSave() {
     } catch (e) {
       logError("Create Sheet Error", e);
       setSyncStatus("error");
+      btn.textContent = origText;
       return;
     }
   }
   // Upload data
   await queueUpload();
   setSyncStatus("synced");
-  alert(t("cloudSaved"));
+  
+  // Feedback UI
+  btn.textContent = t("saveSuccess");
+  setTimeout(() => { btn.textContent = t("btnSaveCloud"); }, 2500);
 }
 
 // BUTTON 2: "Load from Drive" (via Picker)
@@ -567,12 +595,9 @@ async function uploadData() {
 }
 
 /* =========================
-   16) CAMERA & SEARCH & EXPORT
+   16) CAMERA & SEARCH
    ========================= */
-function exportData() { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library, null, 2)); const a = document.createElement("a"); a.setAttribute("href", dataStr); a.setAttribute("download", "my_bookshelf_" + new Date().toISOString().split("T")[0] + ".json"); document.body.appendChild(a); a.click(); a.remove(); }
-function triggerImport() { $("import-file")?.click(); }
-function importData(event) { const file = event?.target?.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { try { const imported = JSON.parse(e.target.result); if (!imported?.read) return alert("Invalid"); library = imported; saveLibrary({shouldSync:true}); alert(t("importSuccess")); } catch {} }; reader.readAsText(file); }
-
+// Removed JSON export logic from UI (keeping helpers if needed later)
 async function fetchOpenLibrary(isbn) { try { const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&jscmd=data&format=json`); const data = await res.json(); const key = `ISBN:${isbn}`; if (data?.[key]) { const b = data[key]; return { title: b.title, authors: b.authors || [{ name: "Unknown" }], cover: b.cover?.medium || b.cover?.small || null, isbn }; } } catch {} return null; }
 async function fetchFinna(isbn) { try { const res = await fetch(`https://api.finna.fi/v1/search?lookfor=isbn:${isbn}&type=AllFields&field[]=title&field[]=buildings&field[]=images`); const data = await res.json(); if (data?.resultCount > 0) { const b = data.records[0]; return { title: b.title, authors: [{ name: b.buildings?.[0]?.translated || "Unknown" }], cover: b.images?.[0] ? `https://api.finna.fi${b.images[0]}` : null, isbn }; } } catch {} return null; }
 async function fetchGoogleBooks(isbn) { try { const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`); const data = await res.json(); if (data?.totalItems > 0) { const v = data.items[0].volumeInfo; return { title: v.title, authors: (v.authors||[]).map(a=>({name:a})), cover: v.imageLinks?.thumbnail?.replace("http:","https:"), isbn }; } } catch {} return null; }
@@ -634,6 +659,11 @@ window.addEventListener("DOMContentLoaded", () => {
       
       $("btn-save-drive").onclick = handleCloudSave;
       $("btn-load-drive").onclick = handleCloudLoad;
+      
+      // HIDE OLD JSON BUTTONS (Optional cleanup)
+      // exportBtn.style.display = "none";
+      // $("btn-import").style.display = "none";
+      // $("import-file").style.display = "none";
     }
 
     addClick("btn-clear-filters", clearFilters);
