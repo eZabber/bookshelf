@@ -181,16 +181,16 @@ function logError(msg, err) { console.error(msg, err); }
 
 function toast(msg, ms = 2500) {
   const el = $("debug-log");
-  if (!el) return alert(msg);
+  const text = String(msg ?? "");
 
-  el.textContent = msg;
-  el.style.display = "block";
-  el.style.opacity = "1";
+  if (!el) return alert(text);
+
+  el.textContent = text;
+  el.classList.add("show");
 
   clearTimeout(el._t);
   el._t = setTimeout(() => {
-    el.style.opacity = "0";
-    setTimeout(() => { el.style.display = "none"; }, 250);
+    el.classList.remove("show");
   }, ms);
 }
 
