@@ -6,13 +6,13 @@ const SHEETS_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const DISCOVERY = [ 
     "https://sheets.googleapis.com/$discovery/rest?version=v4", 
+    "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
     "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"
 ];
 // "Sheet1" is the default tab name created by the API. 
-// "My Book App Data" is the filename in Drive.
 const SPREADSHEET_TITLE = "My Book App Data";
 const HEADER_RANGE = `Sheet1!A1:J1`;
-const WRITE_RANGE = `Sheet1!A2`; // Fixed range
+const WRITE_RANGE = `Sheet1!A2`;
 const DATA_RANGE = `Sheet1!A2:J999`;
 const HEADER = ["ID", "Title", "Author", "Shelf", "Rating", "Cover", "Date", "ReturnDate", "Audio", "ISBN"];
 
@@ -92,16 +92,18 @@ const $ = (id) => document.getElementById(id);
 const t = (key) => TRANSLATIONS[currentLang][key] || key;
 function setText(id, text) { const el = $(id); if (el) el.textContent = text; }
 
-// --- SCOPE HELPERS (Fix for Issue #2) ---
+// --- SCOPE HELPERS ---
 function hasScope(scope) {
-    const s = localStorage.getItem("granted_scopes") || "";
-    return s.includes(scope);
+    const s = (localStorage.getItem("granted_scopes") || "").trim();
+    // Split by spaces to avoid partial matching
+    return s.split(/\s+/).includes(scope);
 }
+
 function addGrantedScopes(scopeString) {
     if (!scopeString) return;
-    const current = localStorage.getItem("granted_scopes") || "";
-    // Simple merge logic
-    const merged = (current + " " + scopeString).split(" ").filter((v, i, a) => a.indexOf(v) === i && v).join(" ");
+    const current = (localStorage.getItem("granted_scopes") || "").trim();
+    // Merge new scopes with old, remove duplicates
+    const merged = (current + " " + scopeString).split(/\s+/).filter((v, i, a) => a.indexOf(v) === i && v).join(" ");
     localStorage.setItem("granted_scopes", merged);
 }
 
@@ -177,7 +179,7 @@ function gisLoaded() {
         callback: async (resp) => {
             if (resp.error) return logError("Auth Fail", resp);
             
-            // 1. Store Granted Scopes locally (Robust tracking)
+            // 1. Store Granted Scopes locally
             addGrantedScopes(resp.scope);
             
             // 2. Set Token
@@ -185,7 +187,7 @@ function gisLoaded() {
             
             // 3. Check if we were waiting for Calendar Upgrade
             if (pendingCalendarBook) {
-                // Now check our local record if we have the scope
+                // Check our local record if we have the scope
                 if (hasScope(CAL_SCOPE)) {
                     await apiAddCalendar(pendingCalendarBook);
                 }
@@ -222,6 +224,7 @@ function logError(msg, err) {
     }
     console.error(msg, err);
 }
+function safeStringify(x) { try { return JSON.stringify(x, null, 2); } catch { return String(x); } }
 function makeId() { 
     if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -528,13 +531,12 @@ function renderBooks() {
 function processCalendar(book) {
     const isConnected = $('cal-connect-toggle').checked;
     if (isConnected) {
-        // 1. Check if Signed In
+        // Try API
         if (!gapi?.client?.getToken?.()) return alert("Please Sign In first.");
         
-        // 2. Check Local Scope Tracker
+        // Use our robust scope checker
         if (!hasScope(CAL_SCOPE)) {
             pendingCalendarBook = book;
-            // Ask for upgrade
             tokenClient.requestAccessToken({ prompt: '', scope: SHEETS_SCOPE + " " + CAL_SCOPE });
         } else {
             apiAddCalendar(book);
@@ -546,14 +548,30 @@ function processCalendar(book) {
 }
 
 async function apiAddCalendar(book) {
-    const dateObj = new Date(book.returnDate); dateObj.setDate(dateObj.getDate() - 1);
-    const reminderDate = dateObj.toISOString().split('T')[0];
+    // FIX: Set ALL DAY event correctly (End = Start + 1 Day)
+    const startDateObj = new Date(book.returnDate); 
+    // Reminder is usually set for the day BEFORE it is due (or the day of).
+    // Let's use the actual return date as the reminder day to be safe.
+    // Start: YYYY-MM-DD
+    // End: YYYY-MM-DD + 1
+    
+    // NOTE: Users requested reminder. Let's set it to the return date.
+    // If you want it the day BEFORE, do startDateObj.setDate(startDateObj.getDate() - 1);
+    
+    const endDateObj = new Date(startDateObj);
+    endDateObj.setDate(endDateObj.getDate() + 1); // Exclusive end date
+
+    const startStr = startDateObj.toISOString().split('T')[0];
+    const endStr = endDateObj.toISOString().split('T')[0];
+
     try {
         await gapi.client.calendar.events.insert({
             'calendarId': 'primary',
             'resource': {
-                'summary': `Return: ${book.title}`, 'description': `Book by ${getAuthorName(book)}.`,
-                'start': { 'date': reminderDate }, 'end': { 'date': reminderDate },
+                'summary': `Return: ${book.title}`, 
+                'description': `Book by ${getAuthorName(book)}.`,
+                'start': { 'date': startStr }, 
+                'end': { 'date': endStr },
                 'reminders': { 'useDefault': false, 'overrides': [ {'method': 'popup', 'minutes': 9 * 60} ] }
             }
         });
@@ -563,7 +581,8 @@ async function apiAddCalendar(book) {
 
 function magicLinkCalendar(book) {
     if (!book.returnDate) return alert("No date set");
-    // Date Logic Fix: End date must be Start + 1 Day for Google Templates to show single day correctly
+    
+    // FIX: Same logic for Magic Link (End = Start + 1)
     const start = new Date(book.returnDate);
     const end = new Date(book.returnDate);
     end.setDate(end.getDate() + 1);
