@@ -4,7 +4,6 @@
    - No Google Sheets API, no spreadsheets permissions
    - Calendar integration removed (uses Google Calendar "magic link" only)
    - Works with your UPDATED HTML (no integrations section/toggle)
-   - Includes Filter Status Bar ("Showing X of Y" + Clear)
    ========================================================= */
 
 (() => {
@@ -87,7 +86,10 @@
       alreadyExists: "Already in your library.",
       notFound: "Not found.",
       searchFailed: "Search failed.",
-      cameraError: "Camera error."
+      cameraError: "Camera error.",
+      addManualQ: "Not found. Add manually?",
+      enterTitle: "Title?",
+      enterAuthor: "Author?"
     },
     fi: {
       read: "Luetut",
@@ -142,7 +144,10 @@
       alreadyExists: "Kirja on jo kirjastossasi.",
       notFound: "Ei löytynyt.",
       searchFailed: "Haku epäonnistui.",
-      cameraError: "Kameravirhe."
+      cameraError: "Kameravirhe.",
+      addManualQ: "Ei löytynyt. Lisätäänkö manuaalisesti?",
+      enterTitle: "Kirjan nimi?",
+      enterAuthor: "Kirjailija?"
     },
     et: {
       read: "Loetud",
@@ -197,7 +202,10 @@
       alreadyExists: "Raamat on juba sinu nimekirjas.",
       notFound: "Ei leitud.",
       searchFailed: "Otsing ebaõnnestus.",
-      cameraError: "Kaamera viga."
+      cameraError: "Kaamera viga.",
+      addManualQ: "Ei leitud. Lisa käsitsi?",
+      enterTitle: "Pealkiri?",
+      enterAuthor: "Autor?"
     }
   };
 
@@ -428,9 +436,8 @@
     setText("tab-wishlist", t("wishlist"));
     setText("tab-loans", t("loans"));
 
-    // Menu headings/labels (only those that exist in your updated HTML)
+    // Menu headings/labels
     setText("menu-settings", t("settings"));
-    setText("menu-lang", t("lang"));
     setText("menu-shelves", t("shelves"));
     setText("menu-display", t("display"));
     setText("menu-filter", t("filter"));
@@ -460,7 +467,7 @@
     setText("modal-add-wish", `Add to ${t("wishlist")}`);
     setText("modal-add-loan", `Add to ${t("loans")}`);
 
-    // Cloud injected elements (if present)
+    // Cloud injected elements
     if ($("btn-save-drive")) $("btn-save-drive").textContent = t("btnSaveCloud");
     if ($("btn-load-drive")) $("btn-load-drive").textContent = t("btnLoadCloud");
     if ($("header-drive")) $("header-drive").textContent = t("headerDrive");
@@ -535,33 +542,30 @@
     return { allItems, visibleItems };
   }
 
-  // ✅ Filter status bar (showing X / Y + clear link)
   function renderFilterStatus(allCount, visibleCount) {
     const statusEl = $("filter-status");
     if (!statusEl) return;
 
-    if (allCount === visibleCount) {
-      statusEl.style.display = "none";
+    if (allCount !== visibleCount) {
+      statusEl.style.display = "flex";
       statusEl.textContent = "";
-      return;
+
+      const msg = t("filterStats")
+        .replace("{0}", String(visibleCount))
+        .replace("{1}", String(allCount));
+
+      const left = document.createElement("span");
+      left.textContent = msg;
+
+      const right = document.createElement("span");
+      right.className = "filter-clear-link";
+      right.textContent = t("clearBtn");
+      right.addEventListener("click", clearFilters);
+
+      statusEl.append(left, right);
+    } else {
+      statusEl.style.display = "none";
     }
-
-    statusEl.style.display = "flex";
-    statusEl.textContent = "";
-
-    const msg = t("filterStats")
-      .replace("{0}", String(visibleCount))
-      .replace("{1}", String(allCount));
-
-    const left = document.createElement("span");
-    left.textContent = msg;
-
-    const right = document.createElement("span");
-    right.className = "filter-clear-link";
-    right.textContent = t("clearBtn");
-    right.addEventListener("click", clearFilters);
-
-    statusEl.append(left, right);
   }
 
   /* =========================
@@ -810,7 +814,6 @@
   function createBookCard(book) {
     const li = document.createElement("li");
     li.className = "book-card";
-
     li.appendChild(createDotsMenu(book));
     li.appendChild(createThumb(book));
     li.appendChild(createInfo(book));
@@ -881,8 +884,13 @@
   function confirmAdd(targetShelf) {
     if (!pendingBook) return;
 
+    // Duplicate detection across all shelves
     const key = normKey(pendingBook);
-    const allBooks = [...(library.read || []), ...(library.wishlist || []), ...(library.loans || [])];
+    const allBooks = [
+      ...(library.read || []),
+      ...(library.wishlist || []),
+      ...(library.loans || [])
+    ];
     const exists = allBooks.some((b) => normKey(b) === key);
     if (exists) {
       toast(t("alreadyExists"));
@@ -899,6 +907,7 @@
         return;
       }
 
+      // First click shows date row (two-step UX)
       if (row.style.display === "none") {
         row.style.display = "flex";
         const d = new Date();
@@ -927,10 +936,8 @@
     };
 
     library[targetShelf].push(newBook);
-
     closeModal();
     setActiveTab(targetShelf);
-
     saveLibrary({ shouldSync: true, skipRender: true });
   }
 
@@ -1041,7 +1048,6 @@
 
         window.gapi.client.setToken(resp);
         setSyncStatus("synced");
-
         await findCloudFileIfExists();
       }
     });
@@ -1250,7 +1256,7 @@
         toast(t("sessionExpired"), 3500);
         setSyncStatus("idle");
       } else {
-        const delay = Math.min(30000, 1000 * Math.pow(2, Math.min(uploadFailCount, 5)));
+        const delay = Math.min(30000, 1000 * Math.pow(2, Math.min(uploadFailCount, 5))); // 1s..32s
         toast(`Cloud sync failed. Retry in ${Math.round(delay / 1000)}s`, 2500);
         setTimeout(() => {
           if (isDriveSignedIn()) queueUpload();
@@ -1337,8 +1343,22 @@
   }
 
   /* =========================
-     12) BOOK LOOKUPS
+     12) BOOK LOOKUPS (+ MANUAL FALLBACK)
      ========================= */
+
+  function promptManualBook({ isbn = "", seedTitle = "", seedAuthor = "" } = {}) {
+    const title = window.prompt(t("enterTitle"), seedTitle || "")?.trim();
+    if (!title) return null;
+
+    const author = window.prompt(t("enterAuthor"), seedAuthor || "")?.trim() || "Unknown";
+
+    return {
+      title,
+      authors: [{ name: author }],
+      cover: null,
+      isbn
+    };
+  }
 
   async function fetchOpenLibrary(isbn) {
     try {
@@ -1414,7 +1434,13 @@
           isbn: d.isbn?.[0] || ""
         });
       } else {
-        toast(t("notFound"));
+        // ✅ manual fallback for text search too
+        if (confirm(t("addManualQ"))) {
+          const manual = promptManualBook({ seedTitle: query });
+          if (manual) showModal(manual, manual.isbn || "");
+        } else {
+          toast(t("notFound"));
+        }
       }
     } catch {
       toast(t("searchFailed"));
@@ -1431,8 +1457,19 @@
       (await fetchFinna(clean)) ||
       (await fetchGoogleBooks(clean));
 
-    if (book) showModal(book, clean);
-    else toast(t("notFound"));
+    if (book) {
+      showModal(book, clean);
+      return;
+    }
+
+    // ✅ manual fallback if ISBN lookup fails
+    if (confirm(t("addManualQ"))) {
+      const manual = promptManualBook({ isbn: clean });
+      if (manual) showModal(manual, clean);
+      else toast(t("notFound"));
+    } else {
+      toast(t("notFound"));
+    }
   }
 
   async function handleManualAdd() {
@@ -1600,7 +1637,6 @@
   function injectCloudControls() {
     const exportBtn = $("btn-export");
     if (!exportBtn) return;
-
     if ($("cloud-controls")) return;
 
     const cloudDiv = document.createElement("div");
@@ -1705,12 +1741,12 @@
       setSyncStatus(isDriveSignedIn() ? "synced" : "idle");
       updateShelfCounts();
       setSmartPlaceholder();
-      setLanguage(currentLang); // triggers render
+      setLanguage(currentLang);
 
       window.addEventListener("resize", setSmartPlaceholder);
       window.addEventListener("orientationchange", setSmartPlaceholder);
 
-      console.log("App Ready (Drive appData JSON, refactored)");
+      console.log("App Ready (Drive appData JSON, refactored + manual add fallback)");
     } catch (e) {
       logError("Init", e);
       setSyncStatus("error");
