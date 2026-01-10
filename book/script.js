@@ -3,10 +3,10 @@
 // =======================
 const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
 const SHEETS_SCOPE = "https://www.googleapis.com/auth/drive.file";
-const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+// CAL_SCOPE REMOVED - No longer needed!
+
 const DISCOVERY = [ 
-    "https://sheets.googleapis.com/$discovery/rest?version=v4", 
-    "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest" 
+    "https://sheets.googleapis.com/$discovery/rest?version=v4"
 ];
 const SHEET_NAME = "Sheet1";
 const HEADER_RANGE = `${SHEET_NAME}!A1:J1`;
@@ -25,10 +25,9 @@ const TRANSLATIONS = {
         signIn: "Sign In", working: "...", synced: "Synced", 
         downloading: "Loading...", saving: "Saving...", error: "Error",
         markRead: "Mark Read", unread: "↩︎ Unread", delete: "Delete?",
-        finished: "Finished:", due: "Due:", audio: "🎧 Audio", reminder: "📅 Reminder",
+        finished: "Finished:", due: "Due:", audio: "🎧 Audio", reminder: "📅 Add to G-Cal",
         modalAudio: "🎧 Audio?", modalReturn: "📅 Return", cancel: "Cancel",
-        changeDate: "📅 Change Date", copyTitle: "📋 Copy Title",
-        calPermit: "Enable Calendar access to set reminders?"
+        changeDate: "📅 Change Date", copyTitle: "📋 Copy Title"
     },
     fi: {
         read: "Luetut", wishlist: "Toivelista", loans: "Lainassa",
@@ -41,10 +40,9 @@ const TRANSLATIONS = {
         signIn: "Kirjaudu", working: "...", synced: "Synkattu", 
         downloading: "Ladataan...", saving: "Tallennetaan...", error: "Virhe",
         markRead: "Merkitse luetuksi", unread: "↩︎ Lukematon", delete: "Poista?",
-        finished: "Luettu:", due: "Eräpäivä:", audio: "🎧 Ääni", reminder: "📅 Muistutus",
+        finished: "Luettu:", due: "Eräpäivä:", audio: "🎧 Ääni", reminder: "📅 Lisää kalenteriin",
         modalAudio: "🎧 Äänikirja?", modalReturn: "📅 Palautus", cancel: "Peruuta",
-        changeDate: "📅 Muuta päivää", copyTitle: "📋 Kopioi nimi",
-        calPermit: "Salli kalenterin käyttö muistutuksia varten?"
+        changeDate: "📅 Muuta päivää", copyTitle: "📋 Kopioi nimi"
     },
     et: {
         read: "Loetud", wishlist: "Soovinimekiri", loans: "Laenatud",
@@ -57,10 +55,9 @@ const TRANSLATIONS = {
         signIn: "Logi sisse", working: "...", synced: "Sünkroonitud", 
         downloading: "Laadin...", saving: "Salvestan...", error: "Viga",
         markRead: "Märgi loetuks", unread: "↩︎ Lugemata", delete: "Kustuta?",
-        finished: "Loetud:", due: "Tähtaeg:", audio: "🎧 Audio", reminder: "📅 Meeldetuletus",
+        finished: "Loetud:", due: "Tähtaeg:", audio: "🎧 Audio", reminder: "📅 Lisa kalendrisse",
         modalAudio: "🎧 Audioraamat?", modalReturn: "📅 Tagastus", cancel: "Loobu",
-        changeDate: "📅 Muuda kuupäeva", copyTitle: "📋 Kopeeri pealkiri",
-        calPermit: "Luba kalendri ligipääs meeldetuletusteks?"
+        changeDate: "📅 Muuda kuupäeva", copyTitle: "📋 Kopeeri pealkiri"
     }
 };
 
@@ -75,8 +72,7 @@ let currentShelf = "read";
 let library = { read: [], wishlist: [], loans: [] }; 
 let html5QrCode = null, scanLocked = false, pendingBook = null;
 let isSyncing = false, syncPending = false;
-let pendingCalendarBook = null; 
-let appStatus = "idle"; // idle, working, synced, error
+let appStatus = "idle"; 
 let filterState = { text: "", year: "", month: "", rating: "" };
 
 const $ = (id) => document.getElementById(id);
@@ -118,7 +114,6 @@ function setLanguage(lang) {
     setText("btn-add", t("add"));
     if($("isbn-input")) $("isbn-input").placeholder = t("search");
     
-    // UPDATE AUTH BUTTON BASED ON STATE
     const authBtn = $("auth-btn");
     if(authBtn) {
         if (appStatus === "working") authBtn.textContent = t("working");
@@ -152,14 +147,8 @@ function gisLoaded() {
         callback: async (resp) => {
             if (resp.error) return logError("Auth Fail", resp);
             gapi.client.setToken(resp);
-            
-            if (pendingCalendarBook && google.accounts.oauth2.hasGrantedAllScopes(resp, CAL_SCOPE)) {
-                await addToCalendar(pendingCalendarBook, true);
-                pendingCalendarBook = null;
-            } else {
-                setSyncStatus("working");
-                await doSync();
-            }
+            setSyncStatus("working");
+            await doSync();
         }
     });
     gisInited = true; maybeEnableAuth();
@@ -169,10 +158,7 @@ function maybeEnableAuth() {
         const btn = $("auth-btn");
         if(btn) {
             btn.disabled = false;
-            // If we have a token, we consider it synced/idle, otherwise reset to sign in
-            if(!gapi.client.getToken()) {
-                setSyncStatus("idle");
-            }
+            if(!isSyncing) btn.textContent = t("signIn");
         }
     }
 }
@@ -209,22 +195,17 @@ function debounce(fn, ms = 300) {
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
 
-// Global State Handler
 function setSyncStatus(state) {
-    appStatus = state; // Store state globally
-    
+    appStatus = state; 
     const dot = $("sync-dot");
     const btn = $("auth-btn");
     
-    // Update Dot
     if (dot) {
         if (state === "working") dot.style.background = "#f1c40f"; 
         else if (state === "synced") dot.style.background = "#2ecc71"; 
         else if (state === "error") dot.style.background = "#e74c3c"; 
         else dot.style.background = "#bbb"; 
     }
-
-    // Update Button Text immediately (Language agnostic keys)
     if (btn) {
         if (state === "working") btn.textContent = t("working");
         else if (state === "synced") btn.textContent = t("synced");
@@ -462,6 +443,7 @@ function renderBooks() {
         actions.appendChild(delBtn);
 
         if(currentShelf === 'loans' && b.returnDate) {
+            // Updated to use the MAGIC LINK function
             const calBtn = document.createElement("button"); calBtn.className = "btn-cal"; calBtn.textContent = t("reminder");
             calBtn.onclick = () => addToCalendar(b);
             actions.appendChild(calBtn);
@@ -602,8 +584,7 @@ async function doSync() {
         } else { await queueUpload(); }
         setSyncStatus("synced");
     } catch (e) {
-        logError("Sync Error", e); 
-        setSyncStatus("error");
+        logError("Sync Error", e); setSyncStatus("error");
         if (getErrCode(e) === 404) {
             spreadsheetId = null; localStorage.removeItem("sheetId"); updateSheetLink(); 
             setSyncStatus("idle");
@@ -648,35 +629,20 @@ async function uploadData() {
     }
 }
 
-// === UPGRADED CALENDAR FUNCTION ===
-async function addToCalendar(book, skipCheck = false) {
-    if (!gapi?.client?.getToken?.()) return alert(t("signIn") + " first");
-
-    const token = gapi.client.getToken();
-    const hasCalAccess = google.accounts.oauth2.hasGrantedAllScopes(token, CAL_SCOPE);
-
-    if (!hasCalAccess && !skipCheck) {
-        if (!confirm(t("calPermit"))) return;
-        pendingCalendarBook = book; 
-        tokenClient.requestAccessToken({ prompt: '', scope: SHEETS_SCOPE + " " + CAL_SCOPE });
-        return; 
-    }
-
-    const dateObj = new Date(book.returnDate); 
-    dateObj.setDate(dateObj.getDate() - 1);
-    const reminderDate = dateObj.toISOString().split('T')[0];
+// === NEW "MAGIC LINK" CALENDAR FUNCTION (No API, No Permissions) ===
+function addToCalendar(book) {
+    // 1. Format Date (YYYYMMDD)
+    if (!book.returnDate) return alert("No date set");
+    const cleanDate = book.returnDate.replace(/-/g, ""); // e.g. 20260124
     
-    try {
-        await gapi.client.calendar.events.insert({
-            'calendarId': 'primary',
-            'resource': {
-                'summary': `Return: ${book.title}`, 'description': `Book by ${getAuthorName(book)}.`,
-                'start': { 'date': reminderDate }, 'end': { 'date': reminderDate },
-                'reminders': { 'useDefault': false, 'overrides': [ {'method': 'popup', 'minutes': 9 * 60} ] }
-            }
-        });
-        alert(t("reminder") + " ✅");
-    } catch (e) { logError("Calendar", e); alert("Calendar Error"); }
+    // 2. Build URL
+    const title = encodeURIComponent("Return: " + book.title);
+    const details = encodeURIComponent("Book by " + getAuthorName(book) + "\n\n(Added via My BookShelf App)");
+    // dates=START/END (Using same date makes it an All Day event)
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${cleanDate}/${cleanDate}`;
+    
+    // 3. Open in new tab
+    window.open(url, '_blank');
 }
 
 function showModal(book, scannedIsbn = "") {
