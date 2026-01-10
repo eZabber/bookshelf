@@ -3,11 +3,7 @@
 // =======================
 const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
 const SHEETS_SCOPE = "https://www.googleapis.com/auth/drive.file";
-// CAL_SCOPE REMOVED - No longer needed!
-
-const DISCOVERY = [ 
-    "https://sheets.googleapis.com/$discovery/rest?version=v4"
-];
+const DISCOVERY = [ "https://sheets.googleapis.com/$discovery/rest?version=v4" ];
 const SHEET_NAME = "Sheet1";
 const HEADER_RANGE = `${SHEET_NAME}!A1:J1`;
 const DATA_RANGE = `${SHEET_NAME}!A2:J999`;
@@ -19,7 +15,7 @@ const TRANSLATIONS = {
         settings: "Settings & Filters", shelves: "Shelves", display: "Display",
         filter: "Filter Books", year: "Year", month: "Month", rating: "Rating",
         clear: "Clear Filters", reset: "Reset App Data",
-        data: "Data & Backup", export: "Download Backup (JSON)",
+        data: "Data & Backup", export: "Download Backup (JSON)", import: "Restore Backup",
         dark: "Dark Mode", lang: "Language",
         search: "Search ISBN, Title, Author...", add: "Add",
         signIn: "Sign In", working: "...", synced: "Synced", 
@@ -27,14 +23,15 @@ const TRANSLATIONS = {
         markRead: "Mark Read", unread: "↩︎ Unread", delete: "Delete?",
         finished: "Finished:", due: "Due:", audio: "🎧 Audio", reminder: "📅 Add to G-Cal",
         modalAudio: "🎧 Audio?", modalReturn: "📅 Return", cancel: "Cancel",
-        changeDate: "📅 Change Date", copyTitle: "📋 Copy Title"
+        changeDate: "📅 Change Date", copyTitle: "📋 Copy Title",
+        importSuccess: "Backup restored successfully! ✅"
     },
     fi: {
         read: "Luetut", wishlist: "Toivelista", loans: "Lainassa",
         settings: "Asetukset", shelves: "Hyllyt", display: "Näkymä",
         filter: "Suodata", year: "Vuosi", month: "Kuukausi", rating: "Arvosana",
         clear: "Tyhjennä", reset: "Nollaa tiedot",
-        data: "Tiedot & Varmuuskopio", export: "Lataa varmuuskopio (JSON)",
+        data: "Tiedot & Varmuuskopio", export: "Lataa varmuuskopio (JSON)", import: "Palauta varmuuskopio",
         dark: "Tumma tila", lang: "Kieli",
         search: "Etsi ISBN, Nimi, Kirjailija...", add: "Lisää",
         signIn: "Kirjaudu", working: "...", synced: "Synkattu", 
@@ -42,14 +39,15 @@ const TRANSLATIONS = {
         markRead: "Merkitse luetuksi", unread: "↩︎ Lukematon", delete: "Poista?",
         finished: "Luettu:", due: "Eräpäivä:", audio: "🎧 Ääni", reminder: "📅 Lisää kalenteriin",
         modalAudio: "🎧 Äänikirja?", modalReturn: "📅 Palautus", cancel: "Peruuta",
-        changeDate: "📅 Muuta päivää", copyTitle: "📋 Kopioi nimi"
+        changeDate: "📅 Muuta päivää", copyTitle: "📋 Kopioi nimi",
+        importSuccess: "Varmuuskopio palautettu! ✅"
     },
     et: {
         read: "Loetud", wishlist: "Soovinimekiri", loans: "Laenatud",
         settings: "Sätted", shelves: "Riiulid", display: "Kuva",
         filter: "Filtreeri", year: "Aasta", month: "Kuu", rating: "Hinne",
         clear: "Tühjenda", reset: "Lähtesta andmed",
-        data: "Andmed ja varukoopia", export: "Lae alla varukoopia (JSON)",
+        data: "Andmed ja varukoopia", export: "Lae alla varukoopia (JSON)", import: "Taasta varukoopia",
         dark: "Tume režiim", lang: "Keel",
         search: "Otsi ISBN, Pealkiri, Autor...", add: "Lisa",
         signIn: "Logi sisse", working: "...", synced: "Sünkroonitud", 
@@ -57,7 +55,8 @@ const TRANSLATIONS = {
         markRead: "Märgi loetuks", unread: "↩︎ Lugemata", delete: "Kustuta?",
         finished: "Loetud:", due: "Tähtaeg:", audio: "🎧 Audio", reminder: "📅 Lisa kalendrisse",
         modalAudio: "🎧 Audioraamat?", modalReturn: "📅 Tagastus", cancel: "Loobu",
-        changeDate: "📅 Muuda kuupäeva", copyTitle: "📋 Kopeeri pealkiri"
+        changeDate: "📅 Muuda kuupäeva", copyTitle: "📋 Kopeeri pealkiri",
+        importSuccess: "Varukoopia taastatud! ✅"
     }
 };
 
@@ -110,6 +109,7 @@ function setLanguage(lang) {
     setText("btn-clear-filters", t("clear"));
     setText("reset-btn", t("reset"));
     setText("btn-export", t("export")); 
+    setText("btn-import", t("import")); // NEW
     
     setText("btn-add", t("add"));
     if($("isbn-input")) $("isbn-input").placeholder = t("search");
@@ -247,6 +247,7 @@ function saveLibrary(shouldSync, skipRender = false) {
     if (shouldSync && gapi?.client?.getToken?.()) queueUpload();
 }
 
+// --- DATA FUNCTIONS ---
 function exportData() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library, null, 2));
     const downloadAnchorNode = document.createElement('a');
@@ -255,6 +256,41 @@ function exportData() {
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
+}
+
+function triggerImport() {
+    $('import-file').click(); // Opens the hidden file picker
+}
+
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const imported = JSON.parse(e.target.result);
+            if (!imported.read && !imported.wishlist && !imported.loans) {
+                alert("Invalid file format");
+                return;
+            }
+            if(confirm("Replace current data with backup?")) {
+                library = {
+                    read: Array.isArray(imported.read) ? imported.read : [],
+                    wishlist: Array.isArray(imported.wishlist) ? imported.wishlist : [],
+                    loans: Array.isArray(imported.loans) ? imported.loans : []
+                };
+                saveLibrary(true); // Save and Sync if logged in
+                alert(t("importSuccess"));
+                closeMenu();
+            }
+        } catch (err) {
+            alert("Error parsing JSON file");
+        }
+        // Reset input so same file can be selected again if needed
+        event.target.value = ''; 
+    };
+    reader.readAsText(file);
 }
 
 function openMenu() { 
@@ -443,7 +479,6 @@ function renderBooks() {
         actions.appendChild(delBtn);
 
         if(currentShelf === 'loans' && b.returnDate) {
-            // Updated to use the MAGIC LINK function
             const calBtn = document.createElement("button"); calBtn.className = "btn-cal"; calBtn.textContent = t("reminder");
             calBtn.onclick = () => addToCalendar(b);
             actions.appendChild(calBtn);
@@ -453,195 +488,12 @@ function renderBooks() {
     updateShelfCounts();
 }
 
-function setActiveTab(shelf) {
-    currentShelf = shelf;
-    ["read", "wishlist", "loans"].forEach(s => {
-        const el = $(`tab-${s}`);
-        if(el) el.classList.toggle("active", s === shelf);
-    });
-    closeMenu();
-    renderBooks();
-}
-function closeModal() { 
-    if($("modal-overlay")) $("modal-overlay").style.display = "none"; 
-    if($("loan-date-row")) $("loan-date-row").style.display = "none";
-    pendingBook = null; scanLocked = false; 
-}
-function hardReset() {
-    if (!confirm("Reset?")) return;
-    localStorage.clear();
-    location.reload();
-}
-
-// =======================
-// ACTION FUNCTIONS
-// =======================
-function confirmAdd(targetShelf) {
-    if (!pendingBook) return;
-    const key = normKey(pendingBook);
-    const exists = library[targetShelf].some(b => normKey(b) === key);
-    if (exists && !confirm("Duplicate?")) { closeModal(); return; }
-
-    let retDate = "";
-    if (targetShelf === 'loans') {
-        const row = $("loan-date-row");
-        const input = $("modal-return-date");
-        if (row.style.display === "none") {
-            row.style.display = "flex";
-            const d = new Date(); d.setDate(d.getDate() + 14);
-            input.value = d.toISOString().split('T')[0];
-            return; 
-        } 
-        retDate = input.value;
-        if(!retDate) return alert("Date?");
-    }
-
-    const newBook = {
-        id: makeId(),
-        title: pendingBook.title || "Unknown",
-        authors: pendingBook.authors || [{name:"Unknown"}],
-        rating: 0,
-        cover: safeUrl(pendingBook.cover) || null,
-        dateRead: targetShelf === 'read' ? todayISO() : "",
-        returnDate: retDate,
-        isAudio: $("modal-audio-check") ? $("modal-audio-check").checked : false,
-        isbn: pendingBook.isbn || ""
-    };
-
-    library[targetShelf].push(newBook);
-    closeModal();
-    setActiveTab(targetShelf);
-    if(targetShelf === 'loans' && retDate) addToCalendar(newBook);
-    saveLibrary(true, true); 
-}
-
-function moveToRead(id) {
-    let fromShelf = library.wishlist.find(b => b.id === id) ? 'wishlist' : 'loans';
-    const idx = library[fromShelf].findIndex(b => b.id === id);
-    if (idx === -1) return;
-    const book = library[fromShelf][idx];
-    library[fromShelf].splice(idx, 1);
-    book.dateRead = todayISO(); book.returnDate = ""; book.rating = 0;
-    library.read.push(book);
-    setActiveTab('read'); saveLibrary(true, true);
-}
-function moveToWishlist(id) {
-    const idx = library.read.findIndex(b => b.id === id);
-    if (idx === -1) return;
-    const book = library.read[idx];
-    library.read.splice(idx, 1);
-    book.dateRead = ""; book.rating = 0; 
-    library.wishlist.push(book);
-    setActiveTab('wishlist'); saveLibrary(true, true);
-}
-function deleteBook(id) {
-    if (!confirm(t("delete"))) return;
-    library[currentShelf] = library[currentShelf].filter(b => b.id !== id);
-    saveLibrary(true);
-}
-function updateRating(id, val) {
-    const book = library.read.find(b => b.id === id);
-    if (book) { book.rating = Number(val); saveLibrary(true); }
-}
-function updateReadDate(id, newDate) {
-    const book = library.read.find(b => b.id === id);
-    if (book) { book.dateRead = newDate; saveLibrary(true); }
-}
-
-async function ensureSheet() {
-    if (spreadsheetId) return;
-    const btn = $("auth-btn");
-    setSyncStatus("working");
-    const createResp = await gapi.client.sheets.spreadsheets.create({ properties: { title: "My Book App Data" } });
-    spreadsheetId = createResp.result.spreadsheetId;
-    localStorage.setItem("sheetId", spreadsheetId);
-    updateSheetLink();
-    await gapi.client.sheets.spreadsheets.values.update({
-        spreadsheetId, range: HEADER_RANGE, valueInputOption: "RAW", resource: { values: [HEADER] }
-    });
-}
-async function doSync() {
-    setSyncStatus("working");
-    try {
-        await ensureSheet();
-        updateSheetLink();
-        const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range: DATA_RANGE });
-        const rows = resp.result.values || [];
-        if (rows.length > 0) {
-            const newLib = { read: [], wishlist: [], loans: [] };
-            rows.forEach(row => {
-                if (!row?.[0]) return;
-                let shelf = (row[3] || "read").toLowerCase();
-                if(!['read','wishlist','loans'].includes(shelf)) shelf = 'read';
-                newLib[shelf].push({
-                    id: String(row[0]), title: row[1] || "Unknown", authors: [{ name: row[2] || "Unknown" }], shelf: shelf,
-                    rating: Number(row[4] || 0), cover: row[5] === "null" ? null : (row[5] || null),
-                    dateRead: row[6] || "", returnDate: row[7] || "",
-                    isAudio: String(row[8]).toUpperCase() === "TRUE", isbn: row[9] || ""
-                });
-            });
-            library = newLib; saveLibrary(false);
-        } else { await queueUpload(); }
-        setSyncStatus("synced");
-    } catch (e) {
-        logError("Sync Error", e); setSyncStatus("error");
-        if (getErrCode(e) === 404) {
-            spreadsheetId = null; localStorage.removeItem("sheetId"); updateSheetLink(); 
-            setSyncStatus("idle");
-            alert("Sheet deleted.");
-        }
-    }
-}
-async function queueUpload() {
-    if (isSyncing) { syncPending = true; return; }
-    isSyncing = true; setSyncStatus("working");
-    try {
-        try { await uploadData(); }
-        catch (err) { if (err.status === 429 || err.status >= 500) { await sleep(2000); await uploadData(); } else throw err; }
-        setSyncStatus("synced");
-    } catch (e) {
-        logError("Upload Error", e); setSyncStatus("error");
-        if ([401, 403].includes(getErrCode(e))) {
-            gapi.client.setToken(null); alert("Session expired.");
-            setSyncStatus("idle");
-        }
-    } finally {
-        isSyncing = false; if (syncPending) { syncPending = false; setTimeout(queueUpload, 0); }
-    }
-}
-async function uploadData() {
-    if (!spreadsheetId) return;
-    let rows = [];
-    ['read', 'wishlist', 'loans'].forEach(shelf => {
-        library[shelf].forEach(b => {
-            rows.push([
-                b.id, b.title, getAuthorName(b), shelf, Number(b.rating||0),
-                b.cover ? String(b.cover) : "null", b.dateRead || "", b.returnDate || "",
-                b.isAudio ? "TRUE" : "FALSE", b.isbn || ""
-            ]);
-        });
-    });
-    await gapi.client.sheets.spreadsheets.values.clear({ spreadsheetId, range: DATA_RANGE });
-    if (rows.length > 0) {
-        await gapi.client.sheets.spreadsheets.values.update({
-            spreadsheetId, range: `${SHEET_NAME}!A2`, valueInputOption: "RAW", resource: { values: rows }
-        });
-    }
-}
-
-// === NEW "MAGIC LINK" CALENDAR FUNCTION (No API, No Permissions) ===
 function addToCalendar(book) {
-    // 1. Format Date (YYYYMMDD)
     if (!book.returnDate) return alert("No date set");
-    const cleanDate = book.returnDate.replace(/-/g, ""); // e.g. 20260124
-    
-    // 2. Build URL
+    const cleanDate = book.returnDate.replace(/-/g, ""); 
     const title = encodeURIComponent("Return: " + book.title);
     const details = encodeURIComponent("Book by " + getAuthorName(book) + "\n\n(Added via My BookShelf App)");
-    // dates=START/END (Using same date makes it an All Day event)
     const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${cleanDate}/${cleanDate}`;
-    
-    // 3. Open in new tab
     window.open(url, '_blank');
 }
 
@@ -744,8 +596,11 @@ window.addEventListener("DOMContentLoaded", () => {
         if($("auth-btn")) { $("auth-btn").onclick = () => { if(!tokenClient) return alert("Loading..."); tokenClient.requestAccessToken({ prompt: "consent" }); }; }
         
         if($("reset-btn")) $("reset-btn").onclick = hardReset;
-        // NEW EXPORT BTN
+        
+        // NEW EXPORT/IMPORT LISTENERS
         if($("btn-export")) $("btn-export").onclick = exportData;
+        if($("btn-import")) $("btn-import").onclick = triggerImport;
+        if($("import-file")) $("import-file").onchange = importData;
         
         const tabsContainer = document.querySelector(".tabs");
         if(tabsContainer) { tabsContainer.addEventListener("click", (e) => { const tab = e.target.closest(".tab"); if (!tab) return; const shelf = tab.id.replace("tab-", ""); setActiveTab(shelf); }); }
