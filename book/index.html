@@ -39,21 +39,21 @@
     </div>
 
     <div class="menu-section">
-        <label class="menu-title" id="menu-data">Data & Backup</label>
+        <label class="menu-title" id="menu-integrations">Integrations</label>
         
-        <button id="btn-export" class="btn-sm" style="width:100%; margin-bottom: 10px; border: 1px solid var(--accent); color: var(--accent); font-weight:600;">
-            Download Backup (JSON)
-        </button>
-        
-        <input type="file" id="import-file" style="display:none;" accept=".json">
-        <button id="btn-import" class="btn-sm" style="width:100%; margin-bottom: 10px; border: 1px solid var(--primary); color: var(--primary);">
-            Restore Backup
-        </button>
+        <div style="margin-bottom:10px;">
+            <a id="sheet-link" target="_blank" href="#" style="display:none; color:var(--accent); font-size:0.85rem; text-decoration:none;">↗️ Google Sheet</a>
+        </div>
 
-        <button id="reset-btn" class="btn-sm btn-del" style="width:100%;">Reset App Data</button>
-        
-        <div style="margin-top:10px; text-align:center;">
-            <a id="sheet-link" target="_blank" href="#" style="display:none; color:var(--meta); font-size:0.8rem; text-decoration:none; border-bottom:1px dotted var(--meta);">↗️ Open Google Sheet</a>
+        <div class="menu-row">
+            <span id="label-cal-conn">Connect Calendar</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="cal-connect-toggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div style="font-size:0.7rem; color:var(--meta); line-height:1.2; margin-top:-5px;" id="cal-desc">
+            Enable for background syncing. Disable for web link.
         </div>
     </div>
     
@@ -119,6 +119,21 @@
         <div class="menu-actions">
             <button class="btn-sm" id="btn-clear-filters" style="width:100%;">Clear Filters</button>
         </div>
+    </div>
+
+    <div class="menu-section" style="border-bottom: none; margin-top: auto;">
+        <label class="menu-title" id="menu-data">Data & Backup</label>
+        
+        <button id="btn-export" class="btn-sm" style="width:100%; margin-bottom: 10px; border: 1px solid var(--accent); color: var(--accent); font-weight:600;">
+            Download Backup (JSON)
+        </button>
+        
+        <input type="file" id="import-file" style="display:none;" accept=".json">
+        <button id="btn-import" class="btn-sm" style="width:100%; margin-bottom: 20px; border: 1px solid var(--primary); color: var(--primary);">
+            Restore Backup
+        </button>
+
+        <button id="reset-btn" class="btn-sm btn-del" style="width:100%;">Reset App Data</button>
     </div>
   </div>
 
