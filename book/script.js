@@ -3,15 +3,16 @@
 // =======================
 const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
 
-// CHANGED: Use specific Spreadsheets scope (not full Drive)
+// KÄYTETÄÄN TARKKOJA SCOPEJA
 const SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets"; 
 const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 
+// POISTETTU TURHA DRIVE API
 const DISCOVERY = [ 
     "https://sheets.googleapis.com/$discovery/rest?version=v4", 
-    "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
     "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest" 
 ];
+
 const SPREADSHEET_TITLE = "My Book App Data";
 const HEADER_RANGE = `Sheet1!A1:J1`;
 const WRITE_RANGE = `Sheet1!A2`;
@@ -131,7 +132,7 @@ function debounce(fn, ms = 300) {
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
 
-// Scope Helpers
+// Scope Helpers (Fixed Logic)
 function hasScope(scope) {
     const s = (localStorage.getItem("granted_scopes") || "").trim();
     return s.split(/\s+/).includes(scope);
@@ -286,7 +287,7 @@ async function ensureSheet() {
     try {
         const createResp = await gapi.client.sheets.spreadsheets.create({ 
             properties: { title: SPREADSHEET_TITLE },
-            sheets: [{ properties: { title: "Sheet1" } }] // Force TAB name to Sheet1
+            sheets: [{ properties: { title: "Sheet1" } }]
         });
         spreadsheetId = createResp.result.spreadsheetId;
         await gapi.client.sheets.spreadsheets.values.update({
@@ -479,7 +480,7 @@ async function handleManualAdd() {
 }
 
 // =======================
-// 7. UI ACTIONS (FILTERS, RENDER, MODAL)
+// 7. UI ACTIONS
 // =======================
 function setLanguage(lang) {
     currentLang = lang;
@@ -570,14 +571,22 @@ function renderBooks() {
 
     if (term || filterState.year || filterState.month || filterState.rating) {
         visibleItems = allItems.filter(b => {
+            // SAFE ACCESS to properties
+            const titleLc = (b.title || "").toLowerCase();
+            const authorLc = (getAuthorName(b) || "").toLowerCase();
+            const isbnLc = (b.isbn || "").replace(/[\s-]/g, "").toLowerCase();
+
             const matchText = !term || 
-                b.title.toLowerCase().includes(term) || 
-                getAuthorName(b).toLowerCase().includes(term) ||
-                (b.isbn && b.isbn.replace(/[\s-]/g, "").toLowerCase().includes(cleanTerm));
+                titleLc.includes(term) || 
+                authorLc.includes(term) ||
+                isbnLc.includes(cleanTerm);
+            
             let dateStr = currentShelf === 'read' ? b.dateRead : (currentShelf === 'loans' ? b.returnDate : "");
             const matchYear = !filterState.year || (dateStr && dateStr.startsWith(filterState.year));
             const matchMonth = !filterState.month || (dateStr && dateStr.substring(5,7) === filterState.month);
+            // SAFE CAST to Number for rating
             const matchRating = !filterState.rating || (Number(b.rating) === Number(filterState.rating));
+            
             return matchText && matchYear && matchMonth && matchRating;
         });
     }
@@ -674,9 +683,9 @@ function renderBooks() {
         const actions = document.createElement("div"); actions.className = "actions";
         if (currentShelf === 'read') {
             const sel = document.createElement("select"); sel.className = "rating";
-            // FIXED: CAST TO NUMBER FOR CORRECT SELECTION
-            const currentRating = Number(b.rating || 0);
-            sel.innerHTML = `<option value="0">...</option>` + [1,2,3,4,5].map(n => `<option value="${n}" ${currentRating===n?'selected':''}>${'⭐'.repeat(n)}</option>`).join('');
+            // FIXED: CAST TO NUMBER
+            const br = Number(b.rating || 0);
+            sel.innerHTML = `<option value="0">...</option>` + [1,2,3,4,5].map(n => `<option value="${n}" ${br===n?'selected':''}>${'⭐'.repeat(n)}</option>`).join('');
             sel.onchange = (e) => updateRating(b.id, e.target.value);
             info.appendChild(sel);
             const unreadBtn = document.createElement("button"); unreadBtn.className = "btn-sm btn-unread"; unreadBtn.textContent = t("unread");
@@ -731,8 +740,8 @@ function confirmAdd(targetShelf) {
     if (targetShelf === 'loans') {
         const row = $("loan-date-row");
         const input = $("modal-return-date");
-        // FIXED: SAFETY CHECK
-        if (!row || !input) return alert("Error: Missing loan fields.");
+        // FIXED: Safety check to prevent crashes
+        if (!row || !input) return alert("UI Error: Missing date fields.");
         
         if (row.style.display === "none") {
             row.style.display = "flex";
@@ -806,9 +815,13 @@ function processCalendar(book) {
     
     if (isConnected) {
         if (!gapi?.client?.getToken?.()) return alert("Please Sign In first.");
+        
+        // Use logic scope check
         if (!hasScope(CAL_SCOPE)) {
             pendingCalendarBook = book;
-            tokenClient.requestAccessToken({ prompt: '', scope: SHEETS_SCOPE + " " + CAL_SCOPE });
+            // FIXED: Add scope to memory immediately to prevent loop
+            addGrantedScopes(`${SHEETS_SCOPE} ${CAL_SCOPE}`);
+            tokenClient.requestAccessToken({ prompt: '', scope: `${SHEETS_SCOPE} ${CAL_SCOPE}` });
         } else {
             apiAddCalendar(book);
         }
@@ -860,8 +873,6 @@ async function stopCamera() {
     if($("reader-container")) $("reader-container").style.display = "none";
     if(html5QrCode) { try{await html5QrCode.stop();}catch{}; try{html5QrCode.clear();}catch{}; html5QrCode=null; }
 }
-
-function triggerImport() { $('import-file').click(); }
 
 // =======================
 // 8. INITIALIZATION (SAFE)
