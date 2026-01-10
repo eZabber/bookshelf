@@ -1,13 +1,12 @@
 /* =========================================================
-   MY BOOKSHELF APP — FINAL PRODUCTION
-   - Drive-file scope (Privacy first)
-   - Manual Cloud Sync (Save/Load via Picker)
-   - Clear "Logged In" status
+   MY BOOKSHELF APP — FINAL UI FIXES
+   - Fixed empty buttons bug
+   - Added "Local" and "Google Drive" subheaders
    ========================================================= */
 
 const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
-// ADD YOUR API KEY HERE (Required for Picker)
-const DEVELOPER_KEY = ""; 
+// LISÄÄ TÄHÄN API KEY (Tarvitaan Pickerille)
+const DEVELOPER_KEY = "AIzaSyBMoW1-MFE84Ec5yDWynAYIHqkLzmz6beM"; 
 
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
@@ -33,28 +32,26 @@ const TRANSLATIONS = {
     clear: "Clear Filters", reset: "Reset App Data",
     integrations: "Integrations", calConn: "Connect Calendar", calDesc: "Enable for background syncing.",
     data: "Data & Backup", 
-    export: "Export to File (JSON)", import: "Import from File",
     
-    // UI
-    cloudSection: "Cloud Sync (Google Drive)",
+    // HEADERS
+    headerDrive: "Google Drive",
+    headerLocal: "Local Device",
+
+    export: "Export JSON", import: "Import JSON",
+    
     btnSaveCloud: "Save ☁️",
     btnLoadCloud: "Load 📂",
     
     dark: "Dark Mode", lang: "Language",
     search: "Search ISBN, Title, Author...", add: "Add",
-    
-    // AUTH STATUS
-    signIn: "Sign In", 
-    working: "...", 
-    synced: "Logged In", // Changed from "Synced"
-    
+    signIn: "Sign In", working: "...", synced: "Logged In",
     markRead: "Mark Read", unread: "↩︎ Unread", delete: "Delete?",
     finished: "Finished:", due: "Due:", audio: "🎧 Audio", reminder: "📅 Reminder",
     modalAudio: "🎧 Audio?", modalReturn: "📅 Return", cancel: "Cancel",
     changeDate: "📅 Change Date", copyTitle: "📋 Copy Title",
     importSuccess: "Success! ✅",
-    cloudSaved: "Saved to Drive! ✅",
-    cloudLoaded: "Loaded from Drive! ✅",
+    cloudSaved: "Saved! ✅",
+    cloudLoaded: "Loaded! ✅",
     calAdded: "Event added! 📅",
     filterStats: "Showing {0} of {1} books",
     clearBtn: "Clear",
@@ -63,7 +60,7 @@ const TRANSLATIONS = {
     dateRequired: "Date?",
     pickerTitle: "Select your Book Data Sheet",
     signInRequired: "Please Sign In first.",
-    confirmLoad: "This will overwrite your local library with data from Drive. Continue?"
+    confirmLoad: "Overwrite local data with data from Drive?"
   },
   fi: {
     read: "Luetut", wishlist: "Toivelista", loans: "Lainassa",
@@ -73,25 +70,24 @@ const TRANSLATIONS = {
     integrations: "Integraatiot", calConn: "Yhdistä kalenteri", calDesc: "Käytä taustasynkronointia.",
     data: "Tiedot & Varmuuskopio", 
     
-    cloudSection: "Pilvitallennus (Drive)",
+    headerDrive: "Google Drive",
+    headerLocal: "Paikallinen (Laite)",
+
+    export: "Lataa JSON", import: "Palauta JSON",
+    
     btnSaveCloud: "Tallenna ☁️",
     btnLoadCloud: "Lataa 📂",
     
     dark: "Tumma tila", lang: "Kieli",
     search: "Etsi ISBN, Nimi, Kirjailija...", add: "Lisää",
-    
-    // AUTH STATUS
-    signIn: "Kirjaudu", 
-    working: "...", 
-    synced: "Kirjautunut", // Changed from "Synkattu"
-    
+    signIn: "Kirjaudu", working: "...", synced: "Kirjautunut",
     markRead: "Merkitse luetuksi", unread: "↩︎ Lukematon", delete: "Poista?",
     finished: "Luettu:", due: "Eräpäivä:", audio: "🎧 Ääni", reminder: "📅 Muistutus",
     modalAudio: "🎧 Äänikirja?", modalReturn: "📅 Palautus", cancel: "Peruuta",
     changeDate: "📅 Muuta päivää", copyTitle: "📋 Kopioi nimi",
     importSuccess: "Onnistui! ✅",
-    cloudSaved: "Tallennettu Driveen! ✅",
-    cloudLoaded: "Ladattu Drivestä! ✅",
+    cloudSaved: "Tallennettu! ✅",
+    cloudLoaded: "Ladattu! ✅",
     calAdded: "Tapahtuma lisätty! 📅",
     filterStats: "Näytetään {0} / {1} kirjaa",
     clearBtn: "Tyhjennä",
@@ -100,7 +96,7 @@ const TRANSLATIONS = {
     dateRequired: "Päivämäärä?",
     pickerTitle: "Valitse kirjataulukkosi",
     signInRequired: "Kirjaudu ensin.",
-    confirmLoad: "Tämä korvaa paikalliset kirjat Drivestä ladatuilla tiedoilla. Jatketaanko?"
+    confirmLoad: "Korvataanko paikalliset tiedot Drivestä ladatuilla?"
   },
   et: {
     read: "Loetud", wishlist: "Soovinimekiri", loans: "Laenatud",
@@ -110,25 +106,24 @@ const TRANSLATIONS = {
     integrations: "Integratsioonid", calConn: "Ühenda kalender", calDesc: "Luba taustal sünkroonimine.",
     data: "Andmed ja varukoopia", 
     
-    cloudSection: "Pilvesalvestus (Drive)",
+    headerDrive: "Google Drive",
+    headerLocal: "Kohalik seade",
+
+    export: "Lae alla JSON", import: "Taasta JSON",
+    
     btnSaveCloud: "Salvesta ☁️",
     btnLoadCloud: "Lae 📂",
 
     dark: "Tume režiim", lang: "Keel",
     search: "Otsi ISBN, Pealkiri, Autor...", add: "Lisa",
-    
-    // AUTH STATUS
-    signIn: "Logi sisse", 
-    working: "...", 
-    synced: "Sisse logitud", // Changed from "Sünkroonitud"
-    
+    signIn: "Logi sisse", working: "...", synced: "Sisse logitud",
     markRead: "Märgi loetuks", unread: "↩︎ Lugemata", delete: "Kustuta?",
     finished: "Loetud:", due: "Tähtaeg:", audio: "🎧 Audio", reminder: "📅 Meeldetuletus",
     modalAudio: "🎧 Audioraamat?", modalReturn: "📅 Tagastus", cancel: "Loobu",
     changeDate: "📅 Muuda kuupäeva", copyTitle: "📋 Kopeeri pealkiri",
     importSuccess: "Õnnestus! ✅",
-    cloudSaved: "Salvestatud Drive'i! ✅",
-    cloudLoaded: "Laetud Drive'ist! ✅",
+    cloudSaved: "Salvestatud! ✅",
+    cloudLoaded: "Laetud! ✅",
     calAdded: "Sündmus lisatud! 📅",
     filterStats: "Kuvatakse {0} / {1} raamatut",
     clearBtn: "Tühjenda",
@@ -137,7 +132,7 @@ const TRANSLATIONS = {
     dateRequired: "Kuupäev?",
     pickerTitle: "Vali oma raamatutabel",
     signInRequired: "Palun logi esmalt sisse.",
-    confirmLoad: "See kirjutab kohalikud andmed üle Drive'i andmetega. Jätka?"
+    confirmLoad: "Kirjutan kohalikud andmed üle? Jätka?"
   }
 };
 
@@ -202,7 +197,6 @@ function saveLibrary({ shouldSync = false, skipRender = false } = {}) {
   localStorage.setItem(LS.LIB, JSON.stringify(library));
   updateShelfCounts();
   if (!skipRender) renderBooks();
-  // We only Auto-Sync if ID exists and user has signed in
   if (shouldSync && spreadsheetId && gapi?.client?.getToken?.()) queueUpload();
 }
 function updateShelfCounts() { setText("count-read", library.read?.length || 0); setText("count-wishlist", library.wishlist?.length || 0); setText("count-loans", library.loans?.length || 0); }
@@ -223,10 +217,7 @@ function setSyncStatus(state) {
     if (state === "working") dot.style.background = "#f1c40f"; else if (state === "synced") dot.style.background = "#2ecc71"; else if (state === "error") dot.style.background = "#e74c3c"; else dot.style.background = "#bbb";
   }
   if (btn) {
-    if (state === "working") btn.textContent = t("working"); 
-    else if (state === "synced") btn.textContent = t("synced"); // Now displays "Logged In"
-    else if (state === "error") btn.textContent = t("error"); 
-    else btn.textContent = t("signIn");
+    if (state === "working") btn.textContent = t("working"); else if (state === "synced") btn.textContent = t("synced"); else if (state === "error") btn.textContent = t("error"); else btn.textContent = t("signIn");
   }
 }
 
@@ -234,15 +225,16 @@ function setLanguage(lang) {
   currentLang = lang; localStorage.setItem(LS.LANG, lang);
   const sel = $("language-select"); if (sel) sel.value = lang;
   
-  // Updates texts
   setText("tab-read", t("read")); setText("tab-wishlist", t("wishlist")); setText("tab-loans", t("loans"));
   setText("menu-lang", t("lang")); setText("menu-settings", t("settings")); setText("menu-shelves", t("shelves"));
   setText("menu-display", t("display")); setText("menu-filter", t("filter"));
   setText("menu-integrations", t("integrations")); setText("label-cal-conn", t("calConn")); setText("cal-desc", t("calDesc"));
   setText("menu-data", t("data")); 
   
-  // Update Buttons
-  setText("cloud-header", t("cloudSection"));
+  // Updates for New Headers and Buttons
+  setText("header-drive", t("headerDrive"));
+  setText("header-local", t("headerLocal"));
+  
   if($("btn-save-drive")) $("btn-save-drive").textContent = t("btnSaveCloud");
   if($("btn-load-drive")) $("btn-load-drive").textContent = t("btnLoadCloud");
   
@@ -256,7 +248,6 @@ function setLanguage(lang) {
   renderBooks();
 }
 
-// ---- FIXED FILTERING LOGIC ----
 function clearFilters() { 
     if ($("filter-text")) $("filter-text").value = ""; 
     if ($("filter-year")) $("filter-year").value = ""; 
@@ -284,7 +275,6 @@ function renderBooks() {
   const term = (filterState.text || "").toLowerCase(); 
   const cleanTerm = term.replace(/[\s-]/g, "");
 
-  // Robust Filtering
   if (term || filterState.year || filterState.month || filterState.rating) {
     visibleItems = allItems.filter((b) => {
       const titleLc = String(b.title || "").toLowerCase(); 
@@ -349,7 +339,7 @@ function renderBooks() {
       const dateDiv = document.createElement("div");
       const dateSpan = document.createElement("span"); dateSpan.id = `date-display-${b.id}`; dateSpan.textContent = `${t("finished")} ${b.dateRead}`;
       const dateInput = document.createElement("input"); dateInput.type = "date"; dateInput.id = `date-input-${b.id}`; dateInput.className = "date-edit-input";
-      dateInput.style.display = "none"; // Hide calendar
+      dateInput.style.display = "none";
       dateInput.value = String(b.dateRead || "");
       dateInput.onchange = (e) => updateReadDate(b.id, e.target.value);
       dateInput.onblur = () => setTimeout(() => { dateInput.style.display = "none"; dateSpan.style.display = "inline"; }, 200);
@@ -438,22 +428,15 @@ function hardReset() { if (!confirm("Reset?")) return; localStorage.clear(); loc
 function gapiLoaded() { gapi.load("client", async () => { try { await gapi.client.init({ discoveryDocs: DISCOVERY }); gapiInited = true; maybeEnableAuth(); } catch (e) { logError("GAPI Init Fail", e); } }); }
 function gisLoaded() {
   tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID, scope: DRIVE_SCOPE, // Just drive.file
+    client_id: CLIENT_ID, scope: DRIVE_SCOPE, 
     callback: async (resp) => {
       if (resp?.error) return logError("Auth Fail", resp);
-      accessToken = resp.access_token; // Store for Picker
+      accessToken = resp.access_token; 
       addGrantedScopes(resp.scope || "");
       gapi.client.setToken(resp);
+      if (pendingCalendarBook) { addGrantedScopes(`${DRIVE_SCOPE} ${CAL_SCOPE}`); if (hasScope(CAL_SCOPE)) { await apiAddCalendar(pendingCalendarBook); } pendingCalendarBook = null; return; }
       
-      // If we are pending calendar access
-      if (pendingCalendarBook) { 
-        addGrantedScopes(`${DRIVE_SCOPE} ${CAL_SCOPE}`); 
-        if (hasScope(CAL_SCOPE)) { await apiAddCalendar(pendingCalendarBook); } 
-        pendingCalendarBook = null; 
-        return; 
-      }
-      
-      // AUTO SYNC ONLY IF ID EXISTS (Manual mode otherwise)
+      // Update UI on login
       if (spreadsheetId) { setSyncStatus("working"); await doSync(); }
       else { setSyncStatus("idle"); }
     }
@@ -466,9 +449,6 @@ function requireSignedIn() { if (!gapi?.client?.getToken?.()) { alert(t("signInR
 /* =========================
    13) MANUAL CLOUD ACTIONS (SAVE / LOAD)
    ========================= */
-
-// BUTTON 1: "Save to Drive"
-// Logic: If ID exists -> Update it. If NO ID -> Create New & Update.
 async function handleCloudSave() {
   if (!requireSignedIn()) return;
   const btn = $("btn-save-drive");
@@ -478,7 +458,6 @@ async function handleCloudSave() {
   
   if (!spreadsheetId) {
     try {
-      // 1) CREATE FILE via Drive API
       const createResp = await gapi.client.drive.files.create({
         resource: { name: SPREADSHEET_TITLE, mimeType: "application/vnd.google-apps.spreadsheet" },
         fields: "id"
@@ -486,96 +465,65 @@ async function handleCloudSave() {
       spreadsheetId = createResp.result.id;
       localStorage.setItem(LS.SHEET_ID, spreadsheetId);
       updateSheetLink();
-      
-      // 2) INIT HEADER via Sheets API
       await gapi.client.sheets.spreadsheets.values.update({
           spreadsheetId, range: HEADER_RANGE, valueInputOption: "RAW", resource: { values: [HEADER] }
       });
     } catch (e) {
-      logError("Create Sheet Error", e);
-      setSyncStatus("error");
-      btn.textContent = origText;
-      return;
+      logError("Create Sheet Error", e); setSyncStatus("error"); btn.textContent = origText; return;
     }
   }
-  // Upload data
   await queueUpload();
   setSyncStatus("synced");
-  
-  // Feedback UI
   btn.textContent = t("cloudSaved");
   setTimeout(() => { btn.textContent = t("btnSaveCloud"); }, 2500);
 }
 
-// BUTTON 2: "Load from Drive" (via Picker)
 async function handleCloudLoad() {
   if (!requireSignedIn()) return;
   if (!confirm(t("confirmLoad"))) return;
-
   try {
     const fileId = await pickSpreadsheetId();
     if (!fileId) return;
-
     spreadsheetId = fileId;
     localStorage.setItem(LS.SHEET_ID, fileId);
     updateSheetLink();
-
     setSyncStatus("working");
-    await doSync(); // Downloads and overwrites local
+    await doSync(); 
     alert(t("cloudLoaded"));
-  } catch (e) {
-    if (e !== "Cancelled") console.error(e);
-  }
+  } catch (e) { if (e !== "Cancelled") console.error(e); }
 }
 
 /* =========================
-   14) PICKER LOGIC (Promisified & Safe)
+   14) PICKER LOGIC
    ========================= */
-function loadPicker() {
-  return new Promise((resolve) => gapi.load("picker", { callback: resolve }));
-}
-
+function loadPicker() { return new Promise((resolve) => gapi.load("picker", { callback: resolve })); }
 async function pickSpreadsheetId() {
   await loadPicker();
-  
-  // Get valid token from client state
   const tok = gapi?.client?.getToken?.();
   const token = tok?.access_token;
   if (!token) throw new Error("No access token");
-
   return new Promise((resolve, reject) => {
     let done = false;
     const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS).setIncludeFolders(false).setSelectFolderEnabled(false);
-    
     const picker = new google.picker.PickerBuilder()
       .addView(view)
       .setOAuthToken(token)
-      .setDeveloperKey(DEVELOPER_KEY) // Mandatory for many accounts
+      .setDeveloperKey(DEVELOPER_KEY) 
       .setTitle(t("pickerTitle"))
       .setCallback((data) => {
         if (done) return;
-        if (data.action === google.picker.Action.PICKED) {
-          done = true;
-          const id = data.docs?.[0]?.id;
-          picker.setVisible(false);
-          resolve(id);
-        } else if (data.action === google.picker.Action.CANCEL) {
-          done = true;
-          picker.setVisible(false);
-          reject("Cancelled");
-        }
+        if (data.action === google.picker.Action.PICKED) { done = true; picker.setVisible(false); resolve(data.docs?.[0]?.id); } 
+        else if (data.action === google.picker.Action.CANCEL) { done = true; picker.setVisible(false); reject("Cancelled"); }
       })
       .build();
-    
     picker.setVisible(true);
   });
 }
 
 /* =========================
-   15) SYNC LOGIC (INTERNAL)
+   15) SYNC LOGIC
    ========================= */
 async function doSync() {
-  // Download data from spreadsheetId and REPLACE local library
   try {
     const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range: DATA_RANGE });
     const rows = resp?.result?.values || [];
@@ -586,20 +534,16 @@ async function doSync() {
         let shelf = String(row[3] || "read").toLowerCase(); if (!["read", "wishlist", "loans"].includes(shelf)) shelf = "read";
         newLib[shelf].push({ id: String(row[0]), title: row[1] || "Unknown", authors: [{ name: row[2] || "Unknown" }], shelf, rating: Number(row[4] || 0), cover: row[5] === "null" ? null : (row[5] || null), dateRead: row[6] || "", returnDate: row[7] || "", isAudio: String(row[8]).toUpperCase() === "TRUE", isbn: row[9] || "" });
       });
-      library = newLib; 
-      saveLibrary({ shouldSync: false }); // Save locally, don't re-upload
+      library = newLib; saveLibrary({ shouldSync: false });
     }
     setSyncStatus("synced");
-  } catch (e) {
-    logError("Sync/Download Error", e);
-    setSyncStatus("error");
-  }
+  } catch (e) { logError("Sync", e); setSyncStatus("error"); }
 }
 
 async function queueUpload() {
   if (isSyncing) { syncPending = true; return; } isSyncing = true; setSyncStatus("working");
   try { await uploadData(); setSyncStatus("synced"); } catch (e) {
-    logError("Upload Error", e); setSyncStatus("error");
+    logError("Upload", e); setSyncStatus("error");
     if (getErrCode(e) === 401) { gapi.client.setToken(null); alert(t("sessionExpired")); setSyncStatus("idle"); }
   } finally { isSyncing = false; if (syncPending) { syncPending = false; setTimeout(queueUpload, 0); } }
 }
@@ -617,7 +561,7 @@ async function uploadData() {
 }
 
 /* =========================
-   16) CAMERA & SEARCH & EXPORT
+   16) CAMERA & EXPORT
    ========================= */
 function exportData() { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library, null, 2)); const a = document.createElement("a"); a.setAttribute("href", dataStr); a.setAttribute("download", "my_bookshelf_" + new Date().toISOString().split("T")[0] + ".json"); document.body.appendChild(a); a.click(); a.remove(); }
 function triggerImport() { $("import-file")?.click(); }
@@ -661,34 +605,38 @@ window.addEventListener("DOMContentLoaded", () => {
     const style = document.createElement("style");
     style.innerHTML = `
       #cloud-controls { margin-top:15px; padding-top:15px; border-top:1px solid var(--border-color, #ccc); }
-      #cloud-header { margin:0 0 8px 0; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; opacity:0.6; }
+      #cloud-header, #local-header { margin:0 0 8px 0; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; opacity:0.6; }
       .cloud-btn-row { display:flex; gap:10px; margin-bottom:10px; }
       .cloud-action-btn { flex:1; padding:10px; border:1px solid currentColor; background:none; border-radius:6px; cursor:pointer; font-size:0.9rem; display:flex; align-items:center; justify-content:center; gap:6px; opacity:0.8; transition:all 0.2s; color:inherit; }
       .cloud-action-btn:hover { opacity:1; background:rgba(128,128,128,0.1); }
     `;
     document.head.appendChild(style);
 
-    // Inject Cloud Buttons HTML
+    // Inject Buttons & Headers
     const exportBtn = $("btn-export");
     if(exportBtn && !$("cloud-controls")) {
-      const wrapper = document.createElement("div");
-      wrapper.id = "cloud-controls";
-      wrapper.innerHTML = `
-        <h4 id="cloud-header">Cloud Sync</h4>
+      // 1. Google Drive Section
+      const cloudDiv = document.createElement("div");
+      cloudDiv.id = "cloud-controls";
+      // IMPORTANT: Set initial English text to prevent "empty button" flash before setLanguage runs
+      cloudDiv.innerHTML = `
+        <h4 id="header-drive">Google Drive</h4>
         <div class="cloud-btn-row">
-            <button id="btn-save-drive" class="cloud-action-btn"></button>
-            <button id="btn-load-drive" class="cloud-action-btn"></button>
+            <button id="btn-save-drive" class="cloud-action-btn">Save ☁️</button>
+            <button id="btn-load-drive" class="cloud-action-btn">Load 📂</button>
         </div>
       `;
-      exportBtn.parentElement.insertBefore(wrapper, exportBtn);
+      exportBtn.parentElement.insertBefore(cloudDiv, exportBtn);
       
+      // 2. Local Section Header
+      const localHeader = document.createElement("h4");
+      localHeader.id = "header-local";
+      localHeader.textContent = "Local Device"; // Fallback text
+      localHeader.style.marginTop = "15px";
+      exportBtn.parentElement.insertBefore(localHeader, exportBtn);
+
       $("btn-save-drive").onclick = handleCloudSave;
       $("btn-load-drive").onclick = handleCloudLoad;
-      
-      // HIDE OLD JSON BUTTONS (Optional cleanup)
-      // exportBtn.style.display = "none";
-      // $("btn-import").style.display = "none";
-      // $("import-file").style.display = "none";
     }
 
     addClick("btn-clear-filters", clearFilters);
@@ -702,7 +650,6 @@ window.addEventListener("DOMContentLoaded", () => {
     
     const calToggle = $("cal-connect-toggle"); if(calToggle){ calToggle.checked=localStorage.getItem(LS.CAL_SYNC)==="true"; calToggle.onchange=(e)=>localStorage.setItem(LS.CAL_SYNC, e.target.checked); }
     
-    // FIXED DARK MODE LOGIC
     const darkToggle = $("dark-mode-toggle"); if(darkToggle){ 
        if(localStorage.getItem(LS.DARK)==="true") { document.body.classList.add("dark-mode"); darkToggle.checked=true; }
        darkToggle.onchange=(e)=>{ if(e.target.checked){document.body.classList.add("dark-mode"); localStorage.setItem(LS.DARK,"true");} else {document.body.classList.remove("dark-mode"); localStorage.setItem(LS.DARK,"false");} };
@@ -711,7 +658,10 @@ window.addEventListener("DOMContentLoaded", () => {
     document.querySelector(".tabs")?.addEventListener("click", (e)=>{ const t=e.target.closest(".tab"); if(t) setActiveTab(t.id.replace("tab-","")); });
     
     setText("year", new Date().getFullYear());
-    setSyncStatus("idle"); setLanguage(currentLang); updateShelfCounts(); updateSheetLink(); setSmartPlaceholder();
+    setSyncStatus("idle"); updateShelfCounts(); updateSheetLink(); setSmartPlaceholder();
+    // CALL LANGUAGE LAST TO UPDATE INJECTED BUTTONS
+    setLanguage(currentLang);
+    
     window.addEventListener("resize", setSmartPlaceholder); window.addEventListener("orientationchange", setSmartPlaceholder);
     console.log("App Ready");
   } catch(e) { logError("Init",e); }
