@@ -1,5 +1,5 @@
 // =======================
-// CONFIG & TRANSLATIONS
+// 1. CONFIG & TRANSLATIONS
 // =======================
 const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
 const SHEETS_SCOPE = "https://www.googleapis.com/auth/drive.file";
@@ -7,7 +7,7 @@ const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const DISCOVERY = [ 
     "https://sheets.googleapis.com/$discovery/rest?version=v4", 
     "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
-    "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"
+    "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest" 
 ];
 const SPREADSHEET_TITLE = "My Book App Data";
 const HEADER_RANGE = `Sheet1!A1:J1`;
@@ -73,7 +73,7 @@ const TRANSLATIONS = {
 };
 
 // =======================
-// STATE
+// 2. STATE & UTILS
 // =======================
 let currentLang = localStorage.getItem("appLang") || "en";
 let tokenClient = null;
@@ -87,12 +87,42 @@ let appStatus = "idle";
 let filterState = { text: "", year: "", month: "", rating: "" };
 let pendingCalendarBook = null;
 
+// Safe selectors
 const $ = (id) => document.getElementById(id);
 const t = (key) => TRANSLATIONS[currentLang][key] || key;
-// Safe text setter
-function setText(id, text) { const el = $(id); if (el) el.textContent = text; }
 
-// --- SCOPE HELPERS ---
+// UTILS (Crucial for preventing crashes)
+function setText(id, text) { const el = $(id); if (el) el.textContent = text; }
+function addClick(id, handler) { const el = $(id); if (el) el.onclick = handler; }
+function logError(msg, err) {
+    const log = $("debug-log");
+    if(log) {
+        log.style.display = "block";
+        const details = err.message || (typeof err === 'object' ? JSON.stringify(err, Object.getOwnPropertyNames(err)) : String(err));
+        log.textContent = "ERROR: " + msg + "\nDETAILS: " + details;
+    }
+    console.error(msg, err);
+}
+function makeId() { 
+    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+function todayISO() { return new Date().toISOString().split("T")[0]; }
+function getAuthorName(b) { return (b?.authors?.[0]?.name || "Unknown").toString(); }
+function normKey(b) { return ((b?.title || "") + "|" + getAuthorName(b)).toLowerCase().trim(); }
+function safeUrl(url) {
+    if(!url) return "";
+    try { const u = new URL(url); return (u.protocol === "http:" || u.protocol === "https:") ? u.href : ""; }
+    catch { return ""; }
+}
+function getErrCode(e) { return e?.status ?? e?.result?.error?.code ?? null; }
+async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function debounce(fn, ms = 300) {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+// Scope Helpers
 function hasScope(scope) {
     const s = (localStorage.getItem("granted_scopes") || "").trim();
     return s.split(/\s+/).includes(scope);
@@ -104,7 +134,7 @@ function addGrantedScopes(scopeString) {
     localStorage.setItem("granted_scopes", merged);
 }
 
-// --- DATE HELPER ---
+// Date Helpers (Timezone Safe)
 function getReminderDates(returnDateStr) {
     const [y, m, d] = returnDateStr.split('-').map(Number);
     const returnObj = new Date(y, m - 1, d, 12, 0, 0); 
@@ -123,7 +153,247 @@ function getReminderDates(returnDateStr) {
 }
 
 // =======================
-// SEARCH LOGIC (Waterfall)
+// 3. CORE APP LOGIC
+// =======================
+function setSyncStatus(state) {
+    appStatus = state; 
+    const dot = $("sync-dot");
+    const btn = $("auth-btn");
+    
+    if (dot) {
+        if (state === "working") dot.style.background = "#f1c40f"; 
+        else if (state === "synced") dot.style.background = "#2ecc71"; 
+        else if (state === "error") dot.style.background = "#e74c3c"; 
+        else dot.style.background = "#bbb"; 
+    }
+    if (btn) {
+        if (state === "working") btn.textContent = t("working");
+        else if (state === "synced") btn.textContent = t("synced");
+        else if (state === "error") btn.textContent = t("error");
+        else btn.textContent = t("signIn");
+    }
+}
+
+function updateShelfCounts() {
+    const r = library.read?.length || 0;
+    const w = library.wishlist?.length || 0;
+    const l = library.loans?.length || 0;
+    setText("count-read", r);
+    setText("count-wishlist", w);
+    setText("count-loans", l);
+}
+
+function loadLibrary() {
+    try {
+        const raw = JSON.parse(localStorage.getItem("myLibrary"));
+        if (raw && typeof raw === "object") {
+            return {
+                read: Array.isArray(raw.read) ? raw.read : [],
+                wishlist: Array.isArray(raw.wishlist) ? raw.wishlist : [],
+                loans: Array.isArray(raw.loans) ? raw.loans : []
+            };
+        }
+    } catch {}
+    return { read: [], wishlist: [], loans: [] };
+}
+
+function saveLibrary(shouldSync, skipRender = false) {
+    localStorage.setItem("myLibrary", JSON.stringify(library));
+    updateShelfCounts();
+    if (!skipRender) renderBooks();
+    if (shouldSync && gapi?.client?.getToken?.()) queueUpload();
+}
+
+function openMenu() { 
+    if($("side-menu")) $("side-menu").classList.add("open"); 
+    if($("menu-overlay")) $("menu-overlay").classList.add("open"); 
+    document.body.style.overflow = "hidden"; 
+}
+function closeMenu() { 
+    if($("side-menu")) $("side-menu").classList.remove("open"); 
+    if($("menu-overlay")) $("menu-overlay").classList.remove("open"); 
+    document.body.style.overflow = ""; 
+}
+
+function setActiveTab(shelf) {
+    currentShelf = shelf;
+    ["read", "wishlist", "loans"].forEach(s => {
+        const el = $(`tab-${s}`);
+        if(el) el.classList.toggle("active", s === shelf);
+    });
+    closeMenu();
+    renderBooks();
+}
+
+function setSmartPlaceholder() {
+    const el = $("isbn-input"); if (!el) return;
+    el.placeholder = t("search");
+}
+
+function updateSheetLink() {
+    const el = $("sheet-link"); if(el) { if(spreadsheetId) { el.href=`https://docs.google.com/spreadsheets/d/${spreadsheetId}`; el.style.display='inline'; } else { el.style.display='none'; } }
+}
+
+// =======================
+// 4. AUTH & GOOGLE API
+// =======================
+function gapiLoaded() {
+    gapi.load("client", async () => {
+        try { await gapi.client.init({ discoveryDocs: DISCOVERY }); gapiInited = true; maybeEnableAuth(); } 
+        catch (e) { logError("GAPI Init Fail", e); }
+    });
+}
+function gisLoaded() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID, scope: SHEETS_SCOPE,
+        callback: async (resp) => {
+            if (resp.error) return logError("Auth Fail", resp);
+            addGrantedScopes(resp.scope);
+            gapi.client.setToken(resp);
+            if (pendingCalendarBook) {
+                if (hasScope(CAL_SCOPE)) await apiAddCalendar(pendingCalendarBook);
+                pendingCalendarBook = null;
+                return;
+            }
+            setSyncStatus("working");
+            await doSync();
+        }
+    });
+    gisInited = true; maybeEnableAuth();
+}
+function maybeEnableAuth() { 
+    if (gapiInited && gisInited) {
+        const btn = $("auth-btn");
+        if(btn) {
+            btn.disabled = false;
+            if(!isSyncing) btn.textContent = t("signIn");
+        }
+    }
+}
+
+async function ensureSheet() {
+    if (spreadsheetId) return;
+    setSyncStatus("working");
+    try {
+        const createResp = await gapi.client.sheets.spreadsheets.create({ properties: { title: SPREADSHEET_TITLE } });
+        spreadsheetId = createResp.result.spreadsheetId;
+        await gapi.client.sheets.spreadsheets.values.update({
+            spreadsheetId, range: HEADER_RANGE, valueInputOption: "RAW", resource: { values: [HEADER] }
+        });
+        localStorage.setItem("sheetId", spreadsheetId);
+        updateSheetLink();
+    } catch (e) { logError("Sheet Init Error", e); setSyncStatus("error"); }
+}
+
+async function doSync() {
+    setSyncStatus("working");
+    try {
+        await ensureSheet();
+        updateSheetLink();
+        const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range: DATA_RANGE });
+        const rows = resp.result.values || [];
+        if (rows.length > 0) {
+            const newLib = { read: [], wishlist: [], loans: [] };
+            rows.forEach(row => {
+                if (!row?.[0]) return;
+                let shelf = (row[3] || "read").toLowerCase();
+                if(!['read','wishlist','loans'].includes(shelf)) shelf = 'read';
+                newLib[shelf].push({
+                    id: String(row[0]), title: row[1] || "Unknown", authors: [{ name: row[2] || "Unknown" }], shelf: shelf,
+                    rating: Number(row[4] || 0), cover: row[5] === "null" ? null : (row[5] || null),
+                    dateRead: row[6] || "", returnDate: row[7] || "",
+                    isAudio: String(row[8]).toUpperCase() === "TRUE", isbn: row[9] || ""
+                });
+            });
+            library = newLib; saveLibrary(false);
+        } else { await queueUpload(); }
+        setSyncStatus("synced");
+    } catch (e) {
+        logError("Sync Error", e); setSyncStatus("error");
+        if (getErrCode(e) === 404) {
+            spreadsheetId = null; localStorage.removeItem("sheetId"); updateSheetLink(); 
+            setSyncStatus("idle");
+            alert("Sheet deleted/missing. Will recreate on next sync.");
+        }
+    }
+}
+
+async function queueUpload() {
+    if (isSyncing) { syncPending = true; return; }
+    isSyncing = true; setSyncStatus("working");
+    try {
+        try { await uploadData(); }
+        catch (err) { if (err.status === 429 || err.status >= 500) { await sleep(2000); await uploadData(); } else throw err; }
+        setSyncStatus("synced");
+    } catch (e) {
+        logError("Upload Error", e); setSyncStatus("error");
+        if ([401, 403].includes(getErrCode(e))) { gapi.client.setToken(null); alert("Session expired."); setSyncStatus("idle"); }
+    } finally {
+        isSyncing = false; if (syncPending) { syncPending = false; setTimeout(queueUpload, 0); }
+    }
+}
+
+async function uploadData() {
+    if (!spreadsheetId) return;
+    let rows = [];
+    ['read', 'wishlist', 'loans'].forEach(shelf => {
+        library[shelf].forEach(b => {
+            rows.push([
+                b.id, b.title, getAuthorName(b), shelf, Number(b.rating||0),
+                b.cover ? String(b.cover) : "null", b.dateRead || "", b.returnDate || "",
+                b.isAudio ? "TRUE" : "FALSE", b.isbn || ""
+            ]);
+        });
+    });
+    await gapi.client.sheets.spreadsheets.values.clear({ spreadsheetId, range: DATA_RANGE });
+    if (rows.length > 0) {
+        await gapi.client.sheets.spreadsheets.values.update({
+            spreadsheetId, range: WRITE_RANGE, valueInputOption: "RAW", resource: { values: rows }
+        });
+    }
+}
+
+// =======================
+// 5. IMPORT / EXPORT
+// =======================
+function exportData() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "my_bookshelf_" + new Date().toISOString().split('T')[0] + ".json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+}
+
+function triggerImport() { $('import-file').click(); }
+
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const imported = JSON.parse(e.target.result);
+            if (!imported.read && !imported.wishlist && !imported.loans) return alert("Invalid file");
+            if(confirm("Restore data?")) {
+                library = {
+                    read: Array.isArray(imported.read) ? imported.read : [],
+                    wishlist: Array.isArray(imported.wishlist) ? imported.wishlist : [],
+                    loans: Array.isArray(imported.loans) ? imported.loans : []
+                };
+                saveLibrary(true);
+                alert(t("importSuccess"));
+                closeMenu();
+            }
+        } catch (err) { alert("Error parsing file"); }
+        event.target.value = ''; 
+    };
+    reader.readAsText(file);
+}
+
+// =======================
+// 6. SEARCH & API
 // =======================
 async function fetchOpenLibrary(isbn) {
     try {
@@ -197,7 +467,7 @@ async function handleManualAdd() {
 }
 
 // =======================
-// UI LOGIC
+// 7. UI ACTIONS (FILTERS, RENDER, MODAL)
 // =======================
 function setLanguage(lang) {
     currentLang = lang;
@@ -253,15 +523,6 @@ function setLanguage(lang) {
     renderBooks();
 }
 
-function updateShelfCounts() {
-    const r = library.read?.length || 0;
-    const w = library.wishlist?.length || 0;
-    const l = library.loans?.length || 0;
-    setText("count-read", r);
-    setText("count-wishlist", w);
-    setText("count-loans", l);
-}
-
 function clearFilters() {
     if($("filter-text")) $("filter-text").value = "";
     if($("filter-year")) $("filter-year").value = "";
@@ -309,7 +570,6 @@ function renderBooks() {
         });
     }
 
-    // UPDATE COUNTS UI
     updateShelfCounts(); 
     const totalCount = allItems.length;
     const filteredCount = visibleItems.length;
@@ -419,134 +679,25 @@ function renderBooks() {
 
         if(currentShelf === 'loans' && b.returnDate) {
             const calBtn = document.createElement("button"); calBtn.className = "btn-cal"; calBtn.textContent = t("reminder");
-            calBtn.onclick = () => processCalendar(b);
-            actions.appendChild(calBtn);
+            calBtn.onclick = () => processCalendar(b); actions.appendChild(calBtn);
         }
         info.appendChild(actions); li.appendChild(info); list.appendChild(li);
     });
 }
 
-// =======================
-// CLOUD SYNC & CALENDAR
-// =======================
-function gapiLoaded() {
-    gapi.load("client", async () => {
-        try { await gapi.client.init({ discoveryDocs: DISCOVERY }); gapiInited = true; maybeEnableAuth(); } 
-        catch (e) { logError("GAPI Init Fail", e); }
-    });
-}
-function gisLoaded() {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID, scope: SHEETS_SCOPE,
-        callback: async (resp) => {
-            if (resp.error) return logError("Auth Fail", resp);
-            addGrantedScopes(resp.scope);
-            gapi.client.setToken(resp);
-            if (pendingCalendarBook) {
-                if (hasScope(CAL_SCOPE)) await apiAddCalendar(pendingCalendarBook);
-                pendingCalendarBook = null;
-                return;
-            }
-            setSyncStatus("working");
-            await doSync();
-        }
-    });
-    gisInited = true; maybeEnableAuth();
+function showModal(book, scannedIsbn = "") {
+    pendingBook = book; if(scannedIsbn) pendingBook.isbn = scannedIsbn;
+    $("modal-title").textContent = book.title; 
+    $("modal-author").textContent = getAuthorName(book);
+    $("modal-isbn").textContent = pendingBook.isbn ? `ISBN: ${pendingBook.isbn}` : "";
+    const audioCheck = $("modal-audio-check"); if(audioCheck) audioCheck.checked = false;
+    if($("loan-date-row")) $("loan-date-row").style.display = "none";
+    if($("modal-return-date")) $("modal-return-date").value = "";
+    const cover = safeUrl(book.cover); const img = $("modal-img");
+    if(img) { if (cover) { img.src = cover; img.style.display = "block"; } else { img.removeAttribute("src"); img.style.display = "none"; } }
+    if($("modal-overlay")) $("modal-overlay").style.display = "flex";
 }
 
-async function ensureSheet() {
-    if (spreadsheetId) return;
-    setSyncStatus("working");
-    try {
-        const createResp = await gapi.client.sheets.spreadsheets.create({ properties: { title: SPREADSHEET_TITLE } });
-        spreadsheetId = createResp.result.spreadsheetId;
-        await gapi.client.sheets.spreadsheets.values.update({
-            spreadsheetId, range: HEADER_RANGE, valueInputOption: "RAW", resource: { values: [HEADER] }
-        });
-        localStorage.setItem("sheetId", spreadsheetId);
-        updateSheetLink();
-    } catch (e) { logError("Sheet Init Error", e); setSyncStatus("error"); }
-}
-
-async function doSync() {
-    setSyncStatus("working");
-    try {
-        await ensureSheet();
-        updateSheetLink();
-        const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range: DATA_RANGE });
-        const rows = resp.result.values || [];
-        if (rows.length > 0) {
-            const newLib = { read: [], wishlist: [], loans: [] };
-            rows.forEach(row => {
-                if (!row?.[0]) return;
-                let shelf = (row[3] || "read").toLowerCase();
-                if(!['read','wishlist','loans'].includes(shelf)) shelf = 'read';
-                newLib[shelf].push({
-                    id: String(row[0]), title: row[1] || "Unknown", authors: [{ name: row[2] || "Unknown" }], shelf: shelf,
-                    rating: Number(row[4] || 0), cover: row[5] === "null" ? null : (row[5] || null),
-                    dateRead: row[6] || "", returnDate: row[7] || "",
-                    isAudio: String(row[8]).toUpperCase() === "TRUE", isbn: row[9] || ""
-                });
-            });
-            library = newLib; saveLibrary(false);
-        } else { await queueUpload(); }
-        setSyncStatus("synced");
-    } catch (e) {
-        logError("Sync Error", e); setSyncStatus("error");
-        if (getErrCode(e) === 404) {
-            spreadsheetId = null; localStorage.removeItem("sheetId"); updateSheetLink(); 
-            setSyncStatus("idle");
-            alert("Sheet deleted/missing. Will recreate on next sync.");
-        }
-    }
-}
-
-async function queueUpload() {
-    if (isSyncing) { syncPending = true; return; }
-    isSyncing = true; setSyncStatus("working");
-    try {
-        try { await uploadData(); }
-        catch (err) { if (err.status === 429 || err.status >= 500) { await sleep(2000); await uploadData(); } else throw err; }
-        setSyncStatus("synced");
-    } catch (e) {
-        logError("Upload Error", e); setSyncStatus("error");
-        if ([401, 403].includes(getErrCode(e))) { gapi.client.setToken(null); alert("Session expired."); setSyncStatus("idle"); }
-    } finally {
-        isSyncing = false; if (syncPending) { syncPending = false; setTimeout(queueUpload, 0); }
-    }
-}
-
-async function uploadData() {
-    if (!spreadsheetId) return;
-    let rows = [];
-    ['read', 'wishlist', 'loans'].forEach(shelf => {
-        library[shelf].forEach(b => {
-            rows.push([
-                b.id, b.title, getAuthorName(b), shelf, Number(b.rating||0),
-                b.cover ? String(b.cover) : "null", b.dateRead || "", b.returnDate || "",
-                b.isAudio ? "TRUE" : "FALSE", b.isbn || ""
-            ]);
-        });
-    });
-    await gapi.client.sheets.spreadsheets.values.clear({ spreadsheetId, range: DATA_RANGE });
-    if (rows.length > 0) {
-        await gapi.client.sheets.spreadsheets.values.update({
-            spreadsheetId, range: WRITE_RANGE, valueInputOption: "RAW", resource: { values: rows }
-        });
-    }
-}
-
-function updateSheetLink() {
-    const el = $("sheet-link"); if(el) { if(spreadsheetId) { el.href=`https://docs.google.com/spreadsheets/d/${spreadsheetId}`; el.style.display='inline'; } else { el.style.display='none'; } }
-}
-function setSmartPlaceholder() {
-    const el = $("isbn-input"); if (!el) return;
-    el.placeholder = window.matchMedia("(max-width: 420px)").matches ? "..." : t("search");
-}
-
-// =======================
-// ACTION FUNCTIONS (RESTORED)
-// =======================
 function closeModal() { 
     if($("modal-overlay")) $("modal-overlay").style.display = "none"; 
     if($("loan-date-row")) $("loan-date-row").style.display = "none";
@@ -637,7 +788,7 @@ function updateReadDate(id, newDate) {
 
 function processCalendar(book) {
     const calToggle = $('cal-connect-toggle');
-    const isConnected = calToggle ? calToggle.checked : false; // Safe check
+    const isConnected = calToggle ? calToggle.checked : false; 
     
     if (isConnected) {
         if (!gapi?.client?.getToken?.()) return alert("Please Sign In first.");
@@ -697,15 +848,15 @@ async function stopCamera() {
 }
 
 // =======================
-// INITIALIZATION
+// 8. INITIALIZATION (SAFE & COMPLETE)
 // =======================
 window.addEventListener("DOMContentLoaded", () => {
     try {
         library = loadLibrary();
         
-        if($("menu-btn")) $("menu-btn").onclick = openMenu;
-        if($("menu-overlay")) $("menu-overlay").onclick = closeMenu; 
-        if($("modal-overlay")) $("modal-overlay").onclick = (e) => { if (e.target.id === "modal-overlay") closeModal(); };
+        addClick("menu-btn", openMenu);
+        addClick("menu-overlay", closeMenu);
+        addClick("modal-overlay", (e) => { if (e.target.id === "modal-overlay") closeModal(); });
         
         document.addEventListener('click', (e) => {
             const isDropdown = e.target.closest('.menu-dropdown');
@@ -713,7 +864,6 @@ window.addEventListener("DOMContentLoaded", () => {
             if (!isDropdown && !isBtn) { document.querySelectorAll('.menu-dropdown.show').forEach(d => d.classList.remove('show')); }
         });
 
-        // SAFE: These element IDs must match index.html
         if($("language-select")) $("language-select").onchange = (e) => setLanguage(e.target.value);
 
         const debouncedApply = debounce(applyFilters, 200);
@@ -722,32 +872,27 @@ window.addEventListener("DOMContentLoaded", () => {
         if($("filter-month")) $("filter-month").onchange = applyFilters;
         if($("filter-rating")) $("filter-rating").onchange = applyFilters;
         
-        // SAFE: Check if buttons exist before adding listeners
-        if($("btn-clear-filters")) $("btn-clear-filters").onclick = clearFilters;
-        if($("btn-add")) $("btn-add").onclick = handleManualAdd;
+        addClick("btn-clear-filters", clearFilters);
+        addClick("btn-add", handleManualAdd);
         if($("isbn-input")) $("isbn-input").onkeydown = (e) => { if(e.key==="Enter") handleManualAdd(); };
-        if($("btn-scan")) $("btn-scan").onclick = startCamera;
-        if($("btn-stop-camera")) $("btn-stop-camera").onclick = stopCamera;
-        if($("modal-add-read")) $("modal-add-read").onclick = () => confirmAdd("read");
-        if($("modal-add-wish")) $("modal-add-wish").onclick = () => confirmAdd("wishlist");
-        if($("modal-add-loan")) $("modal-add-loan").onclick = () => confirmAdd("loans");
-        if($("modal-cancel")) $("modal-cancel").onclick = closeModal;
         
-        if($("auth-btn")) { 
-            $("auth-btn").onclick = () => { 
-                if(!tokenClient) return alert("Loading..."); 
-                tokenClient.requestAccessToken({ prompt: "" }); 
-            }; 
-        }
+        addClick("btn-scan", startCamera);
+        addClick("btn-stop-camera", stopCamera);
+        addClick("modal-add-read", () => confirmAdd("read"));
+        addClick("modal-add-wish", () => confirmAdd("wishlist"));
+        addClick("modal-add-loan", () => confirmAdd("loans"));
+        addClick("modal-cancel", closeModal);
         
-        if($("reset-btn")) $("reset-btn").onclick = hardReset;
+        addClick("auth-btn", () => { 
+            if(!tokenClient) return alert("Loading..."); 
+            tokenClient.requestAccessToken({ prompt: "" }); 
+        }); 
         
-        // SAFE: These new buttons might be missing in old HTML
-        if($("btn-export")) $("btn-export").onclick = exportData;
-        if($("btn-import")) $("btn-import").onclick = triggerImport;
+        addClick("reset-btn", hardReset);
+        addClick("btn-export", exportData);
+        addClick("btn-import", triggerImport);
         if($("import-file")) $("import-file").onchange = importData;
         
-        // CALENDAR TOGGLE LOCALSTORAGE
         const calToggle = $("cal-connect-toggle");
         if(calToggle) {
             calToggle.checked = localStorage.getItem("calSync") === "true";
@@ -772,6 +917,10 @@ window.addEventListener("DOMContentLoaded", () => {
         setSmartPlaceholder();
         window.addEventListener("resize", setSmartPlaceholder);
         window.addEventListener("orientationchange", setSmartPlaceholder);
-        console.log("Cloud Library Loaded OK");
-    } catch (err) { logError("App Start Failed", err); alert("App failed to start."); }
+        
+        console.log("App Started Successfully");
+    } catch (err) { 
+        logError("App Start Failed", err); 
+        alert("App failed to start. Check console."); 
+    }
 });
