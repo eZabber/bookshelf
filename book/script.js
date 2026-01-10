@@ -1,5 +1,5 @@
 /* =========================================================
-   MY BOOKSHELF APP — FINAL PRODUCTION VERSION
+   MY BOOKSHELF APP — PRIVACY FIRST (drive.file only)
    ========================================================= */
 
 /* =========================
@@ -8,13 +8,18 @@
 
 const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
 
-// Minimal scopes: Sheets + optional Calendar
-const SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets";
-const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+// PRIVACY FIX: We ONLY use "drive.file". 
+// This restricts access to ONLY files created by this app.
+// No more "See all spreadsheets" warning.
+const SCOPES = [
+  "https://www.googleapis.com/auth/drive.file",
+  "https://www.googleapis.com/auth/calendar.events"
+];
 
-// NOTE: Drive discovery removed (not used)
+// We need both Sheets API (to read data) and Drive API (to find the file safely)
 const DISCOVERY = [
   "https://sheets.googleapis.com/$discovery/rest?version=v4",
+  "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
   "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"
 ];
 
@@ -133,7 +138,7 @@ let pendingBook = null;
 let isSyncing = false;
 let syncPending = false;
 
-let appStatus = "idle"; // idle | working | synced | error
+let appStatus = "idle"; 
 
 let filterState = { text: "", year: "", month: "", rating: "" };
 
@@ -231,7 +236,7 @@ function addGrantedScopes(scopeString) {
   localStorage.setItem(LS.SCOPES, merged);
 }
 
-/* ---- timezone-safe date range for all-day event ---- */
+/* ---- timezone-safe date range ---- */
 function getReminderDates(returnDateStr) {
   const [y, m, d] = returnDateStr.split("-").map(Number);
   const returnObj = new Date(y, m - 1, d, 12, 0, 0);
@@ -396,7 +401,6 @@ function setLanguage(lang) {
   setText("btn-add", t("add"));
   setSmartPlaceholder();
 
-  // auth button text reflect current state
   setSyncStatus(appStatus);
 
   setText("modal-add-read", `${t("add")} -> ${t("read")}`);
@@ -483,7 +487,6 @@ function renderBooks() {
 
   updateShelfCounts();
 
-  // filter status bar
   const statusEl = $("filter-status");
   if (statusEl) {
     if (allItems.length !== visibleItems.length) {
@@ -543,7 +546,6 @@ function renderBooks() {
     menuContainer.appendChild(dropdown);
     li.appendChild(menuContainer);
 
-    // cover
     const coverUrl = safeUrl(b?.cover);
     const thumb = document.createElement(coverUrl ? "img" : "div");
     thumb.className = "book-thumb";
@@ -555,11 +557,9 @@ function renderBooks() {
     }
     li.appendChild(thumb);
 
-    // info container
     const info = document.createElement("div");
     info.className = "book-info";
 
-    // badges
     const badges = document.createElement("div");
     badges.className = "badges-row";
 
@@ -579,7 +579,6 @@ function renderBooks() {
 
     if (badges.children.length > 0) info.appendChild(badges);
 
-    // title & meta
     const titleDiv = document.createElement("div");
     titleDiv.className = "book-title";
     titleDiv.textContent = String(b?.title || "Unknown");
@@ -603,7 +602,7 @@ function renderBooks() {
       dateInput.id = `date-input-${b.id}`;
       dateInput.className = "date-edit-input";
       
-      // FIX: Ensure it is hidden by default
+      // HIDE CALENDAR INPUT BY DEFAULT
       dateInput.style.display = "none";
       
       dateInput.value = String(b.dateRead || "");
@@ -628,7 +627,6 @@ function renderBooks() {
       info.appendChild(isbnPill);
     }
 
-    // actions
     const actions = document.createElement("div");
     actions.className = "actions";
 
@@ -743,7 +741,6 @@ function confirmAdd(targetShelf) {
       return;
     }
 
-    // First click on "Add -> Loans" reveals date picker
     if (row.style.display === "none") {
       row.style.display = "flex";
       const d = new Date();
@@ -773,7 +770,6 @@ function confirmAdd(targetShelf) {
   closeModal();
   setActiveTab(targetShelf);
 
-  // If loans and date exists → offer calendar
   if (targetShelf === "loans" && retDate) processCalendar(newBook);
 
   saveLibrary({ shouldSync: true, skipRender: true });
@@ -896,7 +892,7 @@ function importData(event) {
 
 
 /* =========================
-   13) SEARCH (OpenLibrary → Finna → Google Books)
+   13) SEARCH
    ========================= */
 
 async function fetchOpenLibrary(isbn) {
@@ -926,10 +922,7 @@ async function fetchFinna(isbn) {
     if (data?.resultCount > 0) {
       const b = data.records[0];
       const coverUrl = b?.images?.[0] ? `https://api.finna.fi${b.images[0]}` : null;
-
-      // NOTE: Finna author parsing here is shaky; left as you had it
       const authorName = b?.buildings?.[0]?.translated || "Unknown";
-
       return {
         title: b.title,
         authors: [{ name: authorName }],
@@ -1016,7 +1009,7 @@ async function handleManualAdd() {
 
 
 /* =========================
-   14) CAMERA (Html5Qrcode)
+   14) CAMERA
    ========================= */
 
 async function startCamera() {
@@ -1062,10 +1055,9 @@ async function stopCamera() {
 
 
 /* =========================
-   15) GOOGLE AUTH & SYNC
+   15) GOOGLE AUTH & SYNC (WITH SEARCH)
    ========================= */
 
-// These two are called by <script onload="gapiLoaded()"> and <script onload="gisLoaded()">
 function gapiLoaded() {
   gapi.load("client", async () => {
     try {
@@ -1081,19 +1073,15 @@ function gapiLoaded() {
 function gisLoaded() {
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
-    scope: SHEETS_SCOPE,
+    scope: SCOPES.join(" "),
     callback: async (resp) => {
       if (resp?.error) return logError("Auth Fail", resp);
 
-      // Persist whatever scopes Google reports back
       addGrantedScopes(resp.scope || "");
       gapi.client.setToken(resp);
 
-      // If calendar flow was waiting, continue
       if (pendingCalendarBook) {
-        // Ensure we remember we requested CAL scope (even if resp.scope is weird)
         addGrantedScopes(CAL_SCOPE);
-
         if (hasScope(CAL_SCOPE)) {
           await apiAddCalendar(pendingCalendarBook);
         }
@@ -1112,7 +1100,6 @@ function gisLoaded() {
 
 function maybeEnableAuth() {
   if (!gapiInited || !gisInited) return;
-
   const btn = $("auth-btn");
   if (btn) {
     btn.disabled = false;
@@ -1126,24 +1113,44 @@ async function ensureSheet() {
   setSyncStatus("working");
 
   try {
-    const createResp = await gapi.client.sheets.spreadsheets.create({
-      properties: { title: SPREADSHEET_TITLE },
-      sheets: [{ properties: { title: SHEET_NAME } }]
+    // 1. SEARCH existing file first (requires drive.file scope)
+    // We look for a file created by THIS app with the specific name.
+    const searchResp = await gapi.client.drive.files.list({
+      q: `name = '${SPREADSHEET_TITLE}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
+      fields: "files(id, name)",
+      spaces: "drive"
     });
 
-    spreadsheetId = createResp.result.spreadsheetId;
+    const files = searchResp?.result?.files || [];
 
-    await gapi.client.sheets.spreadsheets.values.update({
-      spreadsheetId,
-      range: HEADER_RANGE,
-      valueInputOption: "RAW",
-      resource: { values: [HEADER] }
-    });
+    if (files.length > 0) {
+      // Found it! Use the first match.
+      console.log("Found existing sheet:", files[0].id);
+      spreadsheetId = files[0].id;
+    } else {
+      // Not found, create new
+      console.log("No sheet found, creating new...");
+      const createResp = await gapi.client.sheets.spreadsheets.create({
+        properties: { title: SPREADSHEET_TITLE },
+        sheets: [{ properties: { title: SHEET_NAME } }]
+      });
+      spreadsheetId = createResp.result.spreadsheetId;
 
+      // Initialize header
+      await gapi.client.sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: HEADER_RANGE,
+        valueInputOption: "RAW",
+        resource: { values: [HEADER] }
+      });
+    }
+
+    // Save ID for future
     localStorage.setItem(LS.SHEET_ID, spreadsheetId);
     updateSheetLink();
+
   } catch (e) {
-    logError("Sheet Init Error", e);
+    logError("Sheet Init/Search Error", e);
     setSyncStatus("error");
   }
 }
@@ -1187,7 +1194,6 @@ async function doSync() {
       library = newLib;
       saveLibrary({ shouldSync: false });
     } else {
-      // If sheet empty, upload current local data
       await queueUpload();
     }
 
@@ -1284,7 +1290,7 @@ async function uploadData() {
 
 
 /* =========================
-   16) CALENDAR
+   16) CALENDAR WRAPPERS
    ========================= */
 
 function processCalendar(book) {
@@ -1299,11 +1305,8 @@ function processCalendar(book) {
 
     if (!hasScope(CAL_SCOPE)) {
       pendingCalendarBook = book;
-
-      // Request BOTH scopes and remember them proactively
-      const scopeStr = `${SHEETS_SCOPE} ${CAL_SCOPE}`;
+      const scopeStr = SCOPES.join(" "); // Re-request full scopes including cal
       addGrantedScopes(scopeStr);
-
       tokenClient.requestAccessToken({ prompt: "", scope: scopeStr });
       return;
     }
@@ -1316,7 +1319,6 @@ function processCalendar(book) {
 
 async function apiAddCalendar(book) {
   if (!book?.returnDate) return alert("No date set");
-
   const { start, end } = getReminderDates(book.returnDate);
 
   try {
@@ -1333,7 +1335,6 @@ async function apiAddCalendar(book) {
         }
       }
     });
-
     alert(t("calAdded"));
   } catch (e) {
     logError("Cal API", e);
@@ -1344,14 +1345,12 @@ async function apiAddCalendar(book) {
 function magicLinkCalendar(book) {
   if (!book?.returnDate) return alert("No date set");
   const { start, end } = getReminderDates(book.returnDate);
-
   const sStr = start.replace(/-/g, "");
   const eStr = end.replace(/-/g, "");
   const title = encodeURIComponent("Return: " + (book.title || "Book"));
   const details = encodeURIComponent(
     `Book by ${getAuthorName(book)}.\n\n(Added via My BookShelf App)`
   );
-
   const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${sStr}/${eStr}`;
   window.open(url, "_blank");
 }
@@ -1365,14 +1364,12 @@ window.addEventListener("DOMContentLoaded", () => {
   try {
     library = loadLibrary();
 
-    // menu & modal interactions
     addClick("menu-btn", openMenu);
     addClick("menu-overlay", closeMenu);
     addClick("modal-overlay", (e) => {
       if (e.target?.id === "modal-overlay") closeModal();
     });
 
-    // close dropdown menus on outside click
     document.addEventListener("click", (e) => {
       const isDropdown = e.target.closest(".menu-dropdown");
       const isBtn = e.target.closest(".dots-btn");
@@ -1381,12 +1378,10 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // language
     if ($("language-select")) {
       $("language-select").onchange = (e) => setLanguage(e.target.value);
     }
 
-    // filters
     const debouncedApply = debounce(applyFilters, 200);
     if ($("filter-text")) $("filter-text").oninput = debouncedApply;
 
@@ -1402,7 +1397,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
     addClick("btn-clear-filters", clearFilters);
 
-    // add / search
     addClick("btn-add", handleManualAdd);
     if ($("isbn-input")) {
       $("isbn-input").onkeydown = (e) => {
@@ -1410,36 +1404,30 @@ window.addEventListener("DOMContentLoaded", () => {
       };
     }
 
-    // camera
     addClick("btn-scan", startCamera);
     addClick("btn-stop-camera", stopCamera);
 
-    // modal buttons
     addClick("modal-add-read", () => confirmAdd("read"));
     addClick("modal-add-wish", () => confirmAdd("wishlist"));
     addClick("modal-add-loan", () => confirmAdd("loans"));
     addClick("modal-cancel", closeModal);
 
-    // auth
     addClick("auth-btn", () => {
       if (!tokenClient) return alert("Loading...");
       tokenClient.requestAccessToken({ prompt: "" });
     });
 
-    // reset & backup
     addClick("reset-btn", hardReset);
     addClick("btn-export", exportData);
     addClick("btn-import", triggerImport);
     if ($("import-file")) $("import-file").onchange = importData;
 
-    // calendar toggle
     const calToggle = $("cal-connect-toggle");
     if (calToggle) {
       calToggle.checked = localStorage.getItem(LS.CAL_SYNC) === "true";
       calToggle.onchange = (e) => localStorage.setItem(LS.CAL_SYNC, e.target.checked ? "true" : "false");
     }
 
-    // tab switching
     const tabsContainer = document.querySelector(".tabs");
     if (tabsContainer) {
       tabsContainer.addEventListener("click", (e) => {
@@ -1450,7 +1438,6 @@ window.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // dark mode
     const darkModeToggle = $("dark-mode-toggle");
     if (darkModeToggle) {
       if (localStorage.getItem(LS.DARK) === "true") {
@@ -1468,10 +1455,8 @@ window.addEventListener("DOMContentLoaded", () => {
       };
     }
 
-    // footer year
     setText("year", new Date().getFullYear());
 
-    // initial render state
     setSyncStatus("idle");
     setLanguage(currentLang);
     updateShelfCounts();
@@ -1488,7 +1473,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// Expose functions needed by inline onclick (filter clear link) and script onload hooks
+// Expose globals
 window.clearFilters = clearFilters;
 window.gapiLoaded = gapiLoaded;
 window.gisLoaded = gisLoaded;
