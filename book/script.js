@@ -19,6 +19,7 @@ const TRANSLATIONS = {
         settings: "Settings & Filters", shelves: "Shelves", display: "Display",
         filter: "Filter Books", year: "Year", month: "Month", rating: "Rating",
         clear: "Clear Filters", reset: "Reset App Data",
+        data: "Data & Backup", export: "Download Backup (JSON)",
         dark: "Dark Mode", lang: "Language",
         search: "Search ISBN, Title, Author...", add: "Add",
         signIn: "Sign In", working: "...", synced: "Synced", 
@@ -34,6 +35,7 @@ const TRANSLATIONS = {
         settings: "Asetukset", shelves: "Hyllyt", display: "Näkymä",
         filter: "Suodata", year: "Vuosi", month: "Kuukausi", rating: "Arvosana",
         clear: "Tyhjennä", reset: "Nollaa tiedot",
+        data: "Tiedot & Varmuuskopio", export: "Lataa varmuuskopio (JSON)",
         dark: "Tumma tila", lang: "Kieli",
         search: "Etsi ISBN, Nimi, Kirjailija...", add: "Lisää",
         signIn: "Kirjaudu", working: "...", synced: "Synkattu", 
@@ -49,6 +51,7 @@ const TRANSLATIONS = {
         settings: "Sätted", shelves: "Riiulid", display: "Kuva",
         filter: "Filtreeri", year: "Aasta", month: "Kuu", rating: "Hinne",
         clear: "Tühjenda", reset: "Lähtesta andmed",
+        data: "Andmed ja varukoopia", export: "Lae alla varukoopia (JSON)",
         dark: "Tume režiim", lang: "Keel",
         search: "Otsi ISBN, Pealkiri, Autor...", add: "Lisa",
         signIn: "Logi sisse", working: "...", synced: "Sünkroonitud", 
@@ -72,7 +75,8 @@ let currentShelf = "read";
 let library = { read: [], wishlist: [], loans: [] }; 
 let html5QrCode = null, scanLocked = false, pendingBook = null;
 let isSyncing = false, syncPending = false;
-let pendingCalendarBook = null; // Track book waiting for permission
+let pendingCalendarBook = null; 
+let appStatus = "idle"; // idle, working, synced, error
 let filterState = { text: "", year: "", month: "", rating: "" };
 
 const $ = (id) => document.getElementById(id);
@@ -96,6 +100,7 @@ function setLanguage(lang) {
     setText("menu-shelves", t("shelves"));
     setText("menu-display", t("display"));
     setText("menu-filter", t("filter"));
+    setText("menu-data", t("data")); 
     
     setText("label-stat-read", t("read"));
     setText("label-stat-wish", t("wishlist"));
@@ -108,12 +113,18 @@ function setLanguage(lang) {
     
     setText("btn-clear-filters", t("clear"));
     setText("reset-btn", t("reset"));
+    setText("btn-export", t("export")); 
+    
     setText("btn-add", t("add"));
     if($("isbn-input")) $("isbn-input").placeholder = t("search");
     
+    // UPDATE AUTH BUTTON BASED ON STATE
     const authBtn = $("auth-btn");
-    if(authBtn && !authBtn.disabled && authBtn.textContent.includes("Sign In")) {
-        authBtn.textContent = t("signIn");
+    if(authBtn) {
+        if (appStatus === "working") authBtn.textContent = t("working");
+        else if (appStatus === "synced") authBtn.textContent = t("synced");
+        else if (appStatus === "error") authBtn.textContent = t("error");
+        else authBtn.textContent = t("signIn");
     }
 
     setText("modal-add-read", t("add") + " -> " + t("read"));
@@ -136,21 +147,17 @@ function gapiLoaded() {
     });
 }
 function gisLoaded() {
-    // Initial scope: JUST SHEETS (Less scary)
     tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID, scope: SHEETS_SCOPE,
         callback: async (resp) => {
             if (resp.error) return logError("Auth Fail", resp);
             gapi.client.setToken(resp);
             
-            // If we were waiting for calendar perm, do that now
             if (pendingCalendarBook && google.accounts.oauth2.hasGrantedAllScopes(resp, CAL_SCOPE)) {
                 await addToCalendar(pendingCalendarBook, true);
                 pendingCalendarBook = null;
             } else {
-                // Otherwise, standard sync
-                const btn = $("auth-btn");
-                if(btn) btn.textContent = t("working");
+                setSyncStatus("working");
                 await doSync();
             }
         }
@@ -162,7 +169,10 @@ function maybeEnableAuth() {
         const btn = $("auth-btn");
         if(btn) {
             btn.disabled = false;
-            if(!isSyncing) btn.textContent = t("signIn");
+            // If we have a token, we consider it synced/idle, otherwise reset to sign in
+            if(!gapi.client.getToken()) {
+                setSyncStatus("idle");
+            }
         }
     }
 }
@@ -198,13 +208,29 @@ function debounce(fn, ms = 300) {
     let t;
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
+
+// Global State Handler
 function setSyncStatus(state) {
+    appStatus = state; // Store state globally
+    
     const dot = $("sync-dot");
-    if (!dot) return;
-    if (state === "working") dot.style.background = "#f1c40f"; 
-    else if (state === "ok") dot.style.background = "#2ecc71"; 
-    else if (state === "error") dot.style.background = "#e74c3c"; 
-    else dot.style.background = "#bbb"; 
+    const btn = $("auth-btn");
+    
+    // Update Dot
+    if (dot) {
+        if (state === "working") dot.style.background = "#f1c40f"; 
+        else if (state === "synced") dot.style.background = "#2ecc71"; 
+        else if (state === "error") dot.style.background = "#e74c3c"; 
+        else dot.style.background = "#bbb"; 
+    }
+
+    // Update Button Text immediately (Language agnostic keys)
+    if (btn) {
+        if (state === "working") btn.textContent = t("working");
+        else if (state === "synced") btn.textContent = t("synced");
+        else if (state === "error") btn.textContent = t("error");
+        else btn.textContent = t("signIn");
+    }
 }
 
 // =======================
@@ -238,6 +264,16 @@ function saveLibrary(shouldSync, skipRender = false) {
     updateShelfCounts();
     if (!skipRender) renderBooks();
     if (shouldSync && gapi?.client?.getToken?.()) queueUpload();
+}
+
+function exportData() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "my_bookshelf_" + new Date().toISOString().split('T')[0] + ".json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
 }
 
 function openMenu() { 
@@ -533,7 +569,7 @@ function updateReadDate(id, newDate) {
 async function ensureSheet() {
     if (spreadsheetId) return;
     const btn = $("auth-btn");
-    if(btn) btn.textContent = "Creating...";
+    setSyncStatus("working");
     const createResp = await gapi.client.sheets.spreadsheets.create({ properties: { title: "My Book App Data" } });
     spreadsheetId = createResp.result.spreadsheetId;
     localStorage.setItem("sheetId", spreadsheetId);
@@ -547,8 +583,6 @@ async function doSync() {
     try {
         await ensureSheet();
         updateSheetLink();
-        const btn = $("auth-btn");
-        if(btn) btn.textContent = t("downloading");
         const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range: DATA_RANGE });
         const rows = resp.result.values || [];
         if (rows.length > 0) {
@@ -566,13 +600,13 @@ async function doSync() {
             });
             library = newLib; saveLibrary(false);
         } else { await queueUpload(); }
-        if(btn) btn.textContent = t("synced");
-        setSyncStatus("ok");
+        setSyncStatus("synced");
     } catch (e) {
-        logError("Sync Error", e); setSyncStatus("error");
+        logError("Sync Error", e); 
+        setSyncStatus("error");
         if (getErrCode(e) === 404) {
             spreadsheetId = null; localStorage.removeItem("sheetId"); updateSheetLink(); 
-            const btn = $("auth-btn"); if(btn) { btn.textContent = t("signIn"); btn.disabled = false; }
+            setSyncStatus("idle");
             alert("Sheet deleted.");
         }
     }
@@ -580,17 +614,16 @@ async function doSync() {
 async function queueUpload() {
     if (isSyncing) { syncPending = true; return; }
     isSyncing = true; setSyncStatus("working");
-    const btn = $("auth-btn"); if(btn) btn.textContent = t("saving");
     try {
         try { await uploadData(); }
         catch (err) { if (err.status === 429 || err.status >= 500) { await sleep(2000); await uploadData(); } else throw err; }
-        if(btn) btn.textContent = t("synced"); setSyncStatus("ok");
+        setSyncStatus("synced");
     } catch (e) {
         logError("Upload Error", e); setSyncStatus("error");
         if ([401, 403].includes(getErrCode(e))) {
-            if(btn) { btn.textContent = t("signIn"); btn.disabled = false; }
             gapi.client.setToken(null); alert("Session expired.");
-        } else { if(btn) btn.textContent = t("error"); }
+            setSyncStatus("idle");
+        }
     } finally {
         isSyncing = false; if (syncPending) { syncPending = false; setTimeout(queueUpload, 0); }
     }
@@ -619,25 +652,16 @@ async function uploadData() {
 async function addToCalendar(book, skipCheck = false) {
     if (!gapi?.client?.getToken?.()) return alert(t("signIn") + " first");
 
-    // 1. Check if we have calendar permissions
     const token = gapi.client.getToken();
     const hasCalAccess = google.accounts.oauth2.hasGrantedAllScopes(token, CAL_SCOPE);
 
-    // 2. If NO access, ask for it
     if (!hasCalAccess && !skipCheck) {
         if (!confirm(t("calPermit"))) return;
-        
-        pendingCalendarBook = book; // Remember which book we were adding
-        
-        // Request UPGRADE scope (Sheets + Calendar)
-        tokenClient.requestAccessToken({ 
-            prompt: '', // Force popup if needed, or use '' for auto
-            scope: SHEETS_SCOPE + " " + CAL_SCOPE 
-        });
-        return; // Wait for callback in gisLoaded
+        pendingCalendarBook = book; 
+        tokenClient.requestAccessToken({ prompt: '', scope: SHEETS_SCOPE + " " + CAL_SCOPE });
+        return; 
     }
 
-    // 3. If YES access, add event
     const dateObj = new Date(book.returnDate); 
     dateObj.setDate(dateObj.getDate() - 1);
     const reminderDate = dateObj.toISOString().split('T')[0];
@@ -652,10 +676,7 @@ async function addToCalendar(book, skipCheck = false) {
             }
         });
         alert(t("reminder") + " ✅");
-    } catch (e) { 
-        logError("Calendar", e); 
-        alert("Calendar Error"); 
-    }
+    } catch (e) { logError("Calendar", e); alert("Calendar Error"); }
 }
 
 function showModal(book, scannedIsbn = "") {
@@ -755,7 +776,10 @@ window.addEventListener("DOMContentLoaded", () => {
         if($("modal-add-loan")) $("modal-add-loan").onclick = () => confirmAdd("loans");
         if($("modal-cancel")) $("modal-cancel").onclick = closeModal;
         if($("auth-btn")) { $("auth-btn").onclick = () => { if(!tokenClient) return alert("Loading..."); tokenClient.requestAccessToken({ prompt: "consent" }); }; }
+        
         if($("reset-btn")) $("reset-btn").onclick = hardReset;
+        // NEW EXPORT BTN
+        if($("btn-export")) $("btn-export").onclick = exportData;
         
         const tabsContainer = document.querySelector(".tabs");
         if(tabsContainer) { tabsContainer.addEventListener("click", (e) => { const tab = e.target.closest(".tab"); if (!tab) return; const shelf = tab.id.replace("tab-", ""); setActiveTab(shelf); }); }
