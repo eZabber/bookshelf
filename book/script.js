@@ -1,29 +1,24 @@
 /* =========================================================
-   MY BOOKSHELF APP — APPDATA (HIDDEN) VERSION
-   - Uses 'drive.appdata' scope (Hidden from user view)
-   - No Picker needed (Auto-detects file)
+   MY BOOKSHELF APP — PURE JSON EDITION
+   - No Sheets API (No "Delete all sheets" warning)
+   - Uses 'drive.file' scope (Only access to files created by this app)
+   - Saves data as 'bookshelf_backup.json'
    ========================================================= */
 
-const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
-// API Key tarvitaan edelleen tiedostojen etsimiseen ja luontiin
-const DEVELOPER_KEY = ""; // <--- MUISTA LAITTAA API KEY TÄHÄN!
+const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com"; 
+const DEVELOPER_KEY = ""; // <--- API KEY TÄHÄN JOS TARVITAAN (Yleensä ei pakollinen drive.file scopella, mutta hyvä olla)
 
-// MUUTOS: Käytetään appdata-scopea
-const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+// TÄRKEÄ MUUTOS: Vain drive.file (ei enää sheets tai appdata)
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 
+// POISTETTU Sheets API discovery doc
 const DISCOVERY = [
-  "https://sheets.googleapis.com/$discovery/rest?version=v4",
   "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
   "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"
 ];
 
-const SPREADSHEET_TITLE = "My Book App Data";
-const SHEET_NAME = "Sheet1";
-const HEADER = ["ID", "Title", "Author", "Shelf", "Rating", "Cover", "Date", "ReturnDate", "Audio", "ISBN"];
-const HEADER_RANGE = `${SHEET_NAME}!A1:J1`;
-const WRITE_RANGE = `${SHEET_NAME}!A2`;
-const DATA_RANGE = `${SHEET_NAME}!A2:J999`;
+const BACKUP_FILENAME = "bookshelf_backup.json";
 
 // Käännökset
 const TRANSLATIONS = {
@@ -34,11 +29,11 @@ const TRANSLATIONS = {
     clear: "Clear Filters", reset: "Reset App Data",
     integrations: "Integrations", calConn: "Connect Calendar", calDesc: "Enable for background syncing.",
     data: "Data & Backup", 
-    headerDrive: "Google Drive (Hidden Sync)", // Päivitetty otsikko
+    headerDrive: "Google Drive (JSON Backup)",
     headerLocal: "Local Device",
     export: "Export JSON", import: "Import JSON",
-    btnSaveCloud: "Sync to Cloud ☁️",
-    btnLoadCloud: "Sync from Cloud 📥", // Ei enää "Load Picker"
+    btnSaveCloud: "Save to Drive ☁️",
+    btnLoadCloud: "Load from Drive 📥",
     dark: "Dark Mode", lang: "Language",
     search: "Search ISBN, Title, Author...", add: "Add",
     signIn: "Sign In", working: "...", synced: "Logged In",
@@ -47,8 +42,8 @@ const TRANSLATIONS = {
     modalAudio: "🎧 Audio?", modalReturn: "📅 Return", cancel: "Cancel",
     changeDate: "📅 Change Date", copyTitle: "📋 Copy Title",
     importSuccess: "Success! ✅",
-    cloudSaved: "Synced! ✅",
-    cloudLoaded: "Synced! ✅",
+    cloudSaved: "Saved! ✅",
+    cloudLoaded: "Loaded! ✅",
     calAdded: "Event added! 📅",
     filterStats: "Showing {0} of {1} books",
     clearBtn: "Clear",
@@ -56,8 +51,8 @@ const TRANSLATIONS = {
     sessionExpired: "Session expired.",
     dateRequired: "Date?",
     signInRequired: "Please Sign In first.",
-    confirmLoad: "Overwrite local data with data from Cloud?",
-    noFileFound: "No backup found in cloud. Save first?"
+    confirmLoad: "Overwrite local data with data from Drive?",
+    noFileFound: "No backup file found. Save one first?"
   },
   fi: {
     read: "Luetut", wishlist: "Toivelista", loans: "Lainassa",
@@ -66,11 +61,11 @@ const TRANSLATIONS = {
     clear: "Tyhjennä", reset: "Nollaa tiedot",
     integrations: "Integraatiot", calConn: "Yhdistä kalenteri", calDesc: "Käytä taustasynkronointia.",
     data: "Tiedot & Varmuuskopio", 
-    headerDrive: "Google Drive (Piilotettu)",
+    headerDrive: "Google Drive (JSON-varmuuskopio)",
     headerLocal: "Paikallinen (Laite)",
     export: "Lataa JSON", import: "Palauta JSON",
-    btnSaveCloud: "Synkkaa pilveen ☁️",
-    btnLoadCloud: "Hae pilvestä 📥",
+    btnSaveCloud: "Tallenna Driveen ☁️",
+    btnLoadCloud: "Lataa Drivestä 📥",
     dark: "Tumma tila", lang: "Kieli",
     search: "Etsi ISBN, Nimi, Kirjailija...", add: "Lisää",
     signIn: "Kirjaudu", working: "...", synced: "Kirjautunut",
@@ -79,8 +74,8 @@ const TRANSLATIONS = {
     modalAudio: "🎧 Äänikirja?", modalReturn: "📅 Palautus", cancel: "Peruuta",
     changeDate: "📅 Muuta päivää", copyTitle: "📋 Kopioi nimi",
     importSuccess: "Onnistui! ✅",
-    cloudSaved: "Synkattu! ✅",
-    cloudLoaded: "Synkattu! ✅",
+    cloudSaved: "Tallennettu! ✅",
+    cloudLoaded: "Ladattu! ✅",
     calAdded: "Tapahtuma lisätty! 📅",
     filterStats: "Näytetään {0} / {1} kirjaa",
     clearBtn: "Tyhjennä",
@@ -88,8 +83,8 @@ const TRANSLATIONS = {
     sessionExpired: "Istunto vanheni.",
     dateRequired: "Päivämäärä?",
     signInRequired: "Kirjaudu ensin.",
-    confirmLoad: "Korvataanko paikalliset tiedot pilvestä haetuilla?",
-    noFileFound: "Varmuuskopiota ei löytynyt pilvestä. Tallenna ensin?"
+    confirmLoad: "Korvataanko paikalliset tiedot Drivestä haetuilla?",
+    noFileFound: "Varmuuskopiota ei löytynyt Drivestä. Tallenna ensin?"
   },
   et: {
     read: "Loetud", wishlist: "Soovinimekiri", loans: "Laenatud",
@@ -98,11 +93,11 @@ const TRANSLATIONS = {
     clear: "Tühjenda", reset: "Lähtesta andmed",
     integrations: "Integratsioonid", calConn: "Ühenda kalender", calDesc: "Luba taustal sünkroonimine.",
     data: "Andmed ja varukoopia", 
-    headerDrive: "Google Drive (Peidetud)",
+    headerDrive: "Google Drive (JSON)",
     headerLocal: "Kohalik seade",
     export: "Lae alla JSON", import: "Taasta JSON",
-    btnSaveCloud: "Synk. pilve ☁️",
-    btnLoadCloud: "Lae pilvest 📥",
+    btnSaveCloud: "Salvesta Drive ☁️",
+    btnLoadCloud: "Lae Drivest 📥",
     dark: "Tume režiim", lang: "Keel",
     search: "Otsi ISBN, Pealkiri, Autor...", add: "Lisa",
     signIn: "Logi sisse", working: "...", synced: "Sisse logitud",
@@ -111,8 +106,8 @@ const TRANSLATIONS = {
     modalAudio: "🎧 Audioraamat?", modalReturn: "📅 Tagastus", cancel: "Loobu",
     changeDate: "📅 Muuda kuupäeva", copyTitle: "📋 Kopeeri pealkiri",
     importSuccess: "Õnnestus! ✅",
-    cloudSaved: "Synk. tehtud! ✅",
-    cloudLoaded: "Synk. tehtud! ✅",
+    cloudSaved: "Salvestatud! ✅",
+    cloudLoaded: "Laetud! ✅",
     calAdded: "Sündmus lisatud! 📅",
     filterStats: "Kuvatakse {0} / {1} raamatut",
     clearBtn: "Tühjenda",
@@ -121,26 +116,25 @@ const TRANSLATIONS = {
     dateRequired: "Kuupäev?",
     signInRequired: "Palun logi esmalt sisse.",
     confirmLoad: "Kirjutan kohalikud andmed üle? Jätka?",
-    noFileFound: "Pilvest ei leitud andmeid."
+    noFileFound: "Drivest ei leitud andmeid."
   }
 };
 
 /* =========================
    2) STATE & UTILS
    ========================= */
-const LS = { LANG: "appLang", LIB: "myLibrary", SHEET_ID: "sheetId_appdata", SCOPES: "granted_scopes", DARK: "darkMode", CAL_SYNC: "calSync" };
+const LS = { LANG: "appLang", LIB: "myLibrary", FILE_ID: "drive_json_id", SCOPES: "granted_scopes", DARK: "darkMode", CAL_SYNC: "calSync" };
 let currentLang = localStorage.getItem(LS.LANG) || "en";
 let tokenClient = null;
 let gapiInited = false;
 let gisInited = false;
-let spreadsheetId = localStorage.getItem(LS.SHEET_ID) || null;
+let backupFileId = localStorage.getItem(LS.FILE_ID) || null; // Korvaa sheetID:n
 let currentShelf = "read";
 let library = { read: [], wishlist: [], loans: [] };
 let html5QrCode = null;
 let scanLocked = false;
 let pendingBook = null;
 let isSyncing = false;
-let syncPending = false;
 let appStatus = "idle"; 
 let filterState = { text: "", year: "", month: "", rating: "" };
 let pendingCalendarBook = null;
@@ -185,7 +179,6 @@ function saveLibrary({ shouldSync = false, skipRender = false } = {}) {
   localStorage.setItem(LS.LIB, JSON.stringify(library));
   updateShelfCounts();
   if (!skipRender) renderBooks();
-  if (shouldSync && spreadsheetId && gapi?.client?.getToken?.()) queueUpload();
 }
 function updateShelfCounts() { setText("count-read", library.read?.length || 0); setText("count-wishlist", library.wishlist?.length || 0); setText("count-loans", library.loans?.length || 0); }
 
@@ -196,7 +189,6 @@ function openMenu() { $("side-menu")?.classList.add("open"); $("menu-overlay")?.
 function closeMenu() { $("side-menu")?.classList.remove("open"); $("menu-overlay")?.classList.remove("open"); document.body.style.overflow = ""; }
 function setActiveTab(shelf) { currentShelf = shelf; ["read", "wishlist", "loans"].forEach((s) => $(`tab-${s}`)?.classList.toggle("active", s === shelf)); closeMenu(); renderBooks(); }
 function setSmartPlaceholder() { const el = $("isbn-input"); if (el) el.placeholder = t("search"); }
-// HUOM: AppData-versiossa ei ole julkista linkkiä
 function updateSheetLink() { const el = $("sheet-link"); if (el) el.style.display = "none"; }
 
 function setSyncStatus(state) {
@@ -383,7 +375,7 @@ function confirmAdd(targetShelf) {
   };
   library[targetShelf].push(newBook); closeModal(); setActiveTab(targetShelf);
   if (targetShelf === "loans" && retDate) processCalendar(newBook);
-  saveLibrary({ shouldSync: true, skipRender: true });
+  saveLibrary({ shouldSync: false, skipRender: true });
 }
 
 /* =========================
@@ -394,20 +386,20 @@ function moveToRead(id) {
   const idx = library[fromShelf].findIndex((b) => b.id === id); if (idx === -1) return;
   const book = library[fromShelf][idx]; library[fromShelf].splice(idx, 1);
   book.dateRead = todayISO(); book.returnDate = ""; book.rating = 0;
-  library.read.push(book); setActiveTab("read"); saveLibrary({ shouldSync: true, skipRender: true });
+  library.read.push(book); setActiveTab("read"); saveLibrary({ shouldSync: false, skipRender: true });
 }
 function moveToWishlist(id) {
   const idx = library.read.findIndex((b) => b.id === id); if (idx === -1) return;
   const book = library.read[idx]; library.read.splice(idx, 1);
-  book.dateRead = ""; book.rating = 0; library.wishlist.push(book); setActiveTab("wishlist"); saveLibrary({ shouldSync: true, skipRender: true });
+  book.dateRead = ""; book.rating = 0; library.wishlist.push(book); setActiveTab("wishlist"); saveLibrary({ shouldSync: false, skipRender: true });
 }
-function deleteBook(id) { if (!confirm(t("delete"))) return; library[currentShelf] = (library[currentShelf] || []).filter((b) => b.id !== id); saveLibrary({ shouldSync: true }); }
-function updateRating(id, val) { const book = library.read.find((b) => b.id === id); if (!book) return; book.rating = Number(val); saveLibrary({ shouldSync: true }); }
-function updateReadDate(id, newDate) { const book = library.read.find((b) => b.id === id); if (!book) return; book.dateRead = newDate; saveLibrary({ shouldSync: true }); }
+function deleteBook(id) { if (!confirm(t("delete"))) return; library[currentShelf] = (library[currentShelf] || []).filter((b) => b.id !== id); saveLibrary({ shouldSync: false }); }
+function updateRating(id, val) { const book = library.read.find((b) => b.id === id); if (!book) return; book.rating = Number(val); saveLibrary({ shouldSync: false }); }
+function updateReadDate(id, newDate) { const book = library.read.find((b) => b.id === id); if (!book) return; book.dateRead = newDate; saveLibrary({ shouldSync: false }); }
 function hardReset() { if (!confirm("Reset?")) return; localStorage.clear(); location.reload(); }
 
 /* =========================
-   GOOGLE AUTH & HIDDEN FOLDER LOGIC
+   GOOGLE AUTH & JSON DRIVE SYNC
    ========================= */
 function gapiLoaded() { gapi.load("client", async () => { try { await gapi.client.init({ discoveryDocs: DISCOVERY }); gapiInited = true; maybeEnableAuth(); } catch (e) { logError("GAPI Init Fail", e); } }); }
 function gisLoaded() {
@@ -420,8 +412,8 @@ function gisLoaded() {
       gapi.client.setToken(resp);
       if (pendingCalendarBook) { addGrantedScopes(`${DRIVE_SCOPE} ${CAL_SCOPE}`); if (hasScope(CAL_SCOPE)) { await apiAddCalendar(pendingCalendarBook); } pendingCalendarBook = null; return; }
       
-      // Kun kirjaudutaan, yritetään ETIÄ tiedosto heti (ei Pickeriä)
-      await findOrCreateSheet();
+      // Kirjautumisen jälkeen yritetään etsiä JSON-tiedosto
+      await findBackupFile();
     }
   });
   gisInited = true; maybeEnableAuth();
@@ -430,134 +422,106 @@ function maybeEnableAuth() { if (!gapiInited || !gisInited) return; const btn = 
 function requireSignedIn() { if (!gapi?.client?.getToken?.()) { alert(t("signInRequired")); return false; } return true; }
 
 /* =========================
-   CLOUD ACTIONS (HIDDEN APPDATA)
+   JSON FILE HANDLING
    ========================= */
-
-// 1. Etsi tiedosto AppData-kansiosta
-async function findOrCreateSheet() {
-  setSyncStatus("working");
-  try {
-      // Etsi tiedosto, joka on 'appDataFolder' ja jonka nimi on oikea
-      const resp = await gapi.client.drive.files.list({
-          q: `name = '${SPREADSHEET_TITLE}' and 'appDataFolder' in parents and trashed = false`,
-          spaces: 'appDataFolder',
-          fields: 'files(id, name)'
-      });
-      const files = resp.result.files;
-      
-      if (files && files.length > 0) {
-          // LÖYTYI!
-          spreadsheetId = files[0].id;
-          localStorage.setItem(LS.SHEET_ID, spreadsheetId);
-          console.log("Found existing hidden sheet:", spreadsheetId);
-          await doSync(); // Lataa tiedot heti
-      } else {
-          // EI LÖYTYNYT -> Odotetaan tallennusta
-          console.log("No hidden sheet found yet.");
-          setSyncStatus("idle");
-      }
-  } catch (e) {
-      logError("Find Hidden Sheet Error", e);
-      setSyncStatus("error");
-  }
+async function findBackupFile() {
+    setSyncStatus("working");
+    try {
+        const q = `name = '${BACKUP_FILENAME}' and trashed = false`;
+        const resp = await gapi.client.drive.files.list({ q, fields: "files(id, name)" });
+        const files = resp.result.files;
+        if (files && files.length > 0) {
+            backupFileId = files[0].id;
+            localStorage.setItem(LS.FILE_ID, backupFileId);
+            setSyncStatus("synced");
+        } else {
+            // Ei löytynyt, odotetaan tallennusta
+            setSyncStatus("idle");
+        }
+    } catch (e) {
+        logError("Find File Error", e);
+        setSyncStatus("error");
+    }
 }
 
-// 2. Tallenna (Luo uusi jos ei ole)
+// Helper: Multipart Upload (GAPI ei tue helposti suoraa content uploadia ilman tätä)
+async function uploadToDrive(content, fileId = null) {
+  const metadata = { name: BACKUP_FILENAME, mimeType: 'application/json' };
+  const file = new Blob([content], { type: 'application/json' });
+  const form = new FormData();
+  
+  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  form.append('file', file);
+
+  const url = fileId 
+      ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart&fields=id`
+      : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id`;
+  
+  const method = fileId ? 'PATCH' : 'POST';
+
+  const response = await fetch(url, {
+      method: method,
+      headers: { 'Authorization': 'Bearer ' + gapi.client.getToken().access_token },
+      body: form
+  });
+
+  if (!response.ok) throw new Error("Upload failed: " + response.statusText);
+  const json = await response.json();
+  return json.id;
+}
+
+// 1. Tallenna
 async function handleCloudSave() {
   if (!requireSignedIn()) return;
   const btn = $("btn-save-drive");
   const origText = btn.textContent;
   btn.textContent = t("working");
   setSyncStatus("working");
-  
-  if (!spreadsheetId) {
-    // Tarkista vielä kerran onko se olemassa
-    try {
-        const check = await gapi.client.drive.files.list({
-            q: `name = '${SPREADSHEET_TITLE}' and 'appDataFolder' in parents and trashed = false`,
-            spaces: 'appDataFolder'
-        });
-        if(check.result.files.length > 0) {
-            spreadsheetId = check.result.files[0].id;
-        } else {
-            // LUO UUSI APPDATA-KANSIOON
-            const createResp = await gapi.client.drive.files.create({
-                resource: { 
-                    name: SPREADSHEET_TITLE, 
-                    mimeType: "application/vnd.google-apps.spreadsheet",
-                    parents: ['appDataFolder'] // <--- TÄMÄ TEKEE SIITÄ PIILOTETUN
-                },
-                fields: "id"
-            });
-            spreadsheetId = createResp.result.id;
-            // Alusta otsikot
-            await gapi.client.sheets.spreadsheets.values.update({
-                spreadsheetId, range: HEADER_RANGE, valueInputOption: "RAW", resource: { values: [HEADER] }
-            });
-        }
-        localStorage.setItem(LS.SHEET_ID, spreadsheetId);
-    } catch (e) {
-      logError("Create Hidden Sheet Error", e); setSyncStatus("error"); btn.textContent = origText; return;
-    }
+
+  try {
+      const jsonStr = JSON.stringify(library, null, 2); // Tallenna JSONina
+      const newId = await uploadToDrive(jsonStr, backupFileId);
+      backupFileId = newId;
+      localStorage.setItem(LS.FILE_ID, backupFileId);
+      
+      setSyncStatus("synced");
+      btn.textContent = t("cloudSaved");
+      setTimeout(() => { btn.textContent = t("btnSaveCloud"); }, 2500);
+  } catch(e) {
+      logError("Save Error", e);
+      setSyncStatus("error");
+      btn.textContent = origText;
   }
-  await queueUpload();
-  setSyncStatus("synced");
-  btn.textContent = t("cloudSaved");
-  setTimeout(() => { btn.textContent = t("btnSaveCloud"); }, 2500);
 }
 
-// 3. Lataa (Manuaalinen nappi, jos automaatio ei riitä)
+// 2. Lataa
 async function handleCloudLoad() {
   if (!requireSignedIn()) return;
   if (!confirm(t("confirmLoad"))) return;
   
-  if(!spreadsheetId) {
-      await findOrCreateSheet();
-      if(!spreadsheetId) { alert(t("noFileFound")); return; }
-  }
   setSyncStatus("working");
-  await doSync(); 
-  alert(t("cloudLoaded"));
-}
-
-/* =========================
-   SYNC & UPLOAD
-   ========================= */
-async function doSync() {
   try {
-    const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range: DATA_RANGE });
-    const rows = resp?.result?.values || [];
-    if (rows.length > 0) {
-      const newLib = { read: [], wishlist: [], loans: [] };
-      rows.forEach((row) => {
-        if (!row?.[0]) return;
-        let shelf = String(row[3] || "read").toLowerCase(); if (!["read", "wishlist", "loans"].includes(shelf)) shelf = "read";
-        newLib[shelf].push({ id: String(row[0]), title: row[1] || "Unknown", authors: [{ name: row[2] || "Unknown" }], shelf, rating: Number(row[4] || 0), cover: row[5] === "null" ? null : (row[5] || null), dateRead: row[6] || "", returnDate: row[7] || "", isAudio: String(row[8]).toUpperCase() === "TRUE", isbn: row[9] || "" });
-      });
-      library = newLib; saveLibrary({ shouldSync: false });
-    }
-    setSyncStatus("synced");
-  } catch (e) { logError("Sync", e); setSyncStatus("error"); }
-}
-
-async function queueUpload() {
-  if (isSyncing) { syncPending = true; return; } isSyncing = true; setSyncStatus("working");
-  try { await uploadData(); setSyncStatus("synced"); } catch (e) {
-    logError("Upload", e); setSyncStatus("error");
-    if (getErrCode(e) === 401) { gapi.client.setToken(null); alert(t("sessionExpired")); setSyncStatus("idle"); }
-  } finally { isSyncing = false; if (syncPending) { syncPending = false; setTimeout(queueUpload, 0); } }
-}
-
-async function uploadData() {
-  if (!spreadsheetId) return;
-  const rows = [];
-  ["read", "wishlist", "loans"].forEach((shelf) => {
-    (library[shelf] || []).forEach((b) => {
-      rows.push([ b.id, b.title || "Unknown", getAuthorName(b), shelf, Number(b.rating || 0), b.cover ? String(b.cover) : "null", b.dateRead || "", b.returnDate || "", b.isAudio ? "TRUE" : "FALSE", b.isbn || "" ]);
-    });
-  });
-  await gapi.client.sheets.spreadsheets.values.clear({ spreadsheetId, range: DATA_RANGE });
-  if (rows.length > 0) { await gapi.client.sheets.spreadsheets.values.update({ spreadsheetId, range: WRITE_RANGE, valueInputOption: "RAW", resource: { values: rows } }); }
+      if(!backupFileId) await findBackupFile();
+      if(!backupFileId) { alert(t("noFileFound")); setSyncStatus("idle"); return; }
+      
+      const resp = await gapi.client.drive.files.get({ fileId: backupFileId, alt: 'media' });
+      // GAPI drive.files.get returns body in .result (if small) or needs manual fetch.
+      // With alt=media, gapi automatically parses JSON usually, or returns string.
+      let data = resp.result;
+      if(typeof data === "string") data = JSON.parse(data);
+      
+      if(data && data.read) {
+          library = data;
+          saveLibrary({ shouldSync: false }); // Tallenna local storageen
+          alert(t("cloudLoaded"));
+          setSyncStatus("synced");
+      } else {
+          alert("Invalid file format.");
+      }
+  } catch(e) {
+      logError("Load Error", e);
+      setSyncStatus("error");
+  }
 }
 
 /* =========================
@@ -565,7 +529,7 @@ async function uploadData() {
    ========================= */
 function exportData() { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library, null, 2)); const a = document.createElement("a"); a.setAttribute("href", dataStr); a.setAttribute("download", "my_bookshelf_" + new Date().toISOString().split("T")[0] + ".json"); document.body.appendChild(a); a.click(); a.remove(); }
 function triggerImport() { $("import-file")?.click(); }
-function importData(event) { const file = event?.target?.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { try { const imported = JSON.parse(e.target.result); if (!imported?.read) return alert("Invalid"); library = imported; saveLibrary({shouldSync:true}); alert(t("importSuccess")); } catch {} }; reader.readAsText(file); }
+function importData(event) { const file = event?.target?.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { try { const imported = JSON.parse(e.target.result); if (!imported?.read) return alert("Invalid"); library = imported; saveLibrary({shouldSync:false}); alert(t("importSuccess")); } catch {} }; reader.readAsText(file); }
 
 async function fetchOpenLibrary(isbn) { try { const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&jscmd=data&format=json`); const data = await res.json(); const key = `ISBN:${isbn}`; if (data?.[key]) { const b = data[key]; return { title: b.title, authors: b.authors || [{ name: "Unknown" }], cover: b.cover?.medium || b.cover?.small || null, isbn }; } } catch {} return null; }
 async function fetchFinna(isbn) { try { const res = await fetch(`https://api.finna.fi/v1/search?lookfor=isbn:${isbn}&type=AllFields&field[]=title&field[]=buildings&field[]=images`); const data = await res.json(); if (data?.resultCount > 0) { const b = data.records[0]; return { title: b.title, authors: [{ name: b.buildings?.[0]?.translated || "Unknown" }], cover: b.images?.[0] ? `https://api.finna.fi${b.images[0]}` : null, isbn }; } } catch {} return null; }
@@ -618,11 +582,10 @@ window.addEventListener("DOMContentLoaded", () => {
       // 1. Google Drive Section
       const cloudDiv = document.createElement("div");
       cloudDiv.id = "cloud-controls";
-      // IMPORTANT: Set initial English text to prevent "empty button" flash before setLanguage runs
       cloudDiv.innerHTML = `
-        <h4 id="header-drive">Google Drive (Hidden)</h4>
+        <h4 id="header-drive">Google Drive (Backup)</h4>
         <div class="cloud-btn-row">
-            <button id="btn-save-drive" class="cloud-action-btn">Sync ☁️</button>
+            <button id="btn-save-drive" class="cloud-action-btn">Save ☁️</button>
             <button id="btn-load-drive" class="cloud-action-btn">Load 📥</button>
         </div>
       `;
@@ -631,7 +594,7 @@ window.addEventListener("DOMContentLoaded", () => {
       // 2. Local Section Header
       const localHeader = document.createElement("h4");
       localHeader.id = "header-local";
-      localHeader.textContent = "Local Device"; // Fallback text
+      localHeader.textContent = "Local Device"; 
       localHeader.style.marginTop = "15px";
       exportBtn.parentElement.insertBefore(localHeader, exportBtn);
 
@@ -659,11 +622,10 @@ window.addEventListener("DOMContentLoaded", () => {
     
     setText("year", new Date().getFullYear());
     setSyncStatus("idle"); updateShelfCounts(); updateSheetLink(); setSmartPlaceholder();
-    // CALL LANGUAGE LAST TO UPDATE INJECTED BUTTONS
     setLanguage(currentLang);
     
     window.addEventListener("resize", setSmartPlaceholder); window.addEventListener("orientationchange", setSmartPlaceholder);
-    console.log("App Ready");
+    console.log("App Ready - JSON Edition");
   } catch(e) { logError("Init",e); }
 });
 
