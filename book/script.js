@@ -1,14 +1,9 @@
 /* =========================================================
-   MY BOOKSHELF APP — FINAL PRODUCTION (Secure & Robust)
-   - Scope: drive.file (User friendly)
-   - Sync: Manual Save/Load via Picker (Reliable multi-device)
-   - Calendar: Incremental Auth (Only asks when needed)
+   MY BOOKSHELF APP — FINAL POLISHED (Pretty UI)
    ========================================================= */
 
 const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
-
-// ⚠️ TÄRKEÄ: Picker vaatii API Keyn toimiakseen luotettavasti kaikilla tileillä.
-// Hae tämä Google Cloud Consolesta (Credentials -> API Key)
+// LISÄÄ TÄHÄN GOOGLE CLOUD CONSOLESTA LUOTU API KEY
 const DEVELOPER_KEY = ""; 
 
 // Scopes
@@ -38,12 +33,10 @@ const TRANSLATIONS = {
     data: "Data & Backup", 
     export: "Export to File (JSON)", import: "Import from File",
     
-    // CLOUD
-    cloudSection: "Google Drive Sync",
-    btnSaveCloud: "Save to Drive (Sync)",
-    btnLoadCloud: "Load from Drive (Open)",
-    cloudSaved: "Saved to Drive! ✅",
-    cloudLoaded: "Loaded from Drive! ✅",
+    // UI
+    cloudSection: "Cloud Sync (Google Drive)",
+    btnSaveCloud: "Save ☁️",
+    btnLoadCloud: "Load 📂",
     
     dark: "Dark Mode", lang: "Language",
     search: "Search ISBN, Title, Author...", add: "Add",
@@ -53,6 +46,8 @@ const TRANSLATIONS = {
     modalAudio: "🎧 Audio?", modalReturn: "📅 Return", cancel: "Cancel",
     changeDate: "📅 Change Date", copyTitle: "📋 Copy Title",
     importSuccess: "Success! ✅",
+    cloudSaved: "Saved to Drive! ✅",
+    cloudLoaded: "Loaded from Drive! ✅",
     calAdded: "Event added! 📅",
     filterStats: "Showing {0} of {1} books",
     clearBtn: "Clear",
@@ -72,12 +67,10 @@ const TRANSLATIONS = {
     data: "Tiedot & Varmuuskopio", 
     export: "Lataa tiedostona (JSON)", import: "Palauta tiedostosta",
     
-    cloudSection: "Google Drive Tallennus",
-    btnSaveCloud: "Tallenna Driveen (Sync)",
-    btnLoadCloud: "Lataa Drivestä (Avaa)",
-    cloudSaved: "Tallennettu Driveen! ✅",
-    cloudLoaded: "Ladattu Drivestä! ✅",
-
+    cloudSection: "Pilvitallennus (Drive)",
+    btnSaveCloud: "Tallenna ☁️",
+    btnLoadCloud: "Lataa 📂",
+    
     dark: "Tumma tila", lang: "Kieli",
     search: "Etsi ISBN, Nimi, Kirjailija...", add: "Lisää",
     signIn: "Kirjaudu", working: "...", synced: "Synkattu",
@@ -86,6 +79,8 @@ const TRANSLATIONS = {
     modalAudio: "🎧 Äänikirja?", modalReturn: "📅 Palautus", cancel: "Peruuta",
     changeDate: "📅 Muuta päivää", copyTitle: "📋 Kopioi nimi",
     importSuccess: "Onnistui! ✅",
+    cloudSaved: "Tallennettu Driveen! ✅",
+    cloudLoaded: "Ladattu Drivestä! ✅",
     calAdded: "Tapahtuma lisätty! 📅",
     filterStats: "Näytetään {0} / {1} kirjaa",
     clearBtn: "Tyhjennä",
@@ -105,11 +100,9 @@ const TRANSLATIONS = {
     data: "Andmed ja varukoopia", 
     export: "Lae alla failina (JSON)", import: "Taasta failist",
     
-    cloudSection: "Google Drive Sync",
-    btnSaveCloud: "Salvesta Drive'i (Sync)",
-    btnLoadCloud: "Lae Drive'ist (Ava)",
-    cloudSaved: "Salvestatud Drive'i! ✅",
-    cloudLoaded: "Laetud Drive'ist! ✅",
+    cloudSection: "Pilvesalvestus (Drive)",
+    btnSaveCloud: "Salvesta ☁️",
+    btnLoadCloud: "Lae 📂",
 
     dark: "Tume režiim", lang: "Keel",
     search: "Otsi ISBN, Pealkiri, Autor...", add: "Lisa",
@@ -119,6 +112,8 @@ const TRANSLATIONS = {
     modalAudio: "🎧 Audioraamat?", modalReturn: "📅 Tagastus", cancel: "Loobu",
     changeDate: "📅 Muuda kuupäeva", copyTitle: "📋 Kopeeri pealkiri",
     importSuccess: "Õnnestus! ✅",
+    cloudSaved: "Salvestatud Drive'i! ✅",
+    cloudLoaded: "Laetud Drive'ist! ✅",
     calAdded: "Sündmus lisatud! 📅",
     filterStats: "Kuvatakse {0} / {1} raamatut",
     clearBtn: "Tühjenda",
@@ -150,6 +145,7 @@ let syncPending = false;
 let appStatus = "idle"; 
 let filterState = { text: "", year: "", month: "", rating: "" };
 let pendingCalendarBook = null;
+let accessToken = null;
 
 const $ = (id) => document.getElementById(id);
 const t = (key) => (TRANSLATIONS[currentLang]?.[key] ?? key);
@@ -191,7 +187,6 @@ function saveLibrary({ shouldSync = false, skipRender = false } = {}) {
   localStorage.setItem(LS.LIB, JSON.stringify(library));
   updateShelfCounts();
   if (!skipRender) renderBooks();
-  // Auto-sync only if we already have a sheetId connected
   if (shouldSync && spreadsheetId && gapi?.client?.getToken?.()) queueUpload();
 }
 function updateShelfCounts() { setText("count-read", library.read?.length || 0); setText("count-wishlist", library.wishlist?.length || 0); setText("count-loans", library.loans?.length || 0); }
@@ -226,7 +221,7 @@ function setLanguage(lang) {
   setText("menu-integrations", t("integrations")); setText("label-cal-conn", t("calConn")); setText("cal-desc", t("calDesc"));
   setText("menu-data", t("data")); 
   
-  // Cloud Buttons
+  // Update Cloud UI
   setText("cloud-header", t("cloudSection"));
   setText("btn-save-drive", t("btnSaveCloud"));
   setText("btn-load-drive", t("btnLoadCloud"));
@@ -311,7 +306,7 @@ function renderBooks() {
       const dateDiv = document.createElement("div");
       const dateSpan = document.createElement("span"); dateSpan.id = `date-display-${b.id}`; dateSpan.textContent = `${t("finished")} ${b.dateRead}`;
       const dateInput = document.createElement("input"); dateInput.type = "date"; dateInput.id = `date-input-${b.id}`; dateInput.className = "date-edit-input";
-      dateInput.style.display = "none"; // Hide calendar
+      dateInput.style.display = "none";
       dateInput.value = String(b.dateRead || "");
       dateInput.onchange = (e) => updateReadDate(b.id, e.target.value);
       dateInput.onblur = () => setTimeout(() => { dateInput.style.display = "none"; dateSpan.style.display = "inline"; }, 200);
@@ -403,9 +398,17 @@ function gisLoaded() {
     client_id: CLIENT_ID, scope: DRIVE_SCOPE, // Just drive.file
     callback: async (resp) => {
       if (resp?.error) return logError("Auth Fail", resp);
+      accessToken = resp.access_token; // Store for Picker
       addGrantedScopes(resp.scope || "");
       gapi.client.setToken(resp);
-      if (pendingCalendarBook) { addGrantedScopes(`${DRIVE_SCOPE} ${CAL_SCOPE}`); if (hasScope(CAL_SCOPE)) { await apiAddCalendar(pendingCalendarBook); } pendingCalendarBook = null; return; }
+      
+      // If we are pending calendar access
+      if (pendingCalendarBook) { 
+        addGrantedScopes(`${DRIVE_SCOPE} ${CAL_SCOPE}`); 
+        if (hasScope(CAL_SCOPE)) { await apiAddCalendar(pendingCalendarBook); } 
+        pendingCalendarBook = null; 
+        return; 
+      }
       
       // AUTO SYNC ONLY IF ID EXISTS (Manual mode otherwise)
       if (spreadsheetId) { setSyncStatus("working"); await doSync(); }
@@ -604,19 +607,28 @@ window.addEventListener("DOMContentLoaded", () => {
     
     if($("language-select")) $("language-select").onchange=(e)=>setLanguage(e.target.value);
     
-    // Inject Cloud Buttons into Menu (Dynamically, so no HTML edit needed)
+    // Inject Styles for Cloud Buttons
+    const style = document.createElement("style");
+    style.innerHTML = `
+      #cloud-controls { margin-top:15px; padding-top:15px; border-top:1px solid var(--border-color, #ccc); }
+      #cloud-header { margin:0 0 8px 0; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; opacity:0.6; }
+      .cloud-btn-row { display:flex; gap:10px; margin-bottom:10px; }
+      .cloud-action-btn { flex:1; padding:10px; border:1px solid currentColor; background:none; border-radius:6px; cursor:pointer; font-size:0.9rem; display:flex; align-items:center; justify-content:center; gap:6px; opacity:0.8; transition:all 0.2s; color:inherit; }
+      .cloud-action-btn:hover { opacity:1; background:rgba(128,128,128,0.1); }
+    `;
+    document.head.appendChild(style);
+
+    // Inject Cloud Buttons HTML
     const exportBtn = $("btn-export");
     if(exportBtn && !$("cloud-controls")) {
       const wrapper = document.createElement("div");
       wrapper.id = "cloud-controls";
-      wrapper.style.marginTop = "20px";
-      wrapper.style.borderTop = "1px solid var(--border-color)";
-      wrapper.style.paddingTop = "10px";
-      
       wrapper.innerHTML = `
-        <h4 id="cloud-header" style="margin:0 0 10px 0; font-size:0.9rem; opacity:0.7;">Google Drive</h4>
-        <button id="btn-save-drive" class="menu-btn">Save to Drive</button>
-        <button id="btn-load-drive" class="menu-btn">Load from Drive</button>
+        <h4 id="cloud-header">Cloud Sync</h4>
+        <div class="cloud-btn-row">
+            <button id="btn-save-drive" class="cloud-action-btn"></button>
+            <button id="btn-load-drive" class="cloud-action-btn"></button>
+        </div>
       `;
       exportBtn.parentElement.insertBefore(wrapper, exportBtn);
       
@@ -634,14 +646,18 @@ window.addEventListener("DOMContentLoaded", () => {
     $("import-file")?.addEventListener("change", importData);
     
     const calToggle = $("cal-connect-toggle"); if(calToggle){ calToggle.checked=localStorage.getItem(LS.CAL_SYNC)==="true"; calToggle.onchange=(e)=>localStorage.setItem(LS.CAL_SYNC, e.target.checked); }
+    
+    // FIXED DARK MODE LOGIC
     const darkToggle = $("dark-mode-toggle"); if(darkToggle){ 
        if(localStorage.getItem(LS.DARK)==="true") { document.body.classList.add("dark-mode"); darkToggle.checked=true; }
        darkToggle.onchange=(e)=>{ if(e.target.checked){document.body.classList.add("dark-mode"); localStorage.setItem(LS.DARK,"true");} else {document.body.classList.remove("dark-mode"); localStorage.setItem(LS.DARK,"false");} };
     }
+    
     document.querySelector(".tabs")?.addEventListener("click", (e)=>{ const t=e.target.closest(".tab"); if(t) setActiveTab(t.id.replace("tab-","")); });
     
     setText("year", new Date().getFullYear());
     setSyncStatus("idle"); setLanguage(currentLang); updateShelfCounts(); updateSheetLink(); setSmartPlaceholder();
+    window.addEventListener("resize", setSmartPlaceholder); window.addEventListener("orientationchange", setSmartPlaceholder);
     console.log("App Ready");
   } catch(e) { logError("Init",e); }
 });
