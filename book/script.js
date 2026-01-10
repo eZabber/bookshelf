@@ -1,22 +1,23 @@
 /* =========================================================
-   MY BOOKSHELF APP — PRIVACY FIRST (drive.file only)
+   MY BOOKSHELF APP — FINAL PRODUCTION (Drive-file scoped)
+   - Consent screen no longer says "all Google Sheets"
+   - Multi-device sync finds the same spreadsheet using appProperties tag
+   - Calendar scope requested only when needed
    ========================================================= */
 
 /* =========================
    1) CONFIG & TRANSLATIONS
    ========================= */
 
-const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
+const CLIENT_ID =
+  "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
 
-// PRIVACY FIX: We ONLY use "drive.file". 
-// This restricts access to ONLY files created by this app.
-// No more "See all spreadsheets" warning.
-const SCOPES = [
-  "https://www.googleapis.com/auth/drive.file",
-  "https://www.googleapis.com/auth/calendar.events"
-];
+// ✅ Narrow permission: only files this app creates/uses
+const DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+// Optional: requested only when user uses calendar reminder
+const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 
-// We need both Sheets API (to read data) and Drive API (to find the file safely)
+// Discovery docs (Sheets + Drive + optional Calendar)
 const DISCOVERY = [
   "https://sheets.googleapis.com/$discovery/rest?version=v4",
   "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
@@ -25,28 +26,70 @@ const DISCOVERY = [
 
 const SPREADSHEET_TITLE = "My Book App Data";
 const SHEET_NAME = "Sheet1";
-const HEADER = ["ID", "Title", "Author", "Shelf", "Rating", "Cover", "Date", "ReturnDate", "Audio", "ISBN"];
+const HEADER = [
+  "ID",
+  "Title",
+  "Author",
+  "Shelf",
+  "Rating",
+  "Cover",
+  "Date",
+  "ReturnDate",
+  "Audio",
+  "ISBN"
+];
 
 const HEADER_RANGE = `${SHEET_NAME}!A1:J1`;
 const WRITE_RANGE = `${SHEET_NAME}!A2`;
 const DATA_RANGE = `${SHEET_NAME}!A2:J999`;
 
+// Tag the spreadsheet so we can find it on a new device reliably
+const APP_TAG_KEY = "mybookshelf_app";
+const APP_TAG_VAL = "true";
+
+// UI strings
 const TRANSLATIONS = {
   en: {
-    read: "Read", wishlist: "Wishlist", loans: "Loans",
-    settings: "Settings & Filters", shelves: "Shelves", display: "Display",
-    filter: "Filter Books", year: "Year", month: "Month", rating: "Rating",
-    clear: "Clear Filters", reset: "Reset App Data",
-    integrations: "Integrations", calConn: "Connect Calendar", calDesc: "Enable for background syncing. Disable for web link.",
-    data: "Data & Backup", export: "Download Backup (JSON)", import: "Restore Backup",
-    dark: "Dark Mode", lang: "Language",
-    search: "Search ISBN, Title, Author...", add: "Add",
-    signIn: "Sign In", working: "...", synced: "Synced",
-    downloading: "Loading...", saving: "Saving...", error: "Error",
-    markRead: "Mark Read", unread: "↩︎ Unread", delete: "Delete?",
-    finished: "Finished:", due: "Due:", audio: "🎧 Audio", reminder: "📅 Reminder",
-    modalAudio: "🎧 Audio?", modalReturn: "📅 Return", cancel: "Cancel",
-    changeDate: "📅 Change Date", copyTitle: "📋 Copy Title",
+    read: "Read",
+    wishlist: "Wishlist",
+    loans: "Loans",
+    settings: "Settings & Filters",
+    shelves: "Shelves",
+    display: "Display",
+    filter: "Filter Books",
+    year: "Year",
+    month: "Month",
+    rating: "Rating",
+    clear: "Clear Filters",
+    reset: "Reset App Data",
+    integrations: "Integrations",
+    calConn: "Connect Calendar",
+    calDesc: "Enable for background syncing. Disable for web link.",
+    data: "Data & Backup",
+    export: "Download Backup (JSON)",
+    import: "Restore Backup",
+    dark: "Dark Mode",
+    lang: "Language",
+    search: "Search ISBN, Title, Author...",
+    add: "Add",
+    signIn: "Sign In",
+    working: "...",
+    synced: "Synced",
+    downloading: "Loading...",
+    saving: "Saving...",
+    error: "Error",
+    markRead: "Mark Read",
+    unread: "↩︎ Unread",
+    delete: "Delete?",
+    finished: "Finished:",
+    due: "Due:",
+    audio: "🎧 Audio",
+    reminder: "📅 Reminder",
+    modalAudio: "🎧 Audio?",
+    modalReturn: "📅 Return",
+    cancel: "Cancel",
+    changeDate: "📅 Change Date",
+    copyTitle: "📋 Copy Title",
     importSuccess: "Backup restored successfully! ✅",
     calAdded: "Event added to Calendar! 📅",
     filterStats: "Showing {0} of {1} books",
@@ -54,58 +97,114 @@ const TRANSLATIONS = {
     invalidIsbn: "Invalid ISBN",
     sheetMissing: "Sheet deleted/missing. Will recreate on next sync.",
     sessionExpired: "Session expired.",
-    dateRequired: "Date?"
+    dateRequired: "Date?",
+    signInRequired: "Please Sign In first."
   },
   fi: {
-    read: "Luetut", wishlist: "Toivelista", loans: "Lainassa",
-    settings: "Asetukset", shelves: "Hyllyt", display: "Näkymä",
-    filter: "Suodata", year: "Vuosi", month: "Kuukausi", rating: "Arvosana",
-    clear: "Tyhjennä", reset: "Nollaa tiedot",
-    integrations: "Integraatiot", calConn: "Yhdistä kalenteri", calDesc: "Käytä taustasynkronointia. Poista käytöstä verkkolinkille.",
-    data: "Tiedot & Varmuuskopio", export: "Lataa varmuuskopio (JSON)", import: "Palauta varmuuskopio",
-    dark: "Tumma tila", lang: "Kieli",
-    search: "Etsi ISBN, Nimi, Kirjailija...", add: "Lisää",
-    signIn: "Kirjaudu", working: "...", synced: "Synkattu",
-    downloading: "Ladataan...", saving: "Tallennetaan...", error: "Virhe",
-    markRead: "Merkitse luetuksi", unread: "↩︎ Lukematon", delete: "Poista?",
-    finished: "Luettu:", due: "Eräpäivä:", audio: "🎧 Ääni", reminder: "📅 Muistutus",
-    modalAudio: "🎧 Äänikirja?", modalReturn: "📅 Palautus", cancel: "Peruuta",
-    changeDate: "📅 Muuta päivää", copyTitle: "📋 Kopioi nimi",
+    read: "Luetut",
+    wishlist: "Toivelista",
+    loans: "Lainassa",
+    settings: "Asetukset",
+    shelves: "Hyllyt",
+    display: "Näkymä",
+    filter: "Suodata",
+    year: "Vuosi",
+    month: "Kuukausi",
+    rating: "Arvosana",
+    clear: "Tyhjennä",
+    reset: "Nollaa tiedot",
+    integrations: "Integraatiot",
+    calConn: "Yhdistä kalenteri",
+    calDesc: "Käytä taustasynkronointia. Poista käytöstä verkkolinkille.",
+    data: "Tiedot & Varmuuskopio",
+    export: "Lataa varmuuskopio (JSON)",
+    import: "Palauta varmuuskopio",
+    dark: "Tumma tila",
+    lang: "Kieli",
+    search: "Etsi ISBN, Nimi, Kirjailija...",
+    add: "Lisää",
+    signIn: "Kirjaudu",
+    working: "...",
+    synced: "Synkattu",
+    downloading: "Ladataan...",
+    saving: "Tallennetaan...",
+    error: "Virhe",
+    markRead: "Merkitse luetuksi",
+    unread: "↩︎ Lukematon",
+    delete: "Poista?",
+    finished: "Luettu:",
+    due: "Eräpäivä:",
+    audio: "🎧 Ääni",
+    reminder: "📅 Muistutus",
+    modalAudio: "🎧 Äänikirja?",
+    modalReturn: "📅 Palautus",
+    cancel: "Peruuta",
+    changeDate: "📅 Muuta päivää",
+    copyTitle: "📋 Kopioi nimi",
     importSuccess: "Varmuuskopio palautettu! ✅",
     calAdded: "Tapahtuma lisätty kalenteriin! 📅",
     filterStats: "Näytetään {0} / {1} kirjaa",
     clearBtn: "Tyhjennä",
     invalidIsbn: "Virheellinen ISBN",
-    sheetMissing: "Taulukko puuttuu/poistettu. Luodaan uudelleen seuraavalla synkronoinnilla.",
+    sheetMissing:
+      "Taulukko puuttuu/poistettu. Luodaan uudelleen seuraavalla synkronoinnilla.",
     sessionExpired: "Istunto vanheni.",
-    dateRequired: "Päivämäärä?"
+    dateRequired: "Päivämäärä?",
+    signInRequired: "Kirjaudu ensin."
   },
   et: {
-    read: "Loetud", wishlist: "Soovinimekiri", loans: "Laenatud",
-    settings: "Sätted", shelves: "Riiulid", display: "Kuva",
-    filter: "Filtreeri", year: "Aasta", month: "Kuu", rating: "Hinne",
-    clear: "Tühjenda", reset: "Lähtesta andmed",
-    integrations: "Integratsioonid", calConn: "Ühenda kalender", calDesc: "Luba taustal sünkroonimine. Keela veebilingi jaoks.",
-    data: "Andmed ja varukoopia", export: "Lae alla varukoopia (JSON)", import: "Taasta varukoopia",
-    dark: "Tume režiim", lang: "Keel",
-    search: "Otsi ISBN, Pealkiri, Autor...", add: "Lisa",
-    signIn: "Logi sisse", working: "...", synced: "Sünkroonitud",
-    downloading: "Laadin...", saving: "Salvestan...", error: "Viga",
-    markRead: "Märgi loetuks", unread: "↩︎ Lugemata", delete: "Kustuta?",
-    finished: "Loetud:", due: "Tähtaeg:", audio: "🎧 Audio", reminder: "📅 Meeldetuletus",
-    modalAudio: "🎧 Audioraamat?", modalReturn: "📅 Tagastus", cancel: "Loobu",
-    changeDate: "📅 Muuda kuupäeva", copyTitle: "📋 Kopeeri pealkiri",
+    read: "Loetud",
+    wishlist: "Soovinimekiri",
+    loans: "Laenatud",
+    settings: "Sätted",
+    shelves: "Riiulid",
+    display: "Kuva",
+    filter: "Filtreeri",
+    year: "Aasta",
+    month: "Kuu",
+    rating: "Hinne",
+    clear: "Tühjenda",
+    reset: "Lähtesta andmed",
+    integrations: "Integratsioonid",
+    calConn: "Ühenda kalender",
+    calDesc: "Luba taustal sünkroonimine. Keela veebilingi jaoks.",
+    data: "Andmed ja varukoopia",
+    export: "Lae alla varukoopia (JSON)",
+    import: "Taasta varukoopia",
+    dark: "Tume režiim",
+    lang: "Keel",
+    search: "Otsi ISBN, Pealkiri, Autor...",
+    add: "Lisa",
+    signIn: "Logi sisse",
+    working: "...",
+    synced: "Sünkroonitud",
+    downloading: "Laadin...",
+    saving: "Salvestan...",
+    error: "Viga",
+    markRead: "Märgi loetuks",
+    unread: "↩︎ Lugemata",
+    delete: "Kustuta?",
+    finished: "Loetud:",
+    due: "Tähtaeg:",
+    audio: "🎧 Audio",
+    reminder: "📅 Meeldetuletus",
+    modalAudio: "🎧 Audioraamat?",
+    modalReturn: "📅 Tagastus",
+    cancel: "Loobu",
+    changeDate: "📅 Muuda kuupäeva",
+    copyTitle: "📋 Kopeeri pealkiri",
     importSuccess: "Varukoopia taastatud! ✅",
     calAdded: "Sündmus lisatud kalendrisse! 📅",
     filterStats: "Kuvatakse {0} / {1} raamatut",
     clearBtn: "Tühjenda",
     invalidIsbn: "Vigane ISBN",
-    sheetMissing: "Tabel puudub/kustutatud. Loon uuesti järgmisel sünkroonimisel.",
+    sheetMissing:
+      "Tabel puudub/kustutatud. Loon uuesti järgmisel sünkroonimisel.",
     sessionExpired: "Seanss aegus.",
-    dateRequired: "Kuupäev?"
+    dateRequired: "Kuupäev?",
+    signInRequired: "Palun logi esmalt sisse."
   }
 };
-
 
 /* =========================
    2) STATE & STORAGE KEYS
@@ -138,19 +237,18 @@ let pendingBook = null;
 let isSyncing = false;
 let syncPending = false;
 
-let appStatus = "idle"; 
+let appStatus = "idle"; // idle | working | synced | error
 
 let filterState = { text: "", year: "", month: "", rating: "" };
 
 let pendingCalendarBook = null;
-
 
 /* =========================
    3) DOM HELPERS & UTILS
    ========================= */
 
 const $ = (id) => document.getElementById(id);
-const t = (key) => (TRANSLATIONS[currentLang]?.[key] ?? key);
+const t = (key) => TRANSLATIONS[currentLang]?.[key] ?? key;
 
 function setText(id, text) {
   const el = $(id);
@@ -189,7 +287,7 @@ function safeUrl(url) {
   if (!url) return "";
   try {
     const u = new URL(url);
-    return (u.protocol === "http:" || u.protocol === "https:") ? u.href : "";
+    return u.protocol === "http:" || u.protocol === "https:" ? u.href : "";
   } catch {
     return "";
   }
@@ -236,7 +334,7 @@ function addGrantedScopes(scopeString) {
   localStorage.setItem(LS.SCOPES, merged);
 }
 
-/* ---- timezone-safe date range ---- */
+/* ---- timezone-safe date range for all-day event ---- */
 function getReminderDates(returnDateStr) {
   const [y, m, d] = returnDateStr.split("-").map(Number);
   const returnObj = new Date(y, m - 1, d, 12, 0, 0);
@@ -256,7 +354,6 @@ function getReminderDates(returnDateStr) {
 
   return { start: fmt(startObj), end: fmt(endObj) };
 }
-
 
 /* =========================
    4) LIBRARY STORAGE
@@ -288,7 +385,6 @@ function updateShelfCounts() {
   setText("count-wishlist", library.wishlist?.length || 0);
   setText("count-loans", library.loans?.length || 0);
 }
-
 
 /* =========================
    5) UI: MENU & TABS
@@ -331,7 +427,6 @@ function updateSheetLink() {
   }
 }
 
-
 /* =========================
    6) STATUS / AUTH BUTTON
    ========================= */
@@ -356,7 +451,6 @@ function setSyncStatus(state) {
     else btn.textContent = t("signIn");
   }
 }
-
 
 /* =========================
    7) LANGUAGE BINDING
@@ -413,7 +507,6 @@ function setLanguage(lang) {
   renderBooks();
 }
 
-
 /* =========================
    8) FILTERS
    ========================= */
@@ -443,7 +536,6 @@ function applyFilters() {
   renderBooks();
 }
 
-
 /* =========================
    9) RENDER
    ========================= */
@@ -454,7 +546,9 @@ function renderBooks() {
 
   list.innerHTML = "";
 
-  const allItems = Array.isArray(library[currentShelf]) ? library[currentShelf] : [];
+  const allItems = Array.isArray(library[currentShelf])
+    ? library[currentShelf]
+    : [];
   let visibleItems = allItems;
 
   const term = (filterState.text || "").toLowerCase();
@@ -464,7 +558,9 @@ function renderBooks() {
     visibleItems = allItems.filter((b) => {
       const titleLc = String(b?.title || "").toLowerCase();
       const authorLc = getAuthorName(b).toLowerCase();
-      const isbnLc = String(b?.isbn || "").replace(/[\s-]/g, "").toLowerCase();
+      const isbnLc = String(b?.isbn || "")
+        .replace(/[\s-]/g, "")
+        .toLowerCase();
 
       const matchText =
         !term ||
@@ -473,13 +569,20 @@ function renderBooks() {
         isbnLc.includes(cleanTerm);
 
       const dateStr =
-        currentShelf === "read" ? String(b?.dateRead || "")
-        : currentShelf === "loans" ? String(b?.returnDate || "")
-        : "";
+        currentShelf === "read"
+          ? String(b?.dateRead || "")
+          : currentShelf === "loans"
+          ? String(b?.returnDate || "")
+          : "";
 
-      const matchYear = !filterState.year || (dateStr && dateStr.startsWith(filterState.year));
-      const matchMonth = !filterState.month || (dateStr && dateStr.substring(5, 7) === filterState.month);
-      const matchRating = !filterState.rating || (Number(b?.rating || 0) === Number(filterState.rating));
+      const matchYear =
+        !filterState.year || (dateStr && dateStr.startsWith(filterState.year));
+      const matchMonth =
+        !filterState.month ||
+        (dateStr && dateStr.substring(5, 7) === filterState.month);
+      const matchRating =
+        !filterState.rating ||
+        Number(b?.rating || 0) === Number(filterState.rating);
 
       return matchText && matchYear && matchMonth && matchRating;
     });
@@ -491,193 +594,212 @@ function renderBooks() {
   if (statusEl) {
     if (allItems.length !== visibleItems.length) {
       statusEl.style.display = "flex";
-      const msg = t("filterStats").replace("{0}", String(visibleItems.length)).replace("{1}", String(allItems.length));
-      statusEl.innerHTML = `<span>${msg}</span> <span class="filter-clear-link" onclick="clearFilters()">${t("clearBtn")}</span>`;
+      const msg = t("filterStats")
+        .replace("{0}", String(visibleItems.length))
+        .replace("{1}", String(allItems.length));
+      statusEl.innerHTML = `<span>${msg}</span> <span class="filter-clear-link" onclick="clearFilters()">${t(
+        "clearBtn"
+      )}</span>`;
     } else {
       statusEl.style.display = "none";
     }
   }
 
-  // newest first
-  visibleItems.slice().reverse().forEach((b) => {
-    const li = document.createElement("li");
-    li.className = "book-card";
+  visibleItems
+    .slice()
+    .reverse()
+    .forEach((b) => {
+      const li = document.createElement("li");
+      li.className = "book-card";
 
-    // three-dot menu
-    const menuContainer = document.createElement("div");
-    menuContainer.className = "card-menu-container";
+      const menuContainer = document.createElement("div");
+      menuContainer.className = "card-menu-container";
 
-    const dotsBtn = document.createElement("button");
-    dotsBtn.className = "dots-btn";
-    dotsBtn.innerHTML = "⋮";
-    dotsBtn.onclick = (e) => {
-      e.stopPropagation();
-      document.querySelectorAll(".menu-dropdown.show").forEach((d) => d.classList.remove("show"));
-      menuContainer.querySelector(".menu-dropdown")?.classList.toggle("show");
-    };
-
-    const dropdown = document.createElement("div");
-    dropdown.className = "menu-dropdown";
-
-    if (currentShelf === "read") {
-      const editDateBtn = document.createElement("button");
-      editDateBtn.className = "menu-item";
-      editDateBtn.innerHTML = t("changeDate");
-      editDateBtn.onclick = () => {
-        const dateSpan = document.getElementById(`date-display-${b.id}`);
-        const dateInput = document.getElementById(`date-input-${b.id}`);
-        if (dateSpan && dateInput) {
-          dateSpan.style.display = "none";
-          dateInput.style.display = "inline-block";
-          dateInput.focus();
-          try { dateInput.showPicker(); } catch {}
-        }
+      const dotsBtn = document.createElement("button");
+      dotsBtn.className = "dots-btn";
+      dotsBtn.innerHTML = "⋮";
+      dotsBtn.onclick = (e) => {
+        e.stopPropagation();
+        document
+          .querySelectorAll(".menu-dropdown.show")
+          .forEach((d) => d.classList.remove("show"));
+        menuContainer.querySelector(".menu-dropdown")?.classList.toggle("show");
       };
-      dropdown.appendChild(editDateBtn);
-    }
 
-    const copyBtn = document.createElement("button");
-    copyBtn.className = "menu-item";
-    copyBtn.innerHTML = t("copyTitle");
-    copyBtn.onclick = () => navigator.clipboard?.writeText?.(String(b?.title || ""))?.catch?.(() => {});
-    dropdown.appendChild(copyBtn);
+      const dropdown = document.createElement("div");
+      dropdown.className = "menu-dropdown";
 
-    menuContainer.appendChild(dotsBtn);
-    menuContainer.appendChild(dropdown);
-    li.appendChild(menuContainer);
+      if (currentShelf === "read") {
+        const editDateBtn = document.createElement("button");
+        editDateBtn.className = "menu-item";
+        editDateBtn.innerHTML = t("changeDate");
+        editDateBtn.onclick = () => {
+          const dateSpan = document.getElementById(`date-display-${b.id}`);
+          const dateInput = document.getElementById(`date-input-${b.id}`);
+          if (dateSpan && dateInput) {
+            dateSpan.style.display = "none";
+            dateInput.style.display = "inline-block";
+            dateInput.focus();
+            try {
+              dateInput.showPicker();
+            } catch {}
+          }
+        };
+        dropdown.appendChild(editDateBtn);
+      }
 
-    const coverUrl = safeUrl(b?.cover);
-    const thumb = document.createElement(coverUrl ? "img" : "div");
-    thumb.className = "book-thumb";
-    if (coverUrl) {
-      thumb.src = coverUrl;
-      thumb.onerror = () => { thumb.style.display = "none"; };
-    } else {
-      thumb.style.background = "#ddd";
-    }
-    li.appendChild(thumb);
+      const copyBtn = document.createElement("button");
+      copyBtn.className = "menu-item";
+      copyBtn.innerHTML = t("copyTitle");
+      copyBtn.onclick = () =>
+        navigator.clipboard
+          ?.writeText?.(String(b?.title || ""))
+          ?.catch?.(() => {});
+      dropdown.appendChild(copyBtn);
 
-    const info = document.createElement("div");
-    info.className = "book-info";
+      menuContainer.appendChild(dotsBtn);
+      menuContainer.appendChild(dropdown);
+      li.appendChild(menuContainer);
 
-    const badges = document.createElement("div");
-    badges.className = "badges-row";
+      const coverUrl = safeUrl(b?.cover);
+      const thumb = document.createElement(coverUrl ? "img" : "div");
+      thumb.className = "book-thumb";
+      if (coverUrl) {
+        thumb.src = coverUrl;
+        thumb.onerror = () => {
+          thumb.style.display = "none";
+        };
+      } else {
+        thumb.style.background = "#ddd";
+      }
+      li.appendChild(thumb);
 
-    if (currentShelf === "loans" && b?.returnDate) {
-      const loanBadge = document.createElement("div");
-      loanBadge.className = "loan-badge";
-      loanBadge.textContent = `${t("due")} ${b.returnDate}`;
-      badges.appendChild(loanBadge);
-    }
+      const info = document.createElement("div");
+      info.className = "book-info";
 
-    if (b?.isAudio) {
-      const audioBadge = document.createElement("div");
-      audioBadge.className = "audio-badge";
-      audioBadge.textContent = t("audio");
-      badges.appendChild(audioBadge);
-    }
+      const badges = document.createElement("div");
+      badges.className = "badges-row";
 
-    if (badges.children.length > 0) info.appendChild(badges);
+      if (currentShelf === "loans" && b?.returnDate) {
+        const loanBadge = document.createElement("div");
+        loanBadge.className = "loan-badge";
+        loanBadge.textContent = `${t("due")} ${b.returnDate}`;
+        badges.appendChild(loanBadge);
+      }
 
-    const titleDiv = document.createElement("div");
-    titleDiv.className = "book-title";
-    titleDiv.textContent = String(b?.title || "Unknown");
+      if (b?.isAudio) {
+        const audioBadge = document.createElement("div");
+        audioBadge.className = "audio-badge";
+        audioBadge.textContent = t("audio");
+        badges.appendChild(audioBadge);
+      }
 
-    const metaDiv = document.createElement("div");
-    metaDiv.className = "book-meta";
+      if (badges.children.length > 0) info.appendChild(badges);
 
-    const authorDiv = document.createElement("div");
-    authorDiv.textContent = getAuthorName(b);
-    metaDiv.appendChild(authorDiv);
+      const titleDiv = document.createElement("div");
+      titleDiv.className = "book-title";
+      titleDiv.textContent = String(b?.title || "Unknown");
 
-    if (currentShelf === "read" && b?.dateRead) {
-      const dateDiv = document.createElement("div");
+      const metaDiv = document.createElement("div");
+      metaDiv.className = "book-meta";
 
-      const dateSpan = document.createElement("span");
-      dateSpan.id = `date-display-${b.id}`;
-      dateSpan.textContent = `${t("finished")} ${b.dateRead}`;
+      const authorDiv = document.createElement("div");
+      authorDiv.textContent = getAuthorName(b);
+      metaDiv.appendChild(authorDiv);
 
-      const dateInput = document.createElement("input");
-      dateInput.type = "date";
-      dateInput.id = `date-input-${b.id}`;
-      dateInput.className = "date-edit-input";
-      
-      // HIDE CALENDAR INPUT BY DEFAULT
-      dateInput.style.display = "none";
-      
-      dateInput.value = String(b.dateRead || "");
-      dateInput.onchange = (e) => updateReadDate(b.id, e.target.value);
-      dateInput.onblur = () => setTimeout(() => {
+      if (currentShelf === "read" && b?.dateRead) {
+        const dateDiv = document.createElement("div");
+
+        const dateSpan = document.createElement("span");
+        dateSpan.id = `date-display-${b.id}`;
+        dateSpan.textContent = `${t("finished")} ${b.dateRead}`;
+
+        const dateInput = document.createElement("input");
+        dateInput.type = "date";
+        dateInput.id = `date-input-${b.id}`;
+        dateInput.className = "date-edit-input";
+
+        // ✅ FIX: hidden by default (prevents duplicate-looking calendars)
         dateInput.style.display = "none";
-        dateSpan.style.display = "inline";
-      }, 200);
 
-      dateDiv.appendChild(dateSpan);
-      dateDiv.appendChild(dateInput);
-      metaDiv.appendChild(dateDiv);
-    }
+        dateInput.value = String(b.dateRead || "");
+        dateInput.onchange = (e) => updateReadDate(b.id, e.target.value);
+        dateInput.onblur = () =>
+          setTimeout(() => {
+            dateInput.style.display = "none";
+            dateSpan.style.display = "inline";
+          }, 200);
 
-    info.appendChild(titleDiv);
-    info.appendChild(metaDiv);
+        dateDiv.appendChild(dateSpan);
+        dateDiv.appendChild(dateInput);
+        metaDiv.appendChild(dateDiv);
+      }
 
-    if (b?.isbn) {
-      const isbnPill = document.createElement("div");
-      isbnPill.className = "isbn-pill";
-      isbnPill.textContent = `ISBN: ${b.isbn}`;
-      info.appendChild(isbnPill);
-    }
+      info.appendChild(titleDiv);
+      info.appendChild(metaDiv);
 
-    const actions = document.createElement("div");
-    actions.className = "actions";
+      if (b?.isbn) {
+        const isbnPill = document.createElement("div");
+        isbnPill.className = "isbn-pill";
+        isbnPill.textContent = `ISBN: ${b.isbn}`;
+        info.appendChild(isbnPill);
+      }
 
-    if (currentShelf === "read") {
-      const sel = document.createElement("select");
-      sel.className = "rating";
+      const actions = document.createElement("div");
+      actions.className = "actions";
 
-      const currentRating = Number(b?.rating || 0);
-      sel.innerHTML =
-        `<option value="0">...</option>` +
-        [1, 2, 3, 4, 5]
-          .map((n) => `<option value="${n}" ${currentRating === n ? "selected" : ""}>${"⭐".repeat(n)}</option>`)
-          .join("");
+      if (currentShelf === "read") {
+        const sel = document.createElement("select");
+        sel.className = "rating";
 
-      sel.onchange = (e) => updateRating(b.id, e.target.value);
-      info.appendChild(sel);
+        const currentRating = Number(b?.rating || 0);
+        sel.innerHTML =
+          `<option value="0">...</option>` +
+          [1, 2, 3, 4, 5]
+            .map(
+              (n) =>
+                `<option value="${n}" ${
+                  currentRating === n ? "selected" : ""
+                }>${"⭐".repeat(n)}</option>`
+            )
+            .join("");
 
-      const unreadBtn = document.createElement("button");
-      unreadBtn.className = "btn-sm btn-unread";
-      unreadBtn.textContent = t("unread");
-      unreadBtn.onclick = () => moveToWishlist(b.id);
-      actions.appendChild(unreadBtn);
-    } else {
-      const moveBtn = document.createElement("button");
-      moveBtn.className = "move-btn";
-      moveBtn.textContent = t("markRead");
-      moveBtn.onclick = () => moveToRead(b.id);
-      actions.appendChild(moveBtn);
-    }
+        sel.onchange = (e) => updateRating(b.id, e.target.value);
+        info.appendChild(sel);
 
-    const delBtn = document.createElement("button");
-    delBtn.className = "btn-del";
-    delBtn.textContent = "🗑️";
-    delBtn.onclick = () => deleteBook(b.id);
-    actions.appendChild(delBtn);
+        const unreadBtn = document.createElement("button");
+        unreadBtn.className = "btn-sm btn-unread";
+        unreadBtn.textContent = t("unread");
+        unreadBtn.onclick = () => moveToWishlist(b.id);
+        actions.appendChild(unreadBtn);
+      } else {
+        const moveBtn = document.createElement("button");
+        moveBtn.className = "move-btn";
+        moveBtn.textContent = t("markRead");
+        moveBtn.onclick = () => moveToRead(b.id);
+        actions.appendChild(moveBtn);
+      }
 
-    if (currentShelf === "loans" && b?.returnDate) {
-      const calBtn = document.createElement("button");
-      calBtn.className = "btn-cal";
-      calBtn.textContent = t("reminder");
-      calBtn.onclick = () => processCalendar(b);
-      actions.appendChild(calBtn);
-    }
+      const delBtn = document.createElement("button");
+      delBtn.className = "btn-del";
+      delBtn.textContent = "🗑️";
+      delBtn.onclick = () => deleteBook(b.id);
+      actions.appendChild(delBtn);
 
-    info.appendChild(actions);
-    li.appendChild(info);
+      if (currentShelf === "loans" && b?.returnDate) {
+        const calBtn = document.createElement("button");
+        calBtn.className = "btn-cal";
+        calBtn.textContent = t("reminder");
+        calBtn.onclick = () => processCalendar(b);
+        actions.appendChild(calBtn);
+      }
 
-    list.appendChild(li);
-  });
+      info.appendChild(actions);
+      li.appendChild(info);
+
+      list.appendChild(li);
+    });
 }
-
 
 /* =========================
    10) MODAL
@@ -756,7 +878,10 @@ function confirmAdd(targetShelf) {
   const newBook = {
     id: makeId(),
     title: pendingBook.title || "Unknown",
-    authors: Array.isArray(pendingBook.authors) && pendingBook.authors.length ? pendingBook.authors : [{ name: "Unknown" }],
+    authors:
+      Array.isArray(pendingBook.authors) && pendingBook.authors.length
+        ? pendingBook.authors
+        : [{ name: "Unknown" }],
     rating: 0,
     cover: safeUrl(pendingBook.cover) || null,
     dateRead: targetShelf === "read" ? todayISO() : "",
@@ -775,13 +900,14 @@ function confirmAdd(targetShelf) {
   saveLibrary({ shouldSync: true, skipRender: true });
 }
 
-
 /* =========================
    11) CRUD ACTIONS
    ========================= */
 
 function moveToRead(id) {
-  const fromShelf = library.wishlist.find((b) => b.id === id) ? "wishlist" : "loans";
+  const fromShelf = library.wishlist.find((b) => b.id === id)
+    ? "wishlist"
+    : "loans";
   const idx = library[fromShelf].findIndex((b) => b.id === id);
   if (idx === -1) return;
 
@@ -814,7 +940,9 @@ function moveToWishlist(id) {
 
 function deleteBook(id) {
   if (!confirm(t("delete"))) return;
-  library[currentShelf] = (library[currentShelf] || []).filter((b) => b.id !== id);
+  library[currentShelf] = (library[currentShelf] || []).filter(
+    (b) => b.id !== id
+  );
   saveLibrary({ shouldSync: true });
 }
 
@@ -838,16 +966,20 @@ function hardReset() {
   location.reload();
 }
 
-
 /* =========================
    12) IMPORT / EXPORT
    ========================= */
 
 function exportData() {
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library, null, 2));
+  const dataStr =
+    "data:text/json;charset=utf-8," +
+    encodeURIComponent(JSON.stringify(library, null, 2));
   const a = document.createElement("a");
   a.setAttribute("href", dataStr);
-  a.setAttribute("download", "my_bookshelf_" + new Date().toISOString().split("T")[0] + ".json");
+  a.setAttribute(
+    "download",
+    "my_bookshelf_" + new Date().toISOString().split("T")[0] + ".json"
+  );
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -890,14 +1022,15 @@ function importData(event) {
   reader.readAsText(file);
 }
 
-
 /* =========================
-   13) SEARCH
+   13) SEARCH (OpenLibrary → Finna → Google Books)
    ========================= */
 
 async function fetchOpenLibrary(isbn) {
   try {
-    const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&jscmd=data&format=json`);
+    const res = await fetch(
+      `https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&jscmd=data&format=json`
+    );
     const data = await res.json();
     const key = `ISBN:${isbn}`;
     if (data?.[key]) {
@@ -921,8 +1054,12 @@ async function fetchFinna(isbn) {
     const data = await res.json();
     if (data?.resultCount > 0) {
       const b = data.records[0];
-      const coverUrl = b?.images?.[0] ? `https://api.finna.fi${b.images[0]}` : null;
+      const coverUrl = b?.images?.[0]
+        ? `https://api.finna.fi${b.images[0]}`
+        : null;
+
       const authorName = b?.buildings?.[0]?.translated || "Unknown";
+
       return {
         title: b.title,
         authors: [{ name: authorName }],
@@ -936,7 +1073,9 @@ async function fetchFinna(isbn) {
 
 async function fetchGoogleBooks(isbn) {
   try {
-    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+    const res = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`
+    );
     const data = await res.json();
     if (data?.totalItems > 0) {
       const v = data.items[0].volumeInfo;
@@ -966,25 +1105,33 @@ async function fetchAndPrompt(rawIsbn) {
   if (book) {
     showModal(book, clean);
   } else {
-    if (confirm("Book not found. Search manually?")) await searchAndPrompt("ISBN " + clean);
+    if (confirm("Book not found. Search manually?"))
+      await searchAndPrompt("ISBN " + clean);
     else scanLocked = false;
   }
 }
 
 async function searchAndPrompt(query) {
   try {
-    const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=1`);
+    const res = await fetch(
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(
+        query
+      )}&limit=1`
+    );
     const data = await res.json();
     if (data?.docs?.length) {
       const d = data.docs[0];
       showModal({
         title: d.title,
         authors: [{ name: d.author_name?.[0] || "Unknown" }],
-        cover: d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : null,
+        cover: d.cover_i
+          ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg`
+          : null,
         isbn: d.isbn?.[0] || ""
       });
     } else {
-      if (confirm("Manual?")) showModal({ title: query, authors: [{ name: "Manual" }] });
+      if (confirm("Manual?"))
+        showModal({ title: query, authors: [{ name: "Manual" }] });
       else scanLocked = false;
     }
   } catch {
@@ -1007,9 +1154,8 @@ async function handleManualAdd() {
   else await searchAndPrompt(val);
 }
 
-
 /* =========================
-   14) CAMERA
+   14) CAMERA (Html5Qrcode)
    ========================= */
 
 async function startCamera() {
@@ -1017,7 +1163,9 @@ async function startCamera() {
   if (container) container.style.display = "block";
 
   if (html5QrCode) {
-    try { await html5QrCode.stop(); } catch {}
+    try {
+      await html5QrCode.stop();
+    } catch {}
   }
 
   html5QrCode = new Html5Qrcode("reader");
@@ -1032,7 +1180,7 @@ async function startCamera() {
 
   try {
     await html5QrCode.start({ facingMode: "environment" }, config, onSuccess);
-  } catch (err) {
+  } catch {
     try {
       await html5QrCode.start({ facingMode: "user" }, config, onSuccess);
     } catch {
@@ -1047,15 +1195,20 @@ async function stopCamera() {
   if (container) container.style.display = "none";
 
   if (html5QrCode) {
-    try { await html5QrCode.stop(); } catch {}
-    try { html5QrCode.clear(); } catch {}
+    try {
+      await html5QrCode.stop();
+    } catch {}
+    try {
+      html5QrCode.clear();
+    } catch {}
     html5QrCode = null;
   }
 }
 
-
 /* =========================
-   15) GOOGLE AUTH & SYNC (WITH SEARCH)
+   15) GOOGLE AUTH & SYNC
+   - Default sign-in = Drive file scope only
+   - ensureSheet() finds correct file on new devices via appProperties tag
    ========================= */
 
 function gapiLoaded() {
@@ -1073,7 +1226,7 @@ function gapiLoaded() {
 function gisLoaded() {
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
-    scope: SCOPES.join(" "),
+    scope: DRIVE_FILE_SCOPE, // ✅ narrow
     callback: async (resp) => {
       if (resp?.error) return logError("Auth Fail", resp);
 
@@ -1081,10 +1234,9 @@ function gisLoaded() {
       gapi.client.setToken(resp);
 
       if (pendingCalendarBook) {
+        // Calendar request flow continues here
         addGrantedScopes(CAL_SCOPE);
-        if (hasScope(CAL_SCOPE)) {
-          await apiAddCalendar(pendingCalendarBook);
-        }
+        if (hasScope(CAL_SCOPE)) await apiAddCalendar(pendingCalendarBook);
         pendingCalendarBook = null;
         return;
       }
@@ -1100,6 +1252,7 @@ function gisLoaded() {
 
 function maybeEnableAuth() {
   if (!gapiInited || !gisInited) return;
+
   const btn = $("auth-btn");
   if (btn) {
     btn.disabled = false;
@@ -1107,51 +1260,162 @@ function maybeEnableAuth() {
   }
 }
 
-async function ensureSheet() {
-  if (spreadsheetId) return;
+function requireSignedIn() {
+  if (!gapi?.client?.getToken?.()) {
+    alert(t("signInRequired"));
+    return false;
+  }
+  return true;
+}
 
-  setSyncStatus("working");
+async function findSheetByTag() {
+  // Prefer tagged files created/used by this app
+  const qTagged = [
+    `mimeType='application/vnd.google-apps.spreadsheet'`,
+    `trashed=false`,
+    `appProperties has { key='${APP_TAG_KEY}' and value='${APP_TAG_VAL}' }`
+  ].join(" and ");
 
+  const resp = await gapi.client.drive.files.list({
+    q: qTagged,
+    fields: "files(id,name,modifiedTime)",
+    orderBy: "modifiedTime desc",
+    spaces: "drive"
+  });
+
+  const files = resp?.result?.files || [];
+  return files[0]?.id || null;
+}
+
+async function findSheetByNameFallback() {
+  // Fallback if tag missing (older installs)
+  const safeName = SPREADSHEET_TITLE.replace(/'/g, "\\'");
+  const qName = [
+    `mimeType='application/vnd.google-apps.spreadsheet'`,
+    `trashed=false`,
+    `name='${safeName}'`
+  ].join(" and ");
+
+  const resp = await gapi.client.drive.files.list({
+    q: qName,
+    fields: "files(id,name,modifiedTime)",
+    orderBy: "modifiedTime desc",
+    spaces: "drive"
+  });
+
+  const files = resp?.result?.files || [];
+  return files[0]?.id || null;
+}
+
+async function tagSheet(fileId) {
+  // Add appProperties tag so future devices find it reliably
   try {
-    // 1. SEARCH existing file first (requires drive.file scope)
-    // We look for a file created by THIS app with the specific name.
-    const searchResp = await gapi.client.drive.files.list({
-      q: `name = '${SPREADSHEET_TITLE}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
-      fields: "files(id, name)",
-      spaces: "drive"
+    await gapi.client.drive.files.update({
+      fileId,
+      resource: { appProperties: { [APP_TAG_KEY]: APP_TAG_VAL } },
+      fields: "id"
+    });
+  } catch (e) {
+    // Not fatal, but helps multi-device detection
+    console.warn("Tagging sheet failed", e);
+  }
+}
+
+async function ensureHeader(spreadsheetIdToUse) {
+  try {
+    const headerResp = await gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId: spreadsheetIdToUse,
+      range: HEADER_RANGE
     });
 
-    const files = searchResp?.result?.files || [];
+    const firstRow = headerResp?.result?.values?.[0] || [];
+    const looksOk =
+      firstRow.length === HEADER.length &&
+      firstRow.every((v, i) => String(v || "") === String(HEADER[i] || ""));
 
-    if (files.length > 0) {
-      // Found it! Use the first match.
-      console.log("Found existing sheet:", files[0].id);
-      spreadsheetId = files[0].id;
-    } else {
-      // Not found, create new
-      console.log("No sheet found, creating new...");
-      const createResp = await gapi.client.sheets.spreadsheets.create({
-        properties: { title: SPREADSHEET_TITLE },
-        sheets: [{ properties: { title: SHEET_NAME } }]
-      });
-      spreadsheetId = createResp.result.spreadsheetId;
-
-      // Initialize header
+    if (!looksOk) {
       await gapi.client.sheets.spreadsheets.values.update({
-        spreadsheetId,
+        spreadsheetId: spreadsheetIdToUse,
         range: HEADER_RANGE,
         valueInputOption: "RAW",
         resource: { values: [HEADER] }
       });
     }
+  } catch {
+    // If header read fails, we still try to write it
+    await gapi.client.sheets.spreadsheets.values.update({
+      spreadsheetId: spreadsheetIdToUse,
+      range: HEADER_RANGE,
+      valueInputOption: "RAW",
+      resource: { values: [HEADER] }
+    });
+  }
+}
 
-    // Save ID for future
+async function ensureSheet() {
+  if (!requireSignedIn()) throw new Error("Not signed in");
+
+  // If we have an ID, verify it works; otherwise find it
+  if (spreadsheetId) {
+    try {
+      // Quick check: read 1 cell
+      await gapi.client.sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${SHEET_NAME}!A1:A1`
+      });
+      updateSheetLink();
+      return;
+    } catch (e) {
+      // If ID is stale/deleted/unshared, drop it and re-find
+      spreadsheetId = null;
+      localStorage.removeItem(LS.SHEET_ID);
+      updateSheetLink();
+    }
+  }
+
+  setSyncStatus("working");
+
+  // 1) Try tagged sheet (best)
+  let found = await findSheetByTag();
+
+  // 2) Fallback by name (older versions)
+  if (!found) found = await findSheetByNameFallback();
+
+  if (found) {
+    spreadsheetId = found;
     localStorage.setItem(LS.SHEET_ID, spreadsheetId);
     updateSheetLink();
+    // ensure tag exists for next time
+    await tagSheet(spreadsheetId);
+    // ensure header
+    await ensureHeader(spreadsheetId);
+    return;
+  }
 
+  // 3) Create new sheet
+  try {
+    const createResp = await gapi.client.sheets.spreadsheets.create({
+      properties: { title: SPREADSHEET_TITLE },
+      sheets: [{ properties: { title: SHEET_NAME } }]
+    });
+
+    spreadsheetId = createResp.result.spreadsheetId;
+
+    await gapi.client.sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: HEADER_RANGE,
+      valueInputOption: "RAW",
+      resource: { values: [HEADER] }
+    });
+
+    await tagSheet(spreadsheetId);
+
+    localStorage.setItem(LS.SHEET_ID, spreadsheetId);
+    updateSheetLink();
   } catch (e) {
-    logError("Sheet Init/Search Error", e);
+    logError("Sheet Init Error", e);
     setSyncStatus("error");
+    throw e;
   }
 }
 
@@ -1183,7 +1447,7 @@ async function doSync() {
           authors: [{ name: row[2] || "Unknown" }],
           shelf,
           rating: Number(row[4] || 0),
-          cover: row[5] === "null" ? null : (row[5] || null),
+          cover: row[5] === "null" ? null : row[5] || null,
           dateRead: row[6] || "",
           returnDate: row[7] || "",
           isAudio: String(row[8]).toUpperCase() === "TRUE",
@@ -1202,12 +1466,18 @@ async function doSync() {
     logError("Sync Error", e);
     setSyncStatus("error");
 
-    if (getErrCode(e) === 404) {
+    const code = getErrCode(e);
+    if (code === 404) {
       spreadsheetId = null;
       localStorage.removeItem(LS.SHEET_ID);
       updateSheetLink();
       setSyncStatus("idle");
       alert(t("sheetMissing"));
+    }
+    if (code === 401 || code === 403) {
+      gapi.client.setToken(null);
+      alert(t("sessionExpired"));
+      setSyncStatus("idle");
     }
   }
 }
@@ -1253,6 +1523,8 @@ async function queueUpload() {
 }
 
 async function uploadData() {
+  if (!requireSignedIn()) return;
+  if (!spreadsheetId) await ensureSheet();
   if (!spreadsheetId) return;
 
   const rows = [];
@@ -1288,9 +1560,8 @@ async function uploadData() {
   }
 }
 
-
 /* =========================
-   16) CALENDAR WRAPPERS
+   16) CALENDAR
    ========================= */
 
 function processCalendar(book) {
@@ -1298,16 +1569,17 @@ function processCalendar(book) {
   const isConnected = calToggle ? !!calToggle.checked : false;
 
   if (isConnected) {
-    if (!gapi?.client?.getToken?.()) {
-      alert("Please Sign In first.");
-      return;
-    }
+    if (!requireSignedIn()) return;
 
+    // Request calendar scope only when needed
     if (!hasScope(CAL_SCOPE)) {
       pendingCalendarBook = book;
-      const scopeStr = SCOPES.join(" "); // Re-request full scopes including cal
+
+      const scopeStr = `${DRIVE_FILE_SCOPE} ${CAL_SCOPE}`;
       addGrantedScopes(scopeStr);
-      tokenClient.requestAccessToken({ prompt: "", scope: scopeStr });
+
+      // Use consent the first time calendar is requested
+      tokenClient.requestAccessToken({ prompt: "consent", scope: scopeStr });
       return;
     }
 
@@ -1319,6 +1591,7 @@ function processCalendar(book) {
 
 async function apiAddCalendar(book) {
   if (!book?.returnDate) return alert("No date set");
+
   const { start, end } = getReminderDates(book.returnDate);
 
   try {
@@ -1335,6 +1608,7 @@ async function apiAddCalendar(book) {
         }
       }
     });
+
     alert(t("calAdded"));
   } catch (e) {
     logError("Cal API", e);
@@ -1345,16 +1619,17 @@ async function apiAddCalendar(book) {
 function magicLinkCalendar(book) {
   if (!book?.returnDate) return alert("No date set");
   const { start, end } = getReminderDates(book.returnDate);
+
   const sStr = start.replace(/-/g, "");
   const eStr = end.replace(/-/g, "");
   const title = encodeURIComponent("Return: " + (book.title || "Book"));
   const details = encodeURIComponent(
     `Book by ${getAuthorName(book)}.\n\n(Added via My BookShelf App)`
   );
+
   const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${sStr}/${eStr}`;
   window.open(url, "_blank");
 }
-
 
 /* =========================
    17) INIT
@@ -1374,7 +1649,9 @@ window.addEventListener("DOMContentLoaded", () => {
       const isDropdown = e.target.closest(".menu-dropdown");
       const isBtn = e.target.closest(".dots-btn");
       if (!isDropdown && !isBtn) {
-        document.querySelectorAll(".menu-dropdown.show").forEach((d) => d.classList.remove("show"));
+        document
+          .querySelectorAll(".menu-dropdown.show")
+          .forEach((d) => d.classList.remove("show"));
       }
     });
 
@@ -1414,7 +1691,9 @@ window.addEventListener("DOMContentLoaded", () => {
 
     addClick("auth-btn", () => {
       if (!tokenClient) return alert("Loading...");
-      tokenClient.requestAccessToken({ prompt: "" });
+      // First time sign-in: force consent so user sees a clear screen.
+      // After that, Google will usually not show it again.
+      tokenClient.requestAccessToken({ prompt: "consent" });
     });
 
     addClick("reset-btn", hardReset);
@@ -1425,7 +1704,8 @@ window.addEventListener("DOMContentLoaded", () => {
     const calToggle = $("cal-connect-toggle");
     if (calToggle) {
       calToggle.checked = localStorage.getItem(LS.CAL_SYNC) === "true";
-      calToggle.onchange = (e) => localStorage.setItem(LS.CAL_SYNC, e.target.checked ? "true" : "false");
+      calToggle.onchange = (e) =>
+        localStorage.setItem(LS.CAL_SYNC, e.target.checked ? "true" : "false");
     }
 
     const tabsContainer = document.querySelector(".tabs");
@@ -1473,7 +1753,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// Expose globals
+// Expose required globals
 window.clearFilters = clearFilters;
 window.gapiLoaded = gapiLoaded;
 window.gisLoaded = gisLoaded;
