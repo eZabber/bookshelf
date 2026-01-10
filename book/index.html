@@ -4,20 +4,23 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>My BookShelf</title>
-  
   <link rel="stylesheet" href="style.css">
-  
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 
 <body>
 
   <header>
-    <button id="menu-btn" aria-label="Open menu">☰</button>
-    <h1 class="app-title">📚 <span class="title-my">My</span> <span class="title-main">BookShelf</span></h1>
-    <div id="sync-wrapper">
-      <div id="sync-dot" title="Sync Status"></div>
-      <div style="width: 10px;"></div>
+    <div class="header-left">
+        <button id="menu-btn" aria-label="Open menu">☰</button>
+        <h1 class="app-title">📚 <span class="title-my">My</span> <span class="title-main">BookShelf</span></h1>
+    </div>
+    
+    <div class="header-right">
+        <button id="auth-btn" class="header-auth-btn" disabled>Sign In</button>
+        <div id="sync-wrapper">
+            <div id="sync-dot" title="Sync Status"></div>
+        </div>
     </div>
   </header>
 
@@ -36,31 +39,26 @@
     </div>
 
     <div class="menu-section">
-        <button id="auth-btn" disabled>Sign In with Google</button>
-        <div style="margin-top:10px; font-size:0.8rem; text-align:center;">
-            <a id="sheet-link" target="_blank" href="#" style="display:none; color:var(--accent);">↗️ Open Google Sheet</a>
+        <div style="text-align:center;">
+            <a id="sheet-link" target="_blank" href="#" style="display:none; color:var(--accent); font-size:0.9rem; text-decoration:none;">↗️ Open Google Sheet</a>
         </div>
     </div>
     
     <div class="menu-section">
       <span class="menu-title" id="menu-shelves">Shelves</span>
       <div class="shelf-counters">
-        
         <div class="stat-box">
             <span class="stat-label" id="label-stat-read">Read</span>
             <span id="count-read" class="stat-num">0</span>
         </div>
-        
         <div class="stat-box">
             <span class="stat-label" id="label-stat-wish">Wishlist</span>
             <span id="count-wishlist" class="stat-num">0</span>
         </div>
-        
         <div class="stat-box">
             <span class="stat-label" id="label-stat-loans">Loans</span>
             <span id="count-loans" class="stat-num">0</span>
         </div>
-
       </div>
     </div>
 
@@ -78,7 +76,6 @@
     <div class="menu-section">
         <label class="menu-title" id="menu-filter">Filter Books</label>
         <input type="text" id="filter-text" class="menu-input" placeholder="Title, Author, or ISBN">
-        
         <div class="filter-grid">
             <div class="filter-field">
                 <label for="filter-year" id="label-year">Year</label>
@@ -95,7 +92,6 @@
                 </select>
             </div>
         </div>
-
         <div class="menu-row" style="margin-top:12px;">
             <span id="label-rating">Rating</span>
             <select id="filter-rating" class="menu-select" style="width: 60%;">
@@ -107,7 +103,6 @@
                 <option value="1">1 ★</option>
             </select>
         </div>
-        
         <div class="menu-actions">
             <button class="btn-sm" id="btn-clear-filters" style="width:100%;">Clear Filters</button>
         </div>
@@ -173,7 +168,6 @@
   </div>
 
   <script src="script.js"></script>
-
   <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
   <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 
