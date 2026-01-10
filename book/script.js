@@ -6,7 +6,6 @@ const SHEETS_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const DISCOVERY = [ 
     "https://sheets.googleapis.com/$discovery/rest?version=v4", 
-    "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
     "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"
 ];
 // "Sheet1" is the default tab name created by the API. 
@@ -105,6 +104,33 @@ function addGrantedScopes(scopeString) {
     // Merge new scopes with old, remove duplicates
     const merged = (current + " " + scopeString).split(/\s+/).filter((v, i, a) => a.indexOf(v) === i && v).join(" ");
     localStorage.setItem("granted_scopes", merged);
+}
+
+// --- DATE HELPER (Timezone Safe) ---
+function getReminderDates(returnDateStr) {
+    // 1. Parse YYYY-MM-DD manually to avoid UTC shifts
+    const [y, m, d] = returnDateStr.split('-').map(Number);
+    
+    // 2. Create Date objects set to NOON (12:00) to prevent DST/Timezone midnight shifts
+    const returnObj = new Date(y, m - 1, d, 12, 0, 0);
+    
+    // 3. Reminder Start = Return Date - 1 Day
+    const startObj = new Date(returnObj);
+    startObj.setDate(startObj.getDate() - 1);
+    
+    // 4. Reminder End = Start + 1 Day (For Google Calendar All-Day exclusivity)
+    const endObj = new Date(startObj);
+    endObj.setDate(endObj.getDate() + 1);
+    
+    // 5. Format back to YYYY-MM-DD
+    const formatDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    return { start: formatDate(startObj), end: formatDate(endObj) };
 }
 
 // =======================
@@ -548,21 +574,9 @@ function processCalendar(book) {
 }
 
 async function apiAddCalendar(book) {
-    // FIX: Set ALL DAY event correctly (End = Start + 1 Day)
-    const startDateObj = new Date(book.returnDate); 
-    // Reminder is usually set for the day BEFORE it is due (or the day of).
-    // Let's use the actual return date as the reminder day to be safe.
-    // Start: YYYY-MM-DD
-    // End: YYYY-MM-DD + 1
-    
-    // NOTE: Users requested reminder. Let's set it to the return date.
-    // If you want it the day BEFORE, do startDateObj.setDate(startDateObj.getDate() - 1);
-    
-    const endDateObj = new Date(startDateObj);
-    endDateObj.setDate(endDateObj.getDate() + 1); // Exclusive end date
-
-    const startStr = startDateObj.toISOString().split('T')[0];
-    const endStr = endDateObj.toISOString().split('T')[0];
+    if (!book.returnDate) return alert("No date set");
+    // Use Helper
+    const { start, end } = getReminderDates(book.returnDate);
 
     try {
         await gapi.client.calendar.events.insert({
@@ -570,8 +584,8 @@ async function apiAddCalendar(book) {
             'resource': {
                 'summary': `Return: ${book.title}`, 
                 'description': `Book by ${getAuthorName(book)}.`,
-                'start': { 'date': startStr }, 
-                'end': { 'date': endStr },
+                'start': { 'date': start }, 
+                'end': { 'date': end }, // Exclusive End Date
                 'reminders': { 'useDefault': false, 'overrides': [ {'method': 'popup', 'minutes': 9 * 60} ] }
             }
         });
@@ -582,13 +596,11 @@ async function apiAddCalendar(book) {
 function magicLinkCalendar(book) {
     if (!book.returnDate) return alert("No date set");
     
-    // FIX: Same logic for Magic Link (End = Start + 1)
-    const start = new Date(book.returnDate);
-    const end = new Date(book.returnDate);
-    end.setDate(end.getDate() + 1);
+    // Use Helper for correct Day-Before Logic
+    const { start, end } = getReminderDates(book.returnDate);
     
-    const sStr = start.toISOString().split('T')[0].replace(/-/g, "");
-    const eStr = end.toISOString().split('T')[0].replace(/-/g, "");
+    const sStr = start.replace(/-/g, "");
+    const eStr = end.replace(/-/g, "");
     
     const title = encodeURIComponent("Return: " + book.title);
     const details = encodeURIComponent("Book by " + getAuthorName(book) + "\n\n(Added via My BookShelf App)");
