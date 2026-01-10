@@ -708,3 +708,62 @@ select.rating{
   opacity:1;
   transform:translateX(-50%) translateY(0);
 }
+
+/* ===== Controls layout: input on its own row, buttons centered under it (mobile) ===== */
+.controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:center;
+}
+
+.controls #isbn-input{
+  flex: 1 1 320px;
+  min-width: 220px;
+}
+
+.controls #btn-add,
+.controls #btn-scan{
+  flex: 0 0 auto;
+}
+
+/* Mobile: put buttons on a centered row below the input */
+@media (max-width: 560px){
+  .controls{
+    justify-content:center;
+  }
+
+  .controls #isbn-input{
+    flex: 1 1 100%;
+    width:100%;
+  }
+
+  .controls #btn-add{
+    height:64px;
+    min-width: 180px;
+    font-size:1.15rem;
+    border-radius:14px;
+    font-weight:700;
+  }
+
+  .controls #btn-scan{
+    height:64px;
+    width:90px;
+    font-size:1.5rem;
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+}
+
+/* Slightly bigger on larger screens too (optional) */
+@media (min-width: 561px){
+  .controls #btn-add,
+  .controls #btn-scan{
+    height:52px;
+    border-radius:12px;
+  }
+  .controls #btn-add{ min-width:140px; font-weight:700; }
+  .controls #btn-scan{ width:70px; font-size:1.25rem; }
+}
