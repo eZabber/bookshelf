@@ -19,6 +19,13 @@ body {
     transition: background 0.3s; 
 }
 
+/* --- UX POLISH: prevent text selection on touch --- */
+button, .tab, .dots-btn {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
 /* --- HEADER & AUTH --- */
 header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .header-left { display: flex; align-items: center; gap: 8px; overflow: hidden; }
@@ -150,3 +157,34 @@ select.rating { margin-top: 5px; padding: 4px; border: 1px solid var(--border); 
 
 /* --- FOOTER --- */
 .app-footer { margin-top: 40px; padding: 20px 0; border-top: 1px solid var(--border); text-align: center; font-size: 0.8rem; color: var(--meta); }
+
+/* --- TOAST / DEBUG LOG --- */
+#debug-log{
+    position: fixed;
+    left: 50%;
+    bottom: 18px;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 24px var(--shadow);
+    border-radius: 12px;
+    padding: 10px 14px;
+    max-width: min(520px, 92vw);
+    font-size: 0.9rem;
+    line-height: 1.25;
+    text-align: center;
+    z-index: 4000;
+
+    /* hidden by default */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease, transform 160ms ease;
+}
+
+/* show state */
+#debug-log.show{
+    opacity: 1;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(0);
+}
