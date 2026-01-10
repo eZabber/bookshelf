@@ -658,6 +658,57 @@ function setSmartPlaceholder() {
     el.placeholder = window.matchMedia("(max-width: 420px)").matches ? "..." : t("search");
 }
 
+// =======================
+// MISSING FUNCTIONS (RESTORED)
+// =======================
+async function handleManualAdd() {
+    const el = $("isbn-input"); if(!el) return;
+    const val = el.value.trim(); if (!val) return;
+    el.value = "";
+    const isNum = /^[\d-]+$/.test(val) && val.replace(/-/g,"").length >= 9;
+    if(isNum) await fetchAndPrompt(val); else await searchAndPrompt(val);
+}
+
+async function searchAndPrompt(query) {
+    try {
+        const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=1`);
+        const data = await res.json();
+        if (data?.docs?.length) {
+            const d = data.docs[0];
+            showModal({ title: d.title, authors: [{name: d.author_name?.[0] || "Unknown"}], cover: d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : null, isbn: d.isbn?.[0] || "" });
+        } else { if(confirm("Manual?")) showModal({ title: query, authors:[{name:"Manual"}] }); else scanLocked = false; }
+    } catch { scanLocked = false; alert("Search Error"); }
+}
+
+async function fetchAndPrompt(rawIsbn) {
+    const clean = rawIsbn.replace(/\D/g, "");
+    if(clean.length!==10 && clean.length!==13) { scanLocked=false; return alert("Invalid ISBN"); }
+    try {
+        const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${clean}&jscmd=data&format=json`);
+        const data = await res.json();
+        if (!data[`ISBN:${clean}`]) { if(confirm("Search text?")) await searchAndPrompt("ISBN " + clean); else scanLocked = false; return; }
+        const b = data[`ISBN:${clean}`];
+        showModal({ title: b.title, authors: b.authors || [{name:"Unknown"}], cover: b.cover?.medium || null }, clean); 
+    } catch { scanLocked=false; alert("Fetch Error"); }
+}
+
+async function startCamera() {
+    const container = $("reader-container"); if(container) container.style.display = "block";
+    if(html5QrCode) try{await html5QrCode.stop();}catch{}
+    html5QrCode = new Html5Qrcode("reader");
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    const onSuccess = async (txt) => { if(scanLocked) return; scanLocked = true; await stopCamera(); await fetchAndPrompt(txt); };
+    try { await html5QrCode.start({ facingMode: "environment" }, config, onSuccess); } catch (err) { try { await html5QrCode.start({ facingMode: "user" }, config, onSuccess); } catch (err2) { if(container) container.style.display="none"; alert("Camera Error"); } }
+}
+
+async function stopCamera() {
+    if($("reader-container")) $("reader-container").style.display = "none";
+    if(html5QrCode) { try{await html5QrCode.stop();}catch{}; try{html5QrCode.clear();}catch{}; html5QrCode=null; }
+}
+
+// =======================
+// INITIALIZATION
+// =======================
 window.addEventListener("DOMContentLoaded", () => {
     try {
         library = loadLibrary();
