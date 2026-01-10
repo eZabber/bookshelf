@@ -32,7 +32,9 @@ const TRANSLATIONS = {
         modalAudio: "🎧 Audio?", modalReturn: "📅 Return", cancel: "Cancel",
         changeDate: "📅 Change Date", copyTitle: "📋 Copy Title",
         importSuccess: "Backup restored successfully! ✅",
-        calAdded: "Event added to Calendar! 📅"
+        calAdded: "Event added to Calendar! 📅",
+        filterStats: "Showing {0} of {1} books",
+        clearBtn: "Clear"
     },
     fi: {
         read: "Luetut", wishlist: "Toivelista", loans: "Lainassa",
@@ -50,7 +52,9 @@ const TRANSLATIONS = {
         modalAudio: "🎧 Äänikirja?", modalReturn: "📅 Palautus", cancel: "Peruuta",
         changeDate: "📅 Muuta päivää", copyTitle: "📋 Kopioi nimi",
         importSuccess: "Varmuuskopio palautettu! ✅",
-        calAdded: "Tapahtuma lisätty kalenteriin! 📅"
+        calAdded: "Tapahtuma lisätty kalenteriin! 📅",
+        filterStats: "Näytetään {0} / {1} kirjaa",
+        clearBtn: "Tyhjennä"
     },
     et: {
         read: "Loetud", wishlist: "Soovinimekiri", loans: "Laenatud",
@@ -68,7 +72,9 @@ const TRANSLATIONS = {
         modalAudio: "🎧 Audioraamat?", modalReturn: "📅 Tagastus", cancel: "Loobu",
         changeDate: "📅 Muuda kuupäeva", copyTitle: "📋 Kopeeri pealkiri",
         importSuccess: "Varukoopia taastatud! ✅",
-        calAdded: "Sündmus lisatud kalendrisse! 📅"
+        calAdded: "Sündmus lisatud kalendrisse! 📅",
+        filterStats: "Kuvatakse {0} / {1} raamatut",
+        clearBtn: "Tühjenda"
     }
 };
 
@@ -87,11 +93,10 @@ let appStatus = "idle";
 let filterState = { text: "", year: "", month: "", rating: "" };
 let pendingCalendarBook = null;
 
-// Safe selectors
 const $ = (id) => document.getElementById(id);
 const t = (key) => TRANSLATIONS[currentLang][key] || key;
 
-// UTILS (Crucial for preventing crashes)
+// UTILS
 function setText(id, text) { const el = $(id); if (el) el.textContent = text; }
 function addClick(id, handler) { const el = $(id); if (el) el.onclick = handler; }
 function logError(msg, err) {
@@ -134,7 +139,7 @@ function addGrantedScopes(scopeString) {
     localStorage.setItem("granted_scopes", merged);
 }
 
-// Date Helpers (Timezone Safe)
+// Date Helpers
 function getReminderDates(returnDateStr) {
     const [y, m, d] = returnDateStr.split('-').map(Number);
     const returnObj = new Date(y, m - 1, d, 12, 0, 0); 
@@ -275,7 +280,10 @@ async function ensureSheet() {
     if (spreadsheetId) return;
     setSyncStatus("working");
     try {
-        const createResp = await gapi.client.sheets.spreadsheets.create({ properties: { title: SPREADSHEET_TITLE } });
+        const createResp = await gapi.client.sheets.spreadsheets.create({ 
+            properties: { title: SPREADSHEET_TITLE },
+            sheets: [{ properties: { title: "Sheet1" } }] // Force TAB name to Sheet1
+        });
         spreadsheetId = createResp.result.spreadsheetId;
         await gapi.client.sheets.spreadsheets.values.update({
             spreadsheetId, range: HEADER_RANGE, valueInputOption: "RAW", resource: { values: [HEADER] }
@@ -524,7 +532,8 @@ function setLanguage(lang) {
 }
 
 function clearFilters() {
-    if($("filter-text")) $("filter-text").value = "";
+    const textInput = $("filter-text");
+    if(textInput) textInput.value = "";
     if($("filter-year")) $("filter-year").value = "";
     if($("filter-month")) $("filter-month").value = "";
     if($("filter-rating")) $("filter-rating").value = "";
@@ -534,11 +543,11 @@ function clearFilters() {
 }
 
 function applyFilters() {
-    const t = $("filter-text");
+    const textInput = $("filter-text"); // RENAMED FROM 't'
     const y = $("filter-year");
     const m = $("filter-month");
     const r = $("filter-rating");
-    if(t) filterState.text = t.value.toLowerCase();
+    if(textInput) filterState.text = textInput.value.toLowerCase();
     if(y) filterState.year = y.value;
     if(m) filterState.month = m.value;
     if(r) filterState.rating = r.value;
@@ -558,14 +567,19 @@ function renderBooks() {
 
     if (term || filterState.year || filterState.month || filterState.rating) {
         visibleItems = allItems.filter(b => {
+            const titleLc = (b.title || "").toLowerCase();
+            const authorLc = (getAuthorName(b) || "").toLowerCase();
+            const isbnLc = (b.isbn || "").replace(/[\s-]/g, "").toLowerCase();
+            
             const matchText = !term || 
-                b.title.toLowerCase().includes(term) || 
-                getAuthorName(b).toLowerCase().includes(term) ||
-                (b.isbn && b.isbn.replace(/[\s-]/g, "").toLowerCase().includes(cleanTerm));
+                titleLc.includes(term) || 
+                authorLc.includes(term) ||
+                isbnLc.includes(cleanTerm);
+            
             let dateStr = currentShelf === 'read' ? b.dateRead : (currentShelf === 'loans' ? b.returnDate : "");
             const matchYear = !filterState.year || (dateStr && dateStr.startsWith(filterState.year));
             const matchMonth = !filterState.month || (dateStr && dateStr.substring(5,7) === filterState.month);
-            const matchRating = !filterState.rating || (b.rating === Number(filterState.rating));
+            const matchRating = !filterState.rating || (Number(b.rating) === Number(filterState.rating));
             return matchText && matchYear && matchMonth && matchRating;
         });
     }
@@ -574,16 +588,14 @@ function renderBooks() {
     const totalCount = allItems.length;
     const filteredCount = visibleItems.length;
     
-    if (totalCount !== filteredCount) {
-        const activeLabel = $(`count-${currentShelf}`);
-        if(activeLabel) activeLabel.textContent = `${filteredCount} / ${totalCount}`;
-    }
-
+    // Status Bar Logic
     const statusEl = $("filter-status");
     if (statusEl) {
         if (totalCount !== filteredCount) {
             statusEl.style.display = "flex";
-            statusEl.innerHTML = `<span>Showing <b>${filteredCount}</b> of ${totalCount} books</span> <span class="filter-clear-link" onclick="clearFilters()">Clear</span>`;
+            const msg = t("filterStats").replace("{0}", filteredCount).replace("{1}", totalCount);
+            // NOTE: Using a real button listener would be better but this is safe enough for now
+            statusEl.innerHTML = `<span>${msg}</span> <span class="filter-clear-link" onclick="clearFilters()">${t("clearBtn")}</span>`;
         } else {
             statusEl.style.display = "none";
         }
@@ -613,7 +625,8 @@ function renderBooks() {
                 const dateSpan = document.getElementById(`date-display-${b.id}`);
                 const dateInput = document.getElementById(`date-input-${b.id}`);
                 if(dateSpan && dateInput) {
-                    dateSpan.style.display = "none"; dateInput.style.display = "inline-block"; dateInput.focus(); dateInput.showPicker(); 
+                    dateSpan.style.display = "none"; dateInput.style.display = "inline-block"; dateInput.focus(); 
+                    try { dateInput.showPicker(); } catch {} 
                 }
             };
             dropdown.appendChild(editDateBtn);
@@ -687,9 +700,10 @@ function renderBooks() {
 
 function showModal(book, scannedIsbn = "") {
     pendingBook = book; if(scannedIsbn) pendingBook.isbn = scannedIsbn;
-    $("modal-title").textContent = book.title; 
-    $("modal-author").textContent = getAuthorName(book);
-    $("modal-isbn").textContent = pendingBook.isbn ? `ISBN: ${pendingBook.isbn}` : "";
+    // Fix: Use setText instead of unsafe direct access
+    setText("modal-title", book.title || "Unknown"); 
+    setText("modal-author", getAuthorName(book));
+    setText("modal-isbn", pendingBook.isbn ? `ISBN: ${pendingBook.isbn}` : "");
     const audioCheck = $("modal-audio-check"); if(audioCheck) audioCheck.checked = false;
     if($("loan-date-row")) $("loan-date-row").style.display = "none";
     if($("modal-return-date")) $("modal-return-date").value = "";
@@ -847,8 +861,10 @@ async function stopCamera() {
     if(html5QrCode) { try{await html5QrCode.stop();}catch{}; try{html5QrCode.clear();}catch{}; html5QrCode=null; }
 }
 
+function triggerImport() { $('import-file').click(); }
+
 // =======================
-// 8. INITIALIZATION (SAFE & COMPLETE)
+// 8. INITIALIZATION (SAFE)
 // =======================
 window.addEventListener("DOMContentLoaded", () => {
     try {
