@@ -1,16 +1,19 @@
 /* =========================================================
-   MY BOOKSHELF APP — MANUAL CLOUD CONTROLS
+   MY BOOKSHELF APP — FINAL PRODUCTION (Secure & Robust)
+   - Scope: drive.file (User friendly)
+   - Sync: Manual Save/Load via Picker (Reliable multi-device)
+   - Calendar: Incremental Auth (Only asks when needed)
    ========================================================= */
 
 const CLIENT_ID = "579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com";
-// LISÄÄ TÄHÄN GOOGLE CLOUD CONSOLESTA LUOTU API KEY (Picker vaatii tämän)
+
+// ⚠️ TÄRKEÄ: Picker vaatii API Keyn toimiakseen luotettavasti kaikilla tileillä.
+// Hae tämä Google Cloud Consolesta (Credentials -> API Key)
 const DEVELOPER_KEY = ""; 
 
-// Minimal permissions
-const SCOPES = [
-  "https://www.googleapis.com/auth/drive.file",
-  "https://www.googleapis.com/auth/calendar.events"
-];
+// Scopes
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 
 const DISCOVERY = [
   "https://sheets.googleapis.com/$discovery/rest?version=v4",
@@ -35,15 +38,16 @@ const TRANSLATIONS = {
     data: "Data & Backup", 
     export: "Export to File (JSON)", import: "Import from File",
     
-    // NEW CLOUD BUTTONS
+    // CLOUD
     cloudSection: "Google Drive Sync",
     btnSaveCloud: "Save to Drive (Sync)",
     btnLoadCloud: "Load from Drive (Open)",
+    cloudSaved: "Saved to Drive! ✅",
+    cloudLoaded: "Loaded from Drive! ✅",
     
     dark: "Dark Mode", lang: "Language",
     search: "Search ISBN, Title, Author...", add: "Add",
     signIn: "Sign In", working: "...", synced: "Synced",
-    downloading: "Loading...", saving: "Saving...", error: "Error",
     markRead: "Mark Read", unread: "↩︎ Unread", delete: "Delete?",
     finished: "Finished:", due: "Due:", audio: "🎧 Audio", reminder: "📅 Reminder",
     modalAudio: "🎧 Audio?", modalReturn: "📅 Return", cancel: "Cancel",
@@ -68,15 +72,15 @@ const TRANSLATIONS = {
     data: "Tiedot & Varmuuskopio", 
     export: "Lataa tiedostona (JSON)", import: "Palauta tiedostosta",
     
-    // UUDET PILVINAPIT
     cloudSection: "Google Drive Tallennus",
     btnSaveCloud: "Tallenna Driveen (Sync)",
     btnLoadCloud: "Lataa Drivestä (Avaa)",
+    cloudSaved: "Tallennettu Driveen! ✅",
+    cloudLoaded: "Ladattu Drivestä! ✅",
 
     dark: "Tumma tila", lang: "Kieli",
     search: "Etsi ISBN, Nimi, Kirjailija...", add: "Lisää",
     signIn: "Kirjaudu", working: "...", synced: "Synkattu",
-    downloading: "Ladataan...", saving: "Tallennetaan...", error: "Virhe",
     markRead: "Merkitse luetuksi", unread: "↩︎ Lukematon", delete: "Poista?",
     finished: "Luettu:", due: "Eräpäivä:", audio: "🎧 Ääni", reminder: "📅 Muistutus",
     modalAudio: "🎧 Äänikirja?", modalReturn: "📅 Palautus", cancel: "Peruuta",
@@ -101,15 +105,15 @@ const TRANSLATIONS = {
     data: "Andmed ja varukoopia", 
     export: "Lae alla failina (JSON)", import: "Taasta failist",
     
-    // NEW CLOUD BUTTONS
     cloudSection: "Google Drive Sync",
     btnSaveCloud: "Salvesta Drive'i (Sync)",
     btnLoadCloud: "Lae Drive'ist (Ava)",
+    cloudSaved: "Salvestatud Drive'i! ✅",
+    cloudLoaded: "Laetud Drive'ist! ✅",
 
     dark: "Tume režiim", lang: "Keel",
     search: "Otsi ISBN, Pealkiri, Autor...", add: "Lisa",
     signIn: "Logi sisse", working: "...", synced: "Sünkroonitud",
-    downloading: "Laadin...", saving: "Salvestan...", error: "Viga",
     markRead: "Märgi loetuks", unread: "↩︎ Lugemata", delete: "Kustuta?",
     finished: "Loetud:", due: "Tähtaeg:", audio: "🎧 Audio", reminder: "📅 Meeldetuletus",
     modalAudio: "🎧 Audioraamat?", modalReturn: "📅 Tagastus", cancel: "Loobu",
@@ -146,7 +150,6 @@ let syncPending = false;
 let appStatus = "idle"; 
 let filterState = { text: "", year: "", month: "", rating: "" };
 let pendingCalendarBook = null;
-let accessToken = null;
 
 const $ = (id) => document.getElementById(id);
 const t = (key) => (TRANSLATIONS[currentLang]?.[key] ?? key);
@@ -188,13 +191,13 @@ function saveLibrary({ shouldSync = false, skipRender = false } = {}) {
   localStorage.setItem(LS.LIB, JSON.stringify(library));
   updateShelfCounts();
   if (!skipRender) renderBooks();
-  // NOTE: In manual mode, we only autosync if we HAVE a sheetId already
+  // Auto-sync only if we already have a sheetId connected
   if (shouldSync && spreadsheetId && gapi?.client?.getToken?.()) queueUpload();
 }
 function updateShelfCounts() { setText("count-read", library.read?.length || 0); setText("count-wishlist", library.wishlist?.length || 0); setText("count-loans", library.loans?.length || 0); }
 
 /* =========================
-   4) UI & FILTERS
+   4) UI
    ========================= */
 function openMenu() { $("side-menu")?.classList.add("open"); $("menu-overlay")?.classList.add("open"); document.body.style.overflow = "hidden"; }
 function closeMenu() { $("side-menu")?.classList.remove("open"); $("menu-overlay")?.classList.remove("open"); document.body.style.overflow = ""; }
@@ -217,9 +220,7 @@ function setLanguage(lang) {
   currentLang = lang; localStorage.setItem(LS.LANG, lang);
   const sel = $("language-select"); if (sel) sel.value = lang;
   
-  // Tabs
   setText("tab-read", t("read")); setText("tab-wishlist", t("wishlist")); setText("tab-loans", t("loans"));
-  // Menu
   setText("menu-lang", t("lang")); setText("menu-settings", t("settings")); setText("menu-shelves", t("shelves"));
   setText("menu-display", t("display")); setText("menu-filter", t("filter"));
   setText("menu-integrations", t("integrations")); setText("label-cal-conn", t("calConn")); setText("cal-desc", t("calDesc"));
@@ -230,7 +231,6 @@ function setLanguage(lang) {
   setText("btn-save-drive", t("btnSaveCloud"));
   setText("btn-load-drive", t("btnLoadCloud"));
   
-  // Stats
   setText("label-stat-read", t("read")); setText("label-stat-wish", t("wishlist")); setText("label-stat-loans", t("loans"));
   setText("label-darkmode", t("dark")); setText("label-year", t("year")); setText("label-month", t("month")); setText("label-rating", t("rating"));
   setText("btn-clear-filters", t("clear")); setText("reset-btn", t("reset")); setText("btn-export", t("export")); setText("btn-import", t("import"));
@@ -311,7 +311,7 @@ function renderBooks() {
       const dateDiv = document.createElement("div");
       const dateSpan = document.createElement("span"); dateSpan.id = `date-display-${b.id}`; dateSpan.textContent = `${t("finished")} ${b.dateRead}`;
       const dateInput = document.createElement("input"); dateInput.type = "date"; dateInput.id = `date-input-${b.id}`; dateInput.className = "date-edit-input";
-      dateInput.style.display = "none"; // Hide calendar input by default
+      dateInput.style.display = "none"; // Hide calendar
       dateInput.value = String(b.dateRead || "");
       dateInput.onchange = (e) => updateReadDate(b.id, e.target.value);
       dateInput.onblur = () => setTimeout(() => { dateInput.style.display = "none"; dateSpan.style.display = "inline"; }, 200);
@@ -400,13 +400,12 @@ function hardReset() { if (!confirm("Reset?")) return; localStorage.clear(); loc
 function gapiLoaded() { gapi.load("client", async () => { try { await gapi.client.init({ discoveryDocs: DISCOVERY }); gapiInited = true; maybeEnableAuth(); } catch (e) { logError("GAPI Init Fail", e); } }); }
 function gisLoaded() {
   tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID, scope: SCOPES.join(" "),
+    client_id: CLIENT_ID, scope: DRIVE_SCOPE, // Just drive.file
     callback: async (resp) => {
       if (resp?.error) return logError("Auth Fail", resp);
-      accessToken = resp.access_token; // Store for Picker
       addGrantedScopes(resp.scope || "");
       gapi.client.setToken(resp);
-      if (pendingCalendarBook) { addGrantedScopes("https://www.googleapis.com/auth/calendar.events"); if (hasScope("https://www.googleapis.com/auth/calendar.events")) { await apiAddCalendar(pendingCalendarBook); } pendingCalendarBook = null; return; }
+      if (pendingCalendarBook) { addGrantedScopes(`${DRIVE_SCOPE} ${CAL_SCOPE}`); if (hasScope(CAL_SCOPE)) { await apiAddCalendar(pendingCalendarBook); } pendingCalendarBook = null; return; }
       
       // AUTO SYNC ONLY IF ID EXISTS (Manual mode otherwise)
       if (spreadsheetId) { setSyncStatus("working"); await doSync(); }
@@ -430,7 +429,7 @@ async function handleCloudSave() {
   
   if (!spreadsheetId) {
     try {
-      // Create NEW file via Drive API
+      // 1) CREATE FILE via Drive API
       const createResp = await gapi.client.drive.files.create({
         resource: { name: SPREADSHEET_TITLE, mimeType: "application/vnd.google-apps.spreadsheet" },
         fields: "id"
@@ -438,7 +437,8 @@ async function handleCloudSave() {
       spreadsheetId = createResp.result.id;
       localStorage.setItem(LS.SHEET_ID, spreadsheetId);
       updateSheetLink();
-      // Initialize headers
+      
+      // 2) INIT HEADER via Sheets API
       await gapi.client.sheets.spreadsheets.values.update({
           spreadsheetId, range: HEADER_RANGE, valueInputOption: "RAW", resource: { values: [HEADER] }
       });
@@ -451,41 +451,75 @@ async function handleCloudSave() {
   // Upload data
   await queueUpload();
   setSyncStatus("synced");
-  alert(t("importSuccess")); // "Success!"
+  alert(t("cloudSaved"));
 }
 
-// BUTTON 2: "Load from Drive"
-// Logic: Open Picker -> Get ID -> Download Data -> Overwrite Local
+// BUTTON 2: "Load from Drive" (via Picker)
 async function handleCloudLoad() {
   if (!requireSignedIn()) return;
   if (!confirm(t("confirmLoad"))) return;
 
-  await loadPicker();
-  const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS).setIncludeFolders(false).setSelectFolderEnabled(false);
-  const picker = new google.picker.PickerBuilder()
-    .addView(view)
-    .setOAuthToken(accessToken)
-    .setDeveloperKey(DEVELOPER_KEY)
-    .setTitle(t("pickerTitle"))
-    .setCallback(async (data) => {
-      if (data.action === google.picker.Action.PICKED) {
-        const fileId = data.docs[0].id;
-        spreadsheetId = fileId;
-        localStorage.setItem(LS.SHEET_ID, fileId);
-        updateSheetLink();
-        setSyncStatus("working");
-        await doSync(); // Downloads and overwrites local
-        alert(t("importSuccess"));
-      }
-    })
-    .build();
-  picker.setVisible(true);
+  try {
+    const fileId = await pickSpreadsheetId();
+    if (!fileId) return;
+
+    spreadsheetId = fileId;
+    localStorage.setItem(LS.SHEET_ID, fileId);
+    updateSheetLink();
+
+    setSyncStatus("working");
+    await doSync(); // Downloads and overwrites local
+    alert(t("cloudLoaded"));
+  } catch (e) {
+    if (e !== "Cancelled") console.error(e);
+  }
 }
 
-function loadPicker() { return new Promise((resolve) => gapi.load("picker", { callback: resolve })); }
+/* =========================
+   14) PICKER LOGIC (Promisified & Safe)
+   ========================= */
+function loadPicker() {
+  return new Promise((resolve) => gapi.load("picker", { callback: resolve }));
+}
+
+async function pickSpreadsheetId() {
+  await loadPicker();
+  
+  // Get valid token from client state
+  const tok = gapi?.client?.getToken?.();
+  const token = tok?.access_token;
+  if (!token) throw new Error("No access token");
+
+  return new Promise((resolve, reject) => {
+    let done = false;
+    const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS).setIncludeFolders(false).setSelectFolderEnabled(false);
+    
+    const picker = new google.picker.PickerBuilder()
+      .addView(view)
+      .setOAuthToken(token)
+      .setDeveloperKey(DEVELOPER_KEY) // Mandatory for many accounts
+      .setTitle(t("pickerTitle"))
+      .setCallback((data) => {
+        if (done) return;
+        if (data.action === google.picker.Action.PICKED) {
+          done = true;
+          const id = data.docs?.[0]?.id;
+          picker.setVisible(false);
+          resolve(id);
+        } else if (data.action === google.picker.Action.CANCEL) {
+          done = true;
+          picker.setVisible(false);
+          reject("Cancelled");
+        }
+      })
+      .build();
+    
+    picker.setVisible(true);
+  });
+}
 
 /* =========================
-   14) SYNC LOGIC (INTERNAL)
+   15) SYNC LOGIC (INTERNAL)
    ========================= */
 async function doSync() {
   // Download data from spreadsheetId and REPLACE local library
@@ -530,7 +564,7 @@ async function uploadData() {
 }
 
 /* =========================
-   15) CAMERA & SEARCH & EXPORT
+   16) CAMERA & SEARCH & EXPORT
    ========================= */
 function exportData() { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library, null, 2)); const a = document.createElement("a"); a.setAttribute("href", dataStr); a.setAttribute("download", "my_bookshelf_" + new Date().toISOString().split("T")[0] + ".json"); document.body.appendChild(a); a.click(); a.remove(); }
 function triggerImport() { $("import-file")?.click(); }
@@ -549,8 +583,10 @@ async function stopCamera() { $("reader-container").style.display="none"; if(htm
 function processCalendar(book) {
   if($("cal-connect-toggle")?.checked) {
     if(!requireSignedIn()) return;
-    if(!hasScope("https://www.googleapis.com/auth/calendar.events")) {
-      pendingCalendarBook=book; addGrantedScopes(SCOPES.join(" ")); tokenClient.requestAccessToken({prompt:"", scope:SCOPES.join(" ")});
+    if(!hasScope(CAL_SCOPE)) {
+      pendingCalendarBook=book; 
+      addGrantedScopes(`${DRIVE_SCOPE} ${CAL_SCOPE}`); 
+      tokenClient.requestAccessToken({prompt:"", scope:`${DRIVE_SCOPE} ${CAL_SCOPE}`});
     } else apiAddCalendar(book);
   } else magicLinkCalendar(book);
 }
@@ -558,7 +594,7 @@ async function apiAddCalendar(book) { if(!book.returnDate) return alert("Date?")
 function magicLinkCalendar(book) { const {start,end} = getReminderDates(book.returnDate); const url=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent("Return: "+book.title)}&dates=${start.replace(/-/g,"")}/${end.replace(/-/g,"")}`; window.open(url,"_blank"); }
 
 /* =========================
-   16) INIT
+   17) INIT
    ========================= */
 window.addEventListener("DOMContentLoaded", () => {
   try {
