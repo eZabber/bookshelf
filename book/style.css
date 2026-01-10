@@ -91,6 +91,29 @@ header { display: flex; justify-content: space-between; align-items: center; mar
 .stat-label { font-size: 0.75rem; color: var(--meta); text-transform: uppercase; font-weight: 500; margin-bottom: 2px; }
 .stat-num { font-size: 1.1rem; font-weight: 700; color: var(--primary); }
 
+/* --- FILTER STATUS BAR --- */
+#filter-status {
+    background: var(--card);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+    display: none; /* Hidden by default */
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px var(--shadow);
+}
+
+.filter-clear-link {
+    color: var(--accent);
+    text-decoration: underline;
+    cursor: pointer;
+    font-weight: bold;
+    margin-left: 10px;
+}
+
 /* --- CONTROLS & TABS --- */
 .tabs { display: flex; background: var(--border); border-radius: 8px; padding: 4px; margin-bottom: 20px; }
 .tab { flex: 1; text-align: center; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.9rem; color: var(--meta); user-select: none; }
