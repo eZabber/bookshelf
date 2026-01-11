@@ -1,1 +1,1 @@
-
+//# applyFilters, clearFilters, getVisibleBooks
