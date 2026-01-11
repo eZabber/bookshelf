@@ -3,9 +3,11 @@ import { $ } from './dom-utils.js';
 import { t } from './i18n.js';
 import { currentShelf } from './state.js';
 import { getAuthorName, normKey } from './utils.js';
-import { closeAnyDropdowns } from './render.js'; // self-reference for dropdowns
+
+// No self-import here!
 
 // All your create* functions here (createDotsMenu, createThumb, createBadges, createMeta, createIsbnPill, createRatingSelect, createActions, createInfo, createBookCard)
+// ... paste them exactly as they were ...
 
 export function renderFilterStatus(allCount, visibleCount) {
   const statusEl = $("filter-status");
