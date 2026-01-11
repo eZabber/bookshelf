@@ -1,1 +1,2 @@
 
+//# showModal, closeModal, confirmAdd + promptManualBook
