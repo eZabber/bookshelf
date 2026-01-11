@@ -1,42 +1,31 @@
-//# App state (pure state only)
+// js/state.js
 import { LS } from "./config.js";
 
-export const state = {
-  currentShelf: "read",
-  library: { read: [], wishlist: [], loans: [] },
-  filterState: { text: "", year: "", month: "", rating: "" },
+export let currentShelf = "read";
+export let library = { read: [], wishlist: [], loans: [] };
+export let filterState = { text: "", year: "", month: "", rating: "" };
 
-  // cloud / auth
-  cloudFileId: localStorage.getItem(LS.CLOUD_FILE_ID) || null,
-  appStatus: "idle",
-
-  // camera
-  html5QrCode: null,
-  scanLocked: false,
-
-  // modal
-  pendingBook: null,
-
-  // sync
-  isSyncing: false,
-  syncPending: false,
-  uploadFailCount: 0
-};
+export function setLibrary(next) {
+  // main.js will call this
+  library = {
+    read: Array.isArray(next?.read) ? next.read : [],
+    wishlist: Array.isArray(next?.wishlist) ? next.wishlist : [],
+    loans: Array.isArray(next?.loans) ? next.loans : []
+  };
+}
 
 export function loadLibrary() {
   try {
     const raw = JSON.parse(localStorage.getItem(LS.LIB));
-    if (raw && typeof raw === "object") {
-      return {
-        read: Array.isArray(raw.read) ? raw.read : [],
-        wishlist: Array.isArray(raw.wishlist) ? raw.wishlist : [],
-        loans: Array.isArray(raw.loans) ? raw.loans : []
-      };
-    }
+    if (raw && typeof raw === "object") return raw;
   } catch {}
   return { read: [], wishlist: [], loans: [] };
 }
 
 export function persistLibrary() {
-  localStorage.setItem(LS.LIB, JSON.stringify(state.library));
+  localStorage.setItem(LS.LIB, JSON.stringify(library));
+}
+
+export function setCurrentShelf(shelf) {
+  currentShelf = shelf;
 }
