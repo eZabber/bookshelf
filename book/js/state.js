@@ -43,3 +43,12 @@ export function updateShelfCounts() {
   setText("count-wishlist", library.wishlist?.length || 0);
   setText("count-loans", library.loans?.length || 0);
 }
+
+export function setActiveTab(shelf) {
+  currentShelf = shelf;
+  ["read", "wishlist", "loans"].forEach((s) =>
+    $(`tab-${s}`)?.classList.toggle("active", s === shelf)
+  );
+  closeMenu();          // assuming closeMenu is exported from wherever it lives
+  renderBooks();        // assuming renderBooks is imported in state.js or global
+}
