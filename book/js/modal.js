@@ -1,15 +1,15 @@
-// modal.js — showModal, closeModal, confirmAdd
-import { $, setText, toast, makeId, todayISO, safeUrl } from "./dom-utils.js";
+// js/modal.js
+import { $, setText, toast, safeUrl, makeId, todayISO } from "./dom-utils.js";
 import { t } from "./i18n.js";
-import { state } from "./state.js";
+import { library, setCurrentShelf, persistLibrary } from "./state.js";
 import { normKey, getAuthorName } from "./utils.js";
-import { setActiveTab } from "./ui.js";
-import { stopCamera } from "./camera.js";
-import { saveLibrary } from "./storage.js"; // <-- see note below
+import { stopCamera, getCameraState, setScanLocked } from "./camera.js";
+import { renderBooks } from "./render.js";
+import { updateShelfCounts } from "./render.js"; // exported helper
 
-let pendingBook = null;
+export let pendingBook = null;
 
-export function showModal(book = {}, scannedIsbn = "") {
+export function showModal(book, scannedIsbn = "") {
   pendingBook = { ...book };
   if (scannedIsbn) pendingBook.isbn = scannedIsbn;
 
@@ -50,24 +50,17 @@ export function closeModal() {
   if (loanRow) loanRow.style.display = "none";
 
   pendingBook = null;
+  setScanLocked(false);
 
-  // release scan lock
-  state.scanLocked = false;
-
-  // stop camera safely
-  stopCamera();
+  const cam = getCameraState();
+  if (cam.running) stopCamera();
 }
 
 export function confirmAdd(targetShelf) {
   if (!pendingBook) return;
 
-  // Duplicate detection across all shelves
   const key = normKey(pendingBook);
-  const allBooks = [
-    ...(state.library.read || []),
-    ...(state.library.wishlist || []),
-    ...(state.library.loans || [])
-  ];
+  const allBooks = [...library.read, ...library.wishlist, ...library.loans];
 
   if (allBooks.some((b) => normKey(b) === key)) {
     toast(t("alreadyExists"));
@@ -75,13 +68,13 @@ export function confirmAdd(targetShelf) {
     return;
   }
 
-  // Loans: 2-step UX for picking return date
   let retDate = "";
   if (targetShelf === "loans") {
     const row = $("loan-date-row");
     const input = $("modal-return-date");
     if (!row || !input) return toast("Missing loan fields.");
 
+    // first click shows date row
     if (row.style.display === "none") {
       row.style.display = "flex";
       const d = new Date();
@@ -97,10 +90,9 @@ export function confirmAdd(targetShelf) {
   const newBook = {
     id: makeId(),
     title: pendingBook.title || "Unknown",
-    authors:
-      Array.isArray(pendingBook.authors) && pendingBook.authors.length
-        ? pendingBook.authors
-        : [{ name: "Unknown" }],
+    authors: Array.isArray(pendingBook.authors) && pendingBook.authors.length
+      ? pendingBook.authors
+      : [{ name: "Unknown" }],
     rating: 0,
     cover: safeUrl(pendingBook.cover) || null,
     dateRead: targetShelf === "read" ? todayISO() : "",
@@ -109,11 +101,12 @@ export function confirmAdd(targetShelf) {
     isbn: pendingBook.isbn || ""
   };
 
-  state.library[targetShelf].push(newBook);
+  library[targetShelf].push(newBook);
+
+  persistLibrary();
+  updateShelfCounts();
 
   closeModal();
-  setActiveTab(targetShelf);
-
-  // Persist + optional cloud sync
-  saveLibrary({ shouldSync: true, skipRender: true });
+  setCurrentShelf(targetShelf);
+  renderBooks();
 }
