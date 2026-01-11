@@ -58,3 +58,9 @@ export function setCloudFileId(id) {
   if (id) localStorage.setItem(LS.CLOUD_FILE_ID, id);
   else localStorage.removeItem(LS.CLOUD_FILE_ID);
 }
+// state.js
+export let library = { read: [], wishlist: [], loans: [] };
+
+export function setLibrary(next) {
+  library = next;
+}
