@@ -65,3 +65,7 @@ export function isDriveSignedIn() {
     return false;
   }
 }
+
+// Expose for Google API onload callbacks (required!)
+window.gapiLoaded = gapiLoaded;
+window.gisLoaded = gisLoaded;
