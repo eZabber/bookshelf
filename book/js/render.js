@@ -35,3 +35,10 @@ export function renderBooks() {
   renderFilterStatus(allItems.length, visibleItems.length);
   visibleItems.slice().reverse().forEach((b) => list.appendChild(createBookCard(b)));
 }
+
+export function closeAnyDropdowns(exceptEl = null) {
+  document.querySelectorAll(".menu-dropdown.show").forEach((d) => {
+    if (exceptEl && d === exceptEl) return;
+    d.classList.remove("show");
+  });
+}
