@@ -1,49 +1,62 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#0b0f14" />
   <title>My BookShelf</title>
-  <link rel="stylesheet" href="style.css" />
-  <!-- QR code scanner library -->
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+  <link rel="stylesheet" href="./style.css" />
+
+  <!-- QR scanner library (global Html5Qrcode) -->
+  <script src="https://unpkg.com/html5-qrcode" defer></script>
+
+  <!-- Google APIs: keep onload hooks (gapiLoaded / gisLoaded) -->
+  <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+  <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+
+  <!-- App entry (modules) -->
+  <script type="module" src="./js/main.js"></script>
 </head>
+
 <body>
   <header>
     <div class="header-left">
-      <button id="menu-btn" aria-label="Open menu">☰</button>
+      <button id="menu-btn" aria-label="Open menu" type="button">☰</button>
       <h1 class="app-title">
         📚 <span class="title-my">My</span> <span class="title-main">BookShelf</span>
       </h1>
     </div>
+
     <div class="header-right">
-      <button id="auth-btn" class="header-auth-btn" disabled>Sign In</button>
-      <div id="sync-wrapper">
+      <button id="auth-btn" class="header-auth-btn" type="button" disabled>Sign In</button>
+      <div id="sync-wrapper" aria-hidden="true">
         <div id="sync-dot" title="Sync Status"></div>
       </div>
     </div>
   </header>
 
-  <div id="menu-overlay"></div>
+  <!-- Overlay -->
+  <div id="menu-overlay" aria-hidden="true"></div>
 
-  <!-- Side Menu -->
-  <div id="side-menu">
+  <!-- Side menu -->
+  <aside id="side-menu" aria-label="Side menu">
     <h2 class="menu-title" id="menu-settings" style="margin-top:0;">Settings & Filters</h2>
 
     <!-- Language -->
-    <div class="menu-section">
+    <section class="menu-section" aria-label="Language">
       <span class="menu-title" id="menu-lang" style="font-size:0.9rem;">Language</span>
-      <select id="language-select" class="menu-select">
+      <select id="language-select" class="menu-select" aria-label="Language">
         <option value="en">English 🇬🇧</option>
         <option value="fi">Suomi 🇫🇮</option>
         <option value="et">Eesti 🇪🇪</option>
       </select>
-    </div>
+    </section>
 
     <!-- Shelves / Stats -->
-    <div class="menu-section">
+    <section class="menu-section" aria-label="Shelves">
       <span class="menu-title" id="menu-shelves">Shelves</span>
-      <div class="shelf-counters">
+      <div class="shelf-counters" role="group" aria-label="Shelf counters">
         <div class="stat-box">
           <span class="stat-label" id="label-stat-read">Read</span>
           <span id="count-read" class="stat-num">0</span>
@@ -57,32 +70,50 @@
           <span id="count-loans" class="stat-num">0</span>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- Display -->
-    <div class="menu-section">
+    <section class="menu-section" aria-label="Display">
       <label class="menu-title" id="menu-display">Display</label>
       <div class="menu-row">
         <span id="label-darkmode">Dark Mode</span>
-        <label class="toggle-switch">
+        <label class="toggle-switch" aria-label="Toggle dark mode">
           <input type="checkbox" id="dark-mode-toggle" />
           <span class="slider"></span>
         </label>
       </div>
-    </div>
+    </section>
 
     <!-- Filters -->
-    <div class="menu-section">
+    <section class="menu-section" aria-label="Filters">
       <label class="menu-title" id="menu-filter">Filter Books</label>
-      <input type="text" id="filter-text" class="menu-input" placeholder="Title, Author, or ISBN" />
+
+      <input
+        type="text"
+        id="filter-text"
+        class="menu-input"
+        placeholder="Title, Author, or ISBN"
+        autocomplete="off"
+        spellcheck="false"
+      />
+
       <div class="filter-grid">
         <div class="filter-field">
           <label for="filter-year" id="label-year">Year</label>
-          <input type="text" id="filter-year" class="menu-input" placeholder="YYYY" inputmode="numeric" maxlength="4" />
+          <input
+            type="text"
+            id="filter-year"
+            class="menu-input"
+            placeholder="YYYY"
+            inputmode="numeric"
+            maxlength="4"
+            autocomplete="off"
+          />
         </div>
+
         <div class="filter-field">
           <label for="filter-month" id="label-month">Month</label>
-          <select id="filter-month" class="menu-select">
+          <select id="filter-month" class="menu-select" aria-label="Month">
             <option value="">All</option>
             <option value="01">01</option><option value="02">02</option><option value="03">03</option>
             <option value="04">04</option><option value="05">05</option><option value="06">06</option>
@@ -91,9 +122,10 @@
           </select>
         </div>
       </div>
+
       <div class="menu-row" style="margin-top:12px;">
         <span id="label-rating">Rating</span>
-        <select id="filter-rating" class="menu-select" style="width:60%;">
+        <select id="filter-rating" class="menu-select" aria-label="Rating" style="width:60%;">
           <option value="">All</option>
           <option value="5">5 ★</option>
           <option value="4">4 ★</option>
@@ -102,61 +134,88 @@
           <option value="1">1 ★</option>
         </select>
       </div>
+
       <div class="menu-actions">
-        <button class="btn-sm" id="btn-clear-filters" style="width:100%;">Clear Filters</button>
+        <button class="btn-sm" id="btn-clear-filters" type="button" style="width:100%;">Clear Filters</button>
       </div>
-    </div>
+    </section>
 
     <!-- Data & Backup -->
-    <div class="menu-section" style="border-bottom:none; margin-top:auto;">
+    <section class="menu-section" aria-label="Data and backup" style="border-bottom:none; margin-top:auto;">
       <label class="menu-title" id="menu-data">Data & Backup</label>
 
       <!-- Cloud sync buttons injected by JS -->
       <div id="cloud-controls"></div>
 
-      <button id="btn-export" class="btn-sm" style="width:100%; margin-bottom:10px; border:1px solid var(--accent); color:var(--accent); font-weight:600;">
+      <button
+        id="btn-export"
+        class="btn-sm"
+        type="button"
+        style="width:100%; margin-bottom:10px; border:1px solid var(--accent); color:var(--accent); font-weight:600;"
+      >
         Download Backup (JSON)
       </button>
 
-      <input type="file" id="import-file" style="display:none;" accept=".json" />
-      <button id="btn-import" class="btn-sm" style="width:100%; margin-bottom:20px; border:1px solid var(--primary); color:var(--primary);">
+      <input type="file" id="import-file" accept=".json" hidden />
+      <button
+        id="btn-import"
+        class="btn-sm"
+        type="button"
+        style="width:100%; margin-bottom:20px; border:1px solid var(--primary); color:var(--primary);"
+      >
         Restore Backup
       </button>
 
-      <!-- Future: Goodreads import button -->
-      <!-- <button id="btn-import-goodreads" class="btn-sm">Import from Goodreads CSV</button> -->
+      <!-- Future: Goodreads import -->
+      <!-- <button id="btn-import-goodreads" class="btn-sm" type="button" style="width:100%; margin-bottom:10px;">Import Goodreads CSV</button> -->
 
-      <button id="reset-btn" class="btn-sm btn-del" style="width:100%;">Reset App Data</button>
-    </div>
-  </div>
+      <button id="reset-btn" class="btn-sm btn-del" type="button" style="width:100%;">Reset App Data</button>
+    </section>
+  </aside>
 
-  <div id="debug-log"></div>
+  <!-- Toast / debug -->
+  <div id="debug-log" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <!-- Tabs -->
-  <div class="tabs">
-    <div class="tab active" id="tab-read">Read</div>
-    <div class="tab" id="tab-wishlist">Wishlist</div>
-    <div class="tab" id="tab-loans">Loans</div>
-  </div>
+  <nav class="tabs" aria-label="Shelves tabs">
+    <div class="tab active" id="tab-read" role="button" tabindex="0">Read</div>
+    <div class="tab" id="tab-wishlist" role="button" tabindex="0">Wishlist</div>
+    <div class="tab" id="tab-loans" role="button" tabindex="0">Loans</div>
+  </nav>
 
   <!-- Controls -->
-  <div class="controls">
-    <input type="text" id="isbn-input" placeholder="..." />
-    <button class="action-btn" id="btn-add">Add</button>
-    <button class="action-btn scan-btn" id="btn-scan">📷</button>
-  </div>
+  <main>
+    <section class="controls" aria-label="Add books">
+      <input
+        type="text"
+        id="isbn-input"
+        placeholder="..."
+        autocomplete="off"
+        spellcheck="false"
+        inputmode="search"
+      />
+      <button class="action-btn" id="btn-add" type="button">Add</button>
+      <button class="action-btn scan-btn" id="btn-scan" type="button" aria-label="Scan ISBN">📷</button>
+    </section>
 
-  <!-- Camera reader -->
-  <div id="reader-container">
-    <div id="reader"></div>
-    <button id="btn-stop-camera" style="width:100%; padding:10px; margin-top:10px; background:var(--card); border:1px solid var(--border); border-radius:4px; color:var(--text); font-weight:500;">
-      Stop Camera
-    </button>
-  </div>
+    <!-- Camera reader -->
+    <section id="reader-container" aria-label="Camera scanner">
+      <div id="reader"></div>
+      <button
+        id="btn-stop-camera"
+        type="button"
+        style="width:100%; padding:10px; margin-top:10px; background:var(--card); border:1px solid var(--border); border-radius:4px; color:var(--text); font-weight:500;"
+      >
+        Stop Camera
+      </button>
+    </section>
 
-  <div id="filter-status" style="display:none;"></div>
+    <!-- Filter status bar (injected by render.js logic) -->
+    <div id="filter-status" style="display:none;"></div>
 
-  <ul id="book-list"></ul>
+    <!-- Book list -->
+    <ul id="book-list" aria-label="Books"></ul>
+  </main>
 
   <!-- Footer -->
   <footer class="app-footer">
@@ -164,16 +223,16 @@
   </footer>
 
   <!-- Modal -->
-  <div id="modal-overlay">
-    <div class="modal-content">
+  <div id="modal-overlay" aria-hidden="true">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-label="Add book">
       <img id="modal-img" class="modal-cover" src="" alt="cover" onerror="this.style.display='none'" />
       <div id="modal-title" class="modal-title"></div>
       <div id="modal-author" class="modal-author"></div>
-      <div style="font-size:0.8rem; color:var(--meta); margin-bottom:10px; font-family:monospace;" id="modal-isbn"></div>
+      <div id="modal-isbn" style="font-size:0.8rem; color:var(--meta); margin-bottom:10px; font-family:monospace;"></div>
 
       <div class="modal-input-row" style="justify-content:center; gap:10px;">
         <span id="label-audio">🎧 Audio?</span>
-        <label class="toggle-switch">
+        <label class="toggle-switch" aria-label="Toggle audio book">
           <input type="checkbox" id="modal-audio-check" />
           <span class="slider"></span>
         </label>
@@ -181,23 +240,20 @@
 
       <div id="loan-date-row" class="modal-input-row" style="display:none; justify-content:center; gap:10px;">
         <span id="label-return">📅 Return</span>
-        <input type="date" id="modal-return-date" style="padding:6px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text);" />
+        <input
+          type="date"
+          id="modal-return-date"
+          style="padding:6px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text);"
+        />
       </div>
 
       <div class="modal-btns">
-        <button class="btn-choice btn-primary" id="modal-add-read">Add to Read</button>
-        <button class="btn-choice btn-primary" id="modal-add-wish" style="background:var(--accent);">Add to Wishlist</button>
-        <button class="btn-choice btn-loan" id="modal-add-loan">Add to Loans</button>
-        <button class="btn-choice btn-cancel" id="modal-cancel">Cancel</button>
+        <button class="btn-choice btn-primary" id="modal-add-read" type="button">Add to Read</button>
+        <button class="btn-choice btn-primary" id="modal-add-wish" type="button" style="background:var(--accent);">Add to Wishlist</button>
+        <button class="btn-choice btn-loan" id="modal-add-loan" type="button">Add to Loans</button>
+        <button class="btn-choice btn-cancel" id="modal-cancel" type="button">Cancel</button>
       </div>
     </div>
   </div>
-
-  <!-- Google APIs (must remain after body content for onload) -->
-  <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-  <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-
-  <!-- Your modular app entry -->
-  <script type="module" src="./js/main.js"></script>
 </body>
 </html>
