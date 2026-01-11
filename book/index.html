@@ -4,184 +4,184 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>My BookShelf</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
+  <!-- QR code scanner library -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
-
 <body>
-
   <header>
     <div class="header-left">
-        <button id="menu-btn" aria-label="Open menu">☰</button>
-        <h1 class="app-title">📚 <span class="title-my">My</span> <span class="title-main">BookShelf</span></h1>
+      <button id="menu-btn" aria-label="Open menu">☰</button>
+      <h1 class="app-title">
+        📚 <span class="title-my">My</span> <span class="title-main">BookShelf</span>
+      </h1>
     </div>
-    
     <div class="header-right">
-        <button id="auth-btn" class="header-auth-btn" disabled>Sign In</button>
-        <div id="sync-wrapper">
-            <div id="sync-dot" title="Sync Status"></div>
-        </div>
+      <button id="auth-btn" class="header-auth-btn" disabled>Sign In</button>
+      <div id="sync-wrapper">
+        <div id="sync-dot" title="Sync Status"></div>
+      </div>
     </div>
   </header>
 
   <div id="menu-overlay"></div>
+
+  <!-- Side Menu -->
   <div id="side-menu">
-    
     <h2 class="menu-title" id="menu-settings" style="margin-top:0;">Settings & Filters</h2>
 
+    <!-- Language -->
     <div class="menu-section">
-        <span class="menu-title" id="menu-lang" style="font-size: 0.9rem;">Language</span>
-        <select id="language-select" class="menu-select">
-            <option value="en">English 🇬🇧</option>
-            <option value="fi">Suomi 🇫🇮</option>
-            <option value="et">Eesti 🇪🇪</option>
-        </select>
+      <span class="menu-title" id="menu-lang" style="font-size:0.9rem;">Language</span>
+      <select id="language-select" class="menu-select">
+        <option value="en">English 🇬🇧</option>
+        <option value="fi">Suomi 🇫🇮</option>
+        <option value="et">Eesti 🇪🇪</option>
+      </select>
     </div>
 
-    <div class="menu-section">
-        <label class="menu-title" id="menu-integrations">Integrations</label>
-        
-        <div style="margin-bottom:10px;">
-            <a id="sheet-link" target="_blank" href="#" style="display:none; color:var(--accent); font-size:0.85rem; text-decoration:none;">↗️ Google Sheet</a>
-        </div>
-
-        <div class="menu-row">
-            <span id="label-cal-conn">Connect Calendar</span>
-            <label class="toggle-switch">
-                <input type="checkbox" id="cal-connect-toggle">
-                <span class="slider"></span>
-            </label>
-        </div>
-        <div style="font-size:0.7rem; color:var(--meta); line-height:1.2; margin-top:-5px;" id="cal-desc">
-            Enable for background syncing. Disable for web link.
-        </div>
-    </div>
-    
+    <!-- Shelves / Stats -->
     <div class="menu-section">
       <span class="menu-title" id="menu-shelves">Shelves</span>
       <div class="shelf-counters">
         <div class="stat-box">
-            <span class="stat-label" id="label-stat-read">Read</span>
-            <span id="count-read" class="stat-num">0</span>
+          <span class="stat-label" id="label-stat-read">Read</span>
+          <span id="count-read" class="stat-num">0</span>
         </div>
         <div class="stat-box">
-            <span class="stat-label" id="label-stat-wish">Wishlist</span>
-            <span id="count-wishlist" class="stat-num">0</span>
+          <span class="stat-label" id="label-stat-wish">Wishlist</span>
+          <span id="count-wishlist" class="stat-num">0</span>
         </div>
         <div class="stat-box">
-            <span class="stat-label" id="label-stat-loans">Loans</span>
-            <span id="count-loans" class="stat-num">0</span>
+          <span class="stat-label" id="label-stat-loans">Loans</span>
+          <span id="count-loans" class="stat-num">0</span>
         </div>
       </div>
     </div>
 
+    <!-- Display -->
     <div class="menu-section">
-        <label class="menu-title" id="menu-display">Display</label>
-        <div class="menu-row">
-            <span id="label-darkmode">Dark Mode</span>
-            <label class="toggle-switch">
-                <input type="checkbox" id="dark-mode-toggle">
-                <span class="slider"></span>
-            </label>
-        </div>
+      <label class="menu-title" id="menu-display">Display</label>
+      <div class="menu-row">
+        <span id="label-darkmode">Dark Mode</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="dark-mode-toggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
     </div>
 
+    <!-- Filters -->
     <div class="menu-section">
-        <label class="menu-title" id="menu-filter">Filter Books</label>
-        <input type="text" id="filter-text" class="menu-input" placeholder="Title, Author, or ISBN">
-        <div class="filter-grid">
-            <div class="filter-field">
-                <label for="filter-year" id="label-year">Year</label>
-                <input type="text" id="filter-year" class="menu-input" placeholder="YYYY" inputmode="numeric" maxlength="4">
-            </div>
-            <div class="filter-field">
-                <label for="filter-month" id="label-month">Month</label>
-                <select id="filter-month" class="menu-select">
-                    <option value="">All</option>
-                    <option value="01">01</option><option value="02">02</option><option value="03">03</option>
-                    <option value="04">04</option><option value="05">05</option><option value="06">06</option>
-                    <option value="07">07</option><option value="08">08</option><option value="09">09</option>
-                    <option value="10">10</option><option value="11">11</option><option value="12">12</option>
-                </select>
-            </div>
+      <label class="menu-title" id="menu-filter">Filter Books</label>
+      <input type="text" id="filter-text" class="menu-input" placeholder="Title, Author, or ISBN" />
+      <div class="filter-grid">
+        <div class="filter-field">
+          <label for="filter-year" id="label-year">Year</label>
+          <input type="text" id="filter-year" class="menu-input" placeholder="YYYY" inputmode="numeric" maxlength="4" />
         </div>
-        <div class="menu-row" style="margin-top:12px;">
-            <span id="label-rating">Rating</span>
-            <select id="filter-rating" class="menu-select" style="width: 60%;">
-                <option value="">All</option>
-                <option value="5">5 ★</option>
-                <option value="4">4 ★</option>
-                <option value="3">3 ★</option>
-                <option value="2">2 ★</option>
-                <option value="1">1 ★</option>
-            </select>
+        <div class="filter-field">
+          <label for="filter-month" id="label-month">Month</label>
+          <select id="filter-month" class="menu-select">
+            <option value="">All</option>
+            <option value="01">01</option><option value="02">02</option><option value="03">03</option>
+            <option value="04">04</option><option value="05">05</option><option value="06">06</option>
+            <option value="07">07</option><option value="08">08</option><option value="09">09</option>
+            <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+          </select>
         </div>
-        <div class="menu-actions">
-            <button class="btn-sm" id="btn-clear-filters" style="width:100%;">Clear Filters</button>
-        </div>
+      </div>
+      <div class="menu-row" style="margin-top:12px;">
+        <span id="label-rating">Rating</span>
+        <select id="filter-rating" class="menu-select" style="width:60%;">
+          <option value="">All</option>
+          <option value="5">5 ★</option>
+          <option value="4">4 ★</option>
+          <option value="3">3 ★</option>
+          <option value="2">2 ★</option>
+          <option value="1">1 ★</option>
+        </select>
+      </div>
+      <div class="menu-actions">
+        <button class="btn-sm" id="btn-clear-filters" style="width:100%;">Clear Filters</button>
+      </div>
     </div>
 
-    <div class="menu-section" style="border-bottom: none; margin-top: auto;">
-        <label class="menu-title" id="menu-data">Data & Backup</label>
-        
-        <button id="btn-export" class="btn-sm" style="width:100%; margin-bottom: 10px; border: 1px solid var(--accent); color: var(--accent); font-weight:600;">
-            Download Backup (JSON)
-        </button>
-        
-        <input type="file" id="import-file" style="display:none;" accept=".json">
-        <button id="btn-import" class="btn-sm" style="width:100%; margin-bottom: 20px; border: 1px solid var(--primary); color: var(--primary);">
-            Restore Backup
-        </button>
+    <!-- Data & Backup -->
+    <div class="menu-section" style="border-bottom:none; margin-top:auto;">
+      <label class="menu-title" id="menu-data">Data & Backup</label>
 
-        <button id="reset-btn" class="btn-sm btn-del" style="width:100%;">Reset App Data</button>
+      <!-- Cloud sync buttons injected by JS -->
+      <div id="cloud-controls"></div>
+
+      <button id="btn-export" class="btn-sm" style="width:100%; margin-bottom:10px; border:1px solid var(--accent); color:var(--accent); font-weight:600;">
+        Download Backup (JSON)
+      </button>
+
+      <input type="file" id="import-file" style="display:none;" accept=".json" />
+      <button id="btn-import" class="btn-sm" style="width:100%; margin-bottom:20px; border:1px solid var(--primary); color:var(--primary);">
+        Restore Backup
+      </button>
+
+      <!-- Future: Goodreads import button -->
+      <!-- <button id="btn-import-goodreads" class="btn-sm">Import from Goodreads CSV</button> -->
+
+      <button id="reset-btn" class="btn-sm btn-del" style="width:100%;">Reset App Data</button>
     </div>
   </div>
 
   <div id="debug-log"></div>
 
+  <!-- Tabs -->
   <div class="tabs">
     <div class="tab active" id="tab-read">Read</div>
     <div class="tab" id="tab-wishlist">Wishlist</div>
     <div class="tab" id="tab-loans">Loans</div>
   </div>
 
+  <!-- Controls -->
   <div class="controls">
     <input type="text" id="isbn-input" placeholder="..." />
     <button class="action-btn" id="btn-add">Add</button>
     <button class="action-btn scan-btn" id="btn-scan">📷</button>
   </div>
 
+  <!-- Camera reader -->
   <div id="reader-container">
     <div id="reader"></div>
-    <button id="btn-stop-camera" style="width:100%;padding:10px;margin-top:10px;background:var(--card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-weight:500;">Stop Camera</button>
+    <button id="btn-stop-camera" style="width:100%; padding:10px; margin-top:10px; background:var(--card); border:1px solid var(--border); border-radius:4px; color:var(--text); font-weight:500;">
+      Stop Camera
+    </button>
   </div>
 
   <div id="filter-status" style="display:none;"></div>
 
   <ul id="book-list"></ul>
-  
+
+  <!-- Footer -->
   <footer class="app-footer">
     Created by <strong>eZabber</strong> &copy; <span id="year"></span>
   </footer>
 
+  <!-- Modal -->
   <div id="modal-overlay">
     <div class="modal-content">
-      <img id="modal-img" class="modal-cover" src="" alt="cover" onerror="this.style.display='none'"/>
+      <img id="modal-img" class="modal-cover" src="" alt="cover" onerror="this.style.display='none'" />
       <div id="modal-title" class="modal-title"></div>
       <div id="modal-author" class="modal-author"></div>
       <div style="font-size:0.8rem; color:var(--meta); margin-bottom:10px; font-family:monospace;" id="modal-isbn"></div>
-      
-      <div class="modal-input-row" style="justify-content: center; gap: 10px;">
+
+      <div class="modal-input-row" style="justify-content:center; gap:10px;">
         <span id="label-audio">🎧 Audio?</span>
         <label class="toggle-switch">
-            <input type="checkbox" id="modal-audio-check">
-            <span class="slider"></span>
+          <input type="checkbox" id="modal-audio-check" />
+          <span class="slider"></span>
         </label>
       </div>
 
       <div id="loan-date-row" class="modal-input-row" style="display:none; justify-content:center; gap:10px;">
         <span id="label-return">📅 Return</span>
-        <input type="date" id="modal-return-date" style="padding:6px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text);">
+        <input type="date" id="modal-return-date" style="padding:6px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text);" />
       </div>
 
       <div class="modal-btns">
@@ -193,9 +193,11 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <!-- Google APIs (must remain after body content for onload) -->
   <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
   <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 
+  <!-- Your modular app entry -->
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
