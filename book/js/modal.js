@@ -1,24 +1,31 @@
-//# showModal, closeModal, confirmAdd + promptManualBook
-import { $ } from './dom-utils.js';
-import { t } from './i18n.js';
-import { makeId, todayISO, safeUrl } from './dom-utils.js';
-import { library, currentShelf, setActiveTab, saveLibrary } from './state.js';
-import { normKey } from './utils.js';
+// modal.js — showModal, closeModal, confirmAdd
+import { $, setText, toast, makeId, todayISO, safeUrl } from "./dom-utils.js";
+import { t } from "./i18n.js";
+import { state } from "./state.js";
+import { normKey, getAuthorName } from "./utils.js";
+import { setActiveTab } from "./ui.js";
+import { stopCamera } from "./camera.js";
+import { saveLibrary } from "./storage.js"; // <-- see note below
 
-export let pendingBook = null;
+let pendingBook = null;
 
-export function showModal(book, scannedIsbn = "") {
+export function showModal(book = {}, scannedIsbn = "") {
   pendingBook = { ...book };
   if (scannedIsbn) pendingBook.isbn = scannedIsbn;
+
   setText("modal-title", pendingBook.title || "Unknown");
   setText("modal-author", getAuthorName(pendingBook));
   setText("modal-isbn", pendingBook.isbn ? `ISBN: ${pendingBook.isbn}` : "");
+
   const audioCheck = $("modal-audio-check");
   if (audioCheck) audioCheck.checked = false;
+
   const loanRow = $("loan-date-row");
   if (loanRow) loanRow.style.display = "none";
+
   const returnInput = $("modal-return-date");
   if (returnInput) returnInput.value = "";
+
   const img = $("modal-img");
   const cover = safeUrl(pendingBook.cover);
   if (img) {
@@ -30,31 +37,51 @@ export function showModal(book, scannedIsbn = "") {
       img.style.display = "none";
     }
   }
-  $("modal-overlay") && ($("modal-overlay").style.display = "flex");
+
+  const overlay = $("modal-overlay");
+  if (overlay) overlay.style.display = "flex";
 }
 
 export function closeModal() {
-  $("modal-overlay") && ($("modal-overlay").style.display = "none");
-  $("loan-date-row") && ($("loan-date-row").style.display = "none");
+  const overlay = $("modal-overlay");
+  if (overlay) overlay.style.display = "none";
+
+  const loanRow = $("loan-date-row");
+  if (loanRow) loanRow.style.display = "none";
+
   pendingBook = null;
-  scanLocked = false;
-  if (html5QrCode) stopCamera();
+
+  // release scan lock
+  state.scanLocked = false;
+
+  // stop camera safely
+  stopCamera();
 }
 
 export function confirmAdd(targetShelf) {
   if (!pendingBook) return;
+
+  // Duplicate detection across all shelves
   const key = normKey(pendingBook);
-  const allBooks = [...library.read, ...library.wishlist, ...library.loans];
+  const allBooks = [
+    ...(state.library.read || []),
+    ...(state.library.wishlist || []),
+    ...(state.library.loans || [])
+  ];
+
   if (allBooks.some((b) => normKey(b) === key)) {
     toast(t("alreadyExists"));
     closeModal();
     return;
   }
+
+  // Loans: 2-step UX for picking return date
   let retDate = "";
   if (targetShelf === "loans") {
     const row = $("loan-date-row");
     const input = $("modal-return-date");
     if (!row || !input) return toast("Missing loan fields.");
+
     if (row.style.display === "none") {
       row.style.display = "flex";
       const d = new Date();
@@ -62,15 +89,18 @@ export function confirmAdd(targetShelf) {
       input.value = d.toISOString().split("T")[0];
       return;
     }
+
     retDate = input.value;
     if (!retDate) return toast(t("dateRequired"));
   }
+
   const newBook = {
     id: makeId(),
     title: pendingBook.title || "Unknown",
-    authors: Array.isArray(pendingBook.authors) && pendingBook.authors.length
-      ? pendingBook.authors
-      : [{ name: "Unknown" }],
+    authors:
+      Array.isArray(pendingBook.authors) && pendingBook.authors.length
+        ? pendingBook.authors
+        : [{ name: "Unknown" }],
     rating: 0,
     cover: safeUrl(pendingBook.cover) || null,
     dateRead: targetShelf === "read" ? todayISO() : "",
@@ -78,8 +108,12 @@ export function confirmAdd(targetShelf) {
     isAudio: !!$("modal-audio-check")?.checked,
     isbn: pendingBook.isbn || ""
   };
-  library[targetShelf].push(newBook);
+
+  state.library[targetShelf].push(newBook);
+
   closeModal();
   setActiveTab(targetShelf);
+
+  // Persist + optional cloud sync
   saveLibrary({ shouldSync: true, skipRender: true });
 }
