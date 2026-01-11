@@ -1,54 +1,60 @@
-//# library, currentShelf, filterState, cloudFileId + load/persist
-import { LS } from './config.js';
+// Pure state only: no DOM, no render, no drive imports
+import { LS } from "./config.js";
 
-export let currentShelf = "read";
-export let library = { read: [], wishlist: [], loans: [] };
-export let filterState = { text: "", year: "", month: "", rating: "" };
-export let cloudFileId = localStorage.getItem(LS.CLOUD_FILE_ID) || null;
-export let html5QrCode = null;
-export let scanLocked = false;
-export let pendingBook = null;
-export let isSyncing = false;
-export let syncPending = false;
-export let uploadFailCount = 0;
-export let appStatus = "idle";
+export const state = {
+  currentShelf: "read",
+  library: { read: [], wishlist: [], loans: [] },
+  filterState: { text: "", year: "", month: "", rating: "" },
 
-export function loadLibrary() {
+  // drive-related state values can still live here as data
+  cloudFileId: localStorage.getItem(LS.CLOUD_FILE_ID) || null,
+
+  // camera / modal
+  html5QrCode: null,
+  scanLocked: false,
+  pendingBook: null,
+
+  // sync flags
+  isSyncing: false,
+  syncPending: false,
+  uploadFailCount: 0,
+  appStatus: "idle"
+};
+
+// --------- Persistence ---------
+
+export function loadLibraryFromStorage() {
   try {
     const raw = JSON.parse(localStorage.getItem(LS.LIB));
     if (raw && typeof raw === "object") {
-      return {
+      state.library = {
         read: Array.isArray(raw.read) ? raw.read : [],
         wishlist: Array.isArray(raw.wishlist) ? raw.wishlist : [],
         loans: Array.isArray(raw.loans) ? raw.loans : []
       };
+      return state.library;
     }
   } catch {}
-  return { read: [], wishlist: [], loans: [] };
+  state.library = { read: [], wishlist: [], loans: [] };
+  return state.library;
 }
 
-export function persistLibrary() {
-  localStorage.setItem(LS.LIB, JSON.stringify(library));
+export function persistLibraryToStorage() {
+  localStorage.setItem(LS.LIB, JSON.stringify(state.library));
 }
 
-export function saveLibrary({ shouldSync = false, skipRender = false } = {}) {
-  persistLibrary();
-  updateShelfCounts();
-  if (!skipRender) renderBooks(); // will be imported later
-  if (shouldSync && isDriveSignedIn()) queueUpload(); // from drive.js
+// --------- Small setters (still pure) ---------
+
+export function setShelf(shelf) {
+  state.currentShelf = shelf;
 }
 
-export function updateShelfCounts() {
-  setText("count-read", library.read?.length || 0);
-  setText("count-wishlist", library.wishlist?.length || 0);
-  setText("count-loans", library.loans?.length || 0);
+export function setFilter(patch) {
+  state.filterState = { ...state.filterState, ...patch };
 }
 
-export function setActiveTab(shelf) {
-  currentShelf = shelf;
-  ["read", "wishlist", "loans"].forEach((s) =>
-    $(`tab-${s}`)?.classList.toggle("active", s === shelf)
-  );
-  closeMenu();          // assuming closeMenu is exported from wherever it lives
-  renderBooks();        // assuming renderBooks is imported in state.js or global
+export function setCloudFileId(id) {
+  state.cloudFileId = id || null;
+  if (id) localStorage.setItem(LS.CLOUD_FILE_ID, id);
+  else localStorage.removeItem(LS.CLOUD_FILE_ID);
 }
