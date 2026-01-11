@@ -1,40 +1,63 @@
-//# Entry point: imports everything, wires events
-
+//# Entry point
 import { $, addClick, setText, logError } from "./dom-utils.js";
-import { setLanguage, getCurrentLang } from "./i18n.js";
-import { loadLibrary, setLibrary } from "./state.js";
+import { currentLang, setCurrentLang, applyLanguageToUI } from "./i18n.js";
+import { state, loadLibrary } from "./state.js";
 import { renderBooks } from "./render.js";
+import { openMenu, closeMenu, setActiveTab, setSyncStatus } from "./ui.js";
 import { injectCloudControls } from "./init.js";
-import { gapiLoaded, gisLoaded, isDriveSignedIn } from "./drive.js";
-import { setSyncStatus } from "./ui.js"; // wherever you keep it
+import { gapiLoaded, gisLoaded, isDriveSignedIn, signInDrive } from "./drive.js";
+import { normalizeStr } from "./utils.js";
 
-// Expose ONLY what Google scripts call
+// expose ONLY these for Google script onload
 window.gapiLoaded = gapiLoaded;
 window.gisLoaded = gisLoaded;
 
 window.addEventListener("DOMContentLoaded", () => {
   try {
-    // Load local data into state
-    const lib = loadLibrary();
-    setLibrary(lib);              // <-- IMPORTANT (no "library =" assignment)
+    // load data
+    state.library = loadLibrary();
 
-    // Build cloud buttons
+    // year in footer
+    setText("year", new Date().getFullYear());
+
+    // inject cloud buttons
     injectCloudControls();
 
-    // Apply language to UI
-    setLanguage(getCurrentLang()); // <-- IMPORTANT (no "currentLang" free var)
+    // language init
+    const langSel = $("language-select");
+    if (langSel) {
+      langSel.value = currentLang;
+      langSel.addEventListener("change", (e) => {
+        setCurrentLang(e.target.value);
+        applyLanguageToUI();
+        renderBooks();
+      });
+    }
+    applyLanguageToUI();
 
-    // Sync dot/button initial state
+    // menu open/close
+    addClick("menu-btn", openMenu);
+    addClick("menu-overlay", closeMenu);
+
+    // tabs
+    document.querySelector(".tabs")?.addEventListener("click", (e) => {
+      const tab = e.target.closest(".tab");
+      if (!tab) return;
+      setActiveTab(tab.id.replace("tab-", ""));
+    });
+
+    // auth
+    addClick("auth-btn", signInDrive);
+
+    // sync dot initial
     setSyncStatus(isDriveSignedIn() ? "synced" : "idle");
 
-    // Render initial list
+    // initial render
     renderBooks();
 
-    // TODO: wire the rest of your events here...
-    // addClick("btn-add", handleManualAdd), etc.
-
-    setText("year", new Date().getFullYear());
+    console.log("App ready (modules)");
   } catch (e) {
     logError("Init failed", e);
+    setSyncStatus("error");
   }
 });
