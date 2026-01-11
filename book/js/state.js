@@ -1,4 +1,4 @@
-// Pure state only: no DOM, no render, no drive imports
+//# App state (pure state only)
 import { LS } from "./config.js";
 
 export const state = {
@@ -6,61 +6,37 @@ export const state = {
   library: { read: [], wishlist: [], loans: [] },
   filterState: { text: "", year: "", month: "", rating: "" },
 
-  // drive-related state values can still live here as data
+  // cloud / auth
   cloudFileId: localStorage.getItem(LS.CLOUD_FILE_ID) || null,
+  appStatus: "idle",
 
-  // camera / modal
+  // camera
   html5QrCode: null,
   scanLocked: false,
+
+  // modal
   pendingBook: null,
 
-  // sync flags
+  // sync
   isSyncing: false,
   syncPending: false,
-  uploadFailCount: 0,
-  appStatus: "idle"
+  uploadFailCount: 0
 };
 
-// --------- Persistence ---------
-
-export function loadLibraryFromStorage() {
+export function loadLibrary() {
   try {
     const raw = JSON.parse(localStorage.getItem(LS.LIB));
     if (raw && typeof raw === "object") {
-      state.library = {
+      return {
         read: Array.isArray(raw.read) ? raw.read : [],
         wishlist: Array.isArray(raw.wishlist) ? raw.wishlist : [],
         loans: Array.isArray(raw.loans) ? raw.loans : []
       };
-      return state.library;
     }
   } catch {}
-  state.library = { read: [], wishlist: [], loans: [] };
-  return state.library;
+  return { read: [], wishlist: [], loans: [] };
 }
 
-export function persistLibraryToStorage() {
+export function persistLibrary() {
   localStorage.setItem(LS.LIB, JSON.stringify(state.library));
-}
-
-// --------- Small setters (still pure) ---------
-
-export function setShelf(shelf) {
-  state.currentShelf = shelf;
-}
-
-export function setFilter(patch) {
-  state.filterState = { ...state.filterState, ...patch };
-}
-
-export function setCloudFileId(id) {
-  state.cloudFileId = id || null;
-  if (id) localStorage.setItem(LS.CLOUD_FILE_ID, id);
-  else localStorage.removeItem(LS.CLOUD_FILE_ID);
-}
-// state.js
-export let library = { read: [], wishlist: [], loans: [] };
-
-export function setLibrary(next) {
-  library = next;
 }
