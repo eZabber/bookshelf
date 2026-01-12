@@ -3,10 +3,11 @@ import { LS } from "./config.js";
 
 /**
  * ✅ Single source of truth + "compat exports"
- * This file exports BOTH:
- *  - live bindings (library/currentShelf/filterState etc.)
- *  - a `state` object (for modules that use state.library / state.currentShelf)
- *  - drive/sync flags that some modules import directly
+ * - live bindings (currentShelf, library, filterState, etc.)
+ * - `state` object (state.library / state.currentShelf style)
+ * - Drive/sync flags + setters that drive.js expects
+ *
+ * IMPORTANT: No DOM access and no i18n here (prevents circular imports).
  */
 
 // -------------------- Core app state --------------------
@@ -20,23 +21,11 @@ export let cloudFileId = localStorage.getItem(LS.CLOUD_FILE_ID) || null;
 export let isSyncing = false;
 export let syncPending = false;
 export let uploadFailCount = 0;
-export let appStatus = "idle";
+export let appStatus = "idle"; // "idle" | "working" | "synced" | "error"
 
-// "signed in" flag for modules that want to gate Drive actions
 export let driveSignedIn = false;
 
-/**
- * Some modules import `requireSignedInDrive` from state.js.
- * Make it exist and behave sensibly:
- * - returns true if signed in
- * - false if not
- * drive.js should set driveSignedIn=true when auth succeeds.
- */
-export function requireSignedInDrive() {
-  return !!driveSignedIn;
-}
-
-// -------------------- `state` object compatibility --------------------
+// -------------------- state object (compat for modules using state.*) --------------------
 export const state = {
   get currentShelf() { return currentShelf; },
   set currentShelf(v) { currentShelf = String(v || "read"); },
@@ -47,7 +36,6 @@ export const state = {
   get filterState() { return filterState; },
   set filterState(v) { filterState = sanitizeFilterState(v); },
 
-  // drive/sync
   get cloudFileId() { return cloudFileId; },
   set cloudFileId(v) { cloudFileId = v || null; },
 
@@ -67,7 +55,7 @@ export const state = {
   set driveSignedIn(v) { driveSignedIn = !!v; }
 };
 
-// -------------------- Helpers --------------------
+// -------------------- helpers --------------------
 function sanitizeLibrary(raw) {
   return {
     read: Array.isArray(raw?.read) ? raw.read : [],
@@ -85,9 +73,15 @@ function sanitizeFilterState(next) {
   };
 }
 
-// -------------------- Public API --------------------
+function emit(name, detail) {
+  // light-weight notification system (no imports)
+  window.dispatchEvent(new CustomEvent(name, { detail }));
+}
+
+// -------------------- Library persistence --------------------
 export function setLibrary(next) {
   library = sanitizeLibrary(next);
+  emit("library-changed", library);
 }
 
 export function loadLibrary() {
@@ -103,42 +97,64 @@ export function persistLibrary() {
   localStorage.setItem(LS.LIB, JSON.stringify(library));
 }
 
+// -------------------- Shelf & filter setters --------------------
 export function setCurrentShelf(shelf) {
   currentShelf = String(shelf || "read");
+  emit("shelf-changed", currentShelf);
 }
 
 export function setFilterState(next) {
   filterState = sanitizeFilterState(next);
+  emit("filter-changed", filterState);
 }
 
+// -------------------- Drive / sync setters (these stop the “missing export” errors) --------------------
 export function setCloudFileId(id) {
   cloudFileId = id || null;
-  if (cloudFileId) localStorage.setItem(LS.CLOUD_FILE_ID, cloudFileId);
-  else localStorage.removeItem(LS.CLOUD_FILE_ID);
+  try {
+    localStorage.setItem(LS.CLOUD_FILE_ID, cloudFileId || "");
+  } catch {}
+  emit("cloudfile-changed", cloudFileId);
 }
 
+export function setDriveSignedIn(next) {
+  driveSignedIn = !!next;
+  emit("drive-auth-changed", driveSignedIn);
+}
+
+// some modules import this name specifically
+export function requireSignedInDrive() {
+  return !!driveSignedIn;
+}
+
+// drive.js often wants to update sync status
+export function setSyncStatus(nextStatus) {
+  appStatus = String(nextStatus || "idle");
+
+  // convenience: keep isSyncing consistent if you want
+  if (appStatus === "working") isSyncing = true;
+  if (appStatus === "synced" || appStatus === "idle" || appStatus === "error") isSyncing = false;
+
+  emit("sync-status", appStatus);
+}
+
+// optional helpers (harmless if unused)
 export function setIsSyncing(v) {
   isSyncing = !!v;
+  emit("syncing-changed", isSyncing);
 }
 
 export function setSyncPending(v) {
   syncPending = !!v;
+  emit("syncpending-changed", syncPending);
 }
 
-export function setDriveSignedIn(v) {
-  driveSignedIn = !!v;
+export function incUploadFailCount() {
+  uploadFailCount = Number(uploadFailCount || 0) + 1;
+  emit("uploadfail-changed", uploadFailCount);
 }
 
-export function bumpUploadFailCount() {
-  uploadFailCount += 1;
-}
-
-export function setAppStatus(v) {
-  appStatus = String(v || "idle");
-}
-
-export function setSyncStatus(status) {
-  // keep a single string status that UI can reflect
-  // examples: "idle", "syncing", "ok", "error"
-  appStatus = String(status || "idle");
+export function resetUploadFailCount() {
+  uploadFailCount = 0;
+  emit("uploadfail-changed", uploadFailCount);
 }
