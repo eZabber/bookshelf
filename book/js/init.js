@@ -1,25 +1,73 @@
-// injectCloudControls + DOMContentLoaded listener (wires all events)
-import { $ } from './dom-utils.js';
-import { addClick, setText } from './dom-utils.js';
-import { t, setCurrentLang } from './i18n.js';
-import { loadLibrary } from './state.js';
-import { setLanguage } from './i18n.js'; // if you want to keep setLanguage as is
-import { openMenu, closeMenu, setActiveTab } from './filters.js'; // adjust as needed
-import { startCamera, stopCamera } from './camera.js';
-import { handleManualAdd } from './lookups.js';
-import { signInDrive } from './drive.js';
-import { injectCloudControls } from './init.js'; // circular if needed
+// js/init.js
+import { $ } from "./dom-utils.js";
+import { setCurrentLang } from "./i18n.js";
+import { renderBooks } from "./render.js";
 
-window.addEventListener("DOMContentLoaded", () => {
-  try {
-    library = loadLibrary();
-    // All your event listeners here, using imported functions
-    addClick("menu-btn", openMenu);
-    addClick("menu-overlay", closeMenu);
-    // ... all other addClick, addEventListener from your original DOMContentLoaded
-    // Use imported setLanguage, renderBooks, etc.
-    console.log("App Ready (modular version)");
-  } catch (e) {
-    logError("Init", e);
-  }
-});
+/**
+ * Menu open/close lives here (NOT in filters.js)
+ */
+export function openMenu() {
+  const menu = $("side-menu");
+  const overlay = $("menu-overlay");
+  if (menu) menu.classList.add("open");
+  if (overlay) overlay.classList.add("open");
+}
+
+export function closeMenu() {
+  const menu = $("side-menu");
+  const overlay = $("menu-overlay");
+  if (menu) menu.classList.remove("open");
+  if (overlay) overlay.classList.remove("open");
+}
+
+export function initMenuWiring() {
+  $("menu-btn")?.addEventListener("click", openMenu);
+  $("menu-overlay")?.addEventListener("click", closeMenu);
+}
+
+/**
+ * Theme toggle
+ */
+export function initThemeWiring() {
+  const toggle = $("dark-mode-toggle");
+  if (!toggle) return;
+
+  // initial from localStorage
+  const saved = localStorage.getItem("MBS_DARK") === "1";
+  document.body.classList.toggle("dark-mode", saved);
+  toggle.checked = saved;
+
+  toggle.addEventListener("change", () => {
+    const on = !!toggle.checked;
+    document.body.classList.toggle("dark-mode", on);
+    localStorage.setItem("MBS_DARK", on ? "1" : "0");
+  });
+}
+
+/**
+ * Language dropdown
+ */
+export function initLanguageWiring() {
+  const sel = $("language-select");
+  if (!sel) return;
+
+  sel.addEventListener("change", () => {
+    setCurrentLang(sel.value);
+    renderBooks(); // rerender list + filter status strings etc.
+  });
+}
+
+/**
+ * Footer year
+ */
+export function initFooterYear() {
+  const y = document.getElementById("year");
+  if (y) y.textContent = String(new Date().getFullYear());
+}
+
+/**
+ * If you inject Drive buttons etc. later, keep this as a safe hook.
+ */
+export function injectCloudControls() {
+  // Optional placeholder – doesn’t break anything
+}
