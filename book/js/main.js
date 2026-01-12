@@ -1,14 +1,14 @@
 // js/main.js
-import { $, setText, addClick, toast } from "./dom-utils.js";
-import { setLanguage, currentLang } from "./i18n.js";
+import { $, setText, addClick } from "./dom-utils.js";
+import { currentLang, setCurrentLang, applyLanguageToUI } from "./i18n.js";
 import { loadLibrary, setLibrary, setCurrentShelf } from "./state.js";
 import { renderBooks, updateShelfCounts } from "./render.js";
-import { openMenu, closeMenu, initMenuWiring } from "./init.js";
+import { openMenu, closeMenu } from "./init.js";
 import { gapiLoaded, gisLoaded, signInDrive } from "./drive.js";
 import { applyFilters, clearFilters } from "./filters.js";
 import { handleManualAdd } from "./lookups.js";
 import { startCamera, stopCamera } from "./camera.js";
-import { showModal, closeModal, confirmAdd } from "./modal.js";
+import { closeModal, confirmAdd } from "./modal.js";
 
 // ✅ expose Google callback hooks globally
 window.gapiLoaded = gapiLoaded;
@@ -19,19 +19,30 @@ window.addEventListener("DOMContentLoaded", () => {
   const loaded = loadLibrary();
   setLibrary(loaded);
 
+  // ✅ IMPORTANT: enable Sign In button (disabled buttons don't emit click)
+  const authBtn = $("auth-btn");
+  if (authBtn) authBtn.disabled = false;
+
   // Menu open/close
   addClick("menu-btn", openMenu);
   addClick("menu-overlay", closeMenu);
 
   // Language
-  $("language-select")?.addEventListener("change", (e) => setLanguage(e.target.value));
+  $("language-select")?.addEventListener("change", (e) => {
+    setCurrentLang(e.target.value);
+    applyLanguageToUI();
+    renderBooks();
+  });
 
   // Filters
-  addClick("btn-clear-filters", clearFilters);
-  $("filter-text")?.addEventListener("input", applyFilters);
-  $("filter-year")?.addEventListener("input", applyFilters);
-  $("filter-month")?.addEventListener("change", applyFilters);
-  $("filter-rating")?.addEventListener("change", applyFilters);
+  addClick("btn-clear-filters", () => {
+    clearFilters();
+    renderBooks();
+  });
+  $("filter-text")?.addEventListener("input", () => { applyFilters(); renderBooks(); });
+  $("filter-year")?.addEventListener("input", () => { applyFilters(); renderBooks(); });
+  $("filter-month")?.addEventListener("change", () => { applyFilters(); renderBooks(); });
+  $("filter-rating")?.addEventListener("change", () => { applyFilters(); renderBooks(); });
 
   // Tabs
   document.querySelector(".tabs")?.addEventListener("click", (e) => {
@@ -70,7 +81,8 @@ window.addEventListener("DOMContentLoaded", () => {
   setText("year", new Date().getFullYear());
 
   // Initial UI
-  setLanguage(currentLang);
+  setCurrentLang(currentLang);
+  applyLanguageToUI();
   updateShelfCounts();
   renderBooks();
 });
