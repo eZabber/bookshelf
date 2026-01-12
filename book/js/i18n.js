@@ -239,3 +239,10 @@ export function applyLanguageToUI() {
   if (hd) hd.textContent = t("headerDrive");
   if (hl) hl.textContent = t("headerLocal");
 }
+
+
+// Compatibility alias (main.js expects this)
+export function setLanguage(lang) {
+  setCurrentLang(lang);
+  applyLanguageToUI();
+}
