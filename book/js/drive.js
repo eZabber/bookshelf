@@ -23,16 +23,13 @@ export function gapiLoaded() {
 }
 
 // Called by <script ... onload="gisLoaded()">
-export function gisLoaded() {
-  const btn = $("auth-btn");
+export function gisLoaded(btn) {
+  if (!btn) return;
 
-  // If not configured, keep disabled but explain why
   if (!GOOGLE_CLIENT_ID) {
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = t("signIn");
-      btn.title = "Google Client ID missing in config.js";
-    }
+    btn.disabled = true;
+    btn.textContent = t("signIn");
+    btn.title = "Google Client ID missing in config.js";
     return;
   }
 
@@ -43,28 +40,25 @@ export function gisLoaded() {
       if (resp?.access_token) {
         accessToken = resp.access_token;
         setDriveSignedIn(true);
-        if (btn) btn.textContent = t("synced"); // or "Logged In"
+        btn.textContent = t("synced");
       } else {
         setDriveSignedIn(false);
-        if (btn) btn.textContent = t("signIn");
+        btn.textContent = t("signIn");
       }
     }
   });
 
-  // ✅ Enable the button now that GIS is ready
-  if (btn) {
-    btn.disabled = false;
-    btn.textContent = t("signIn");
-    btn.title = "";
-  }
+  btn.disabled = false;
+  btn.textContent = t("signIn");
+  btn.title = "";
 }
 
-export function signInDrive() {
-  const btn = $("auth-btn");
+export function signInDrive(btn) {
+  if (!btn) return;
 
   if (!tokenClient) {
-    toast(t("sessionExpired")); // or "Drive not ready"
-    if (btn) btn.disabled = false;
+    toast(t("sessionExpired"));
+    btn.disabled = false;
     return;
   }
 

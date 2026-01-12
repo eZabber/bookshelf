@@ -12,16 +12,12 @@ import { closeModal, confirmAdd } from "./modal.js";
 
 // ✅ expose Google callback hooks globally
 window.gapiLoaded = gapiLoaded;
-window.gisLoaded = gisLoaded;
+window.gisLoaded = () => gisLoaded($("auth-btn"));
 
 window.addEventListener("DOMContentLoaded", () => {
   // Load local data safely
   const loaded = loadLibrary();
   setLibrary(loaded);
-
-  // ✅ IMPORTANT: enable Sign In button (disabled buttons don't emit click)
-  const authBtn = $("auth-btn");
-  if (authBtn) authBtn.disabled = false;
 
   // Menu open/close
   addClick("menu-btn", openMenu);
@@ -75,7 +71,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   // Auth
-  addClick("auth-btn", signInDrive);
+  addClick("auth-btn", (e) => signInDrive(e.target));
 
   // Footer year
   setText("year", new Date().getFullYear());
