@@ -24,6 +24,7 @@ export let uploadFailCount = 0;
 export let appStatus = "idle"; // "idle" | "working" | "synced" | "error"
 
 export let driveSignedIn = false;
+export function setDriveSignedIn(v) { driveSignedIn = !!v; }
 
 // -------------------- state object (compat for modules using state.*) --------------------
 export const state = {
