@@ -1,37 +1,23 @@
 // js/state.js
 import { LS } from "./config.js";
 
-/**
- * Central app state.
- * IMPORTANT:
- * - Keep both live bindings (export let ...) AND a `state` object wrapper
- *   because different modules in your project expect one or the other.
- * - Also exports sync flags used by drive.js.
- */
-
-// -------------------------
-// Live bindings (preferred)
-// -------------------------
+/** Live bindings */
 export let currentShelf = "read";
 export let library = { read: [], wishlist: [], loans: [] };
 export let filterState = { text: "", year: "", month: "", rating: "" };
 
-// Drive/Cloud sync flags (drive.js expects these)
+/** Drive sync flags (drive.js imports these) */
 export let isSyncing = false;
 export let syncPending = false;
 
-// Optional scanning/modal flags (some older modules might expect these)
+/** Optional flags some modules may use */
 export let scanLocked = false;
 export let pendingBook = null;
 
-// -------------------------
-// `state` object wrapper (compat)
-// -------------------------
-// Some modules import { state } and access state.library etc.
-// Using getters/setters keeps it always in sync with live bindings.
+/** Compat wrapper */
 export const state = {
   get currentShelf() { return currentShelf; },
-  set currentShelf(v) { currentShelf = String(v || "read"); },
+  set currentShelf(v) { currentShelf = sanitizeShelf(v); },
 
   get library() { return library; },
   set library(v) { library = sanitizeLibrary(v); },
@@ -52,9 +38,6 @@ export const state = {
   set pendingBook(v) { pendingBook = v ?? null; }
 };
 
-// -------------------------
-// Helpers
-// -------------------------
 function sanitizeLibrary(raw) {
   return {
     read: Array.isArray(raw?.read) ? raw.read : [],
@@ -69,9 +52,7 @@ function sanitizeShelf(s) {
   return "read";
 }
 
-// -------------------------
-// Library persistence
-// -------------------------
+/** API */
 export function setLibrary(next) {
   library = sanitizeLibrary(next);
 }
@@ -89,9 +70,6 @@ export function persistLibrary() {
   localStorage.setItem(LS.LIB, JSON.stringify(library));
 }
 
-// -------------------------
-// Shelf + filters
-// -------------------------
 export function setCurrentShelf(shelf) {
   currentShelf = sanitizeShelf(shelf);
 }
@@ -105,9 +83,7 @@ export function setFilterState(next) {
   };
 }
 
-// -------------------------
-// Drive sync setters (nice API)
-// -------------------------
+/** Drive setters (drive.js may call these) */
 export function setIsSyncing(v) {
   isSyncing = !!v;
 }
@@ -116,9 +92,7 @@ export function setSyncPending(v) {
   syncPending = !!v;
 }
 
-// -------------------------
-// Optional helpers used by other modules
-// -------------------------
+/** Optional helpers */
 export function setScanLocked(v) {
   scanLocked = !!v;
 }
