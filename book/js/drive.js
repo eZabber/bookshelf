@@ -1,71 +1,81 @@
-//# gapiLoaded, gisLoaded, signInDrive, findCloudFileIfExists, ensureCloudFile, handleCloudSave, handleCloudLoad, queueUpload + multipart helpers
-import { $ } from './dom-utils.js';
-import { t } from './i18n.js';
-import { toast, logError } from './dom-utils.js';
-import { requireSignedInDrive, setSyncStatus, isSyncing, syncPending, uploadFailCount } from './state.js';
-import { persistLibrary, library } from './state.js';
+// js/drive.js
+import { $ , toast } from "./dom-utils.js";
+import { t } from "./i18n.js";
+import { driveSignedIn, setDriveSignedIn } from "./state.js"; // if you don't have these, see state.js note below
+import { GOOGLE_CLIENT_ID, GOOGLE_API_KEY, DRIVE_SCOPES } from "./config.js";
 
+let tokenClient = null;
+let accessToken = null;
+
+// Called by <script ... onload="gapiLoaded()">
 export function gapiLoaded() {
-  if (!window.gapi?.load) {
-    toast("Google API failed to load.");
-    return;
-  }
+  if (!window.gapi) return;
   window.gapi.load("client", async () => {
     try {
-      await window.gapi.client.init({
-        apiKey: DEVELOPER_KEY || undefined,
-        discoveryDocs: DISCOVERY
-      });
-      gapiInited = true;
-      maybeEnableAuth();
+      if (!GOOGLE_API_KEY) return; // allow app without Drive
+      await window.gapi.client.init({ apiKey: GOOGLE_API_KEY });
+      // Optional: load Drive API if you actually use it later:
+      // await window.gapi.client.load("drive", "v3");
     } catch (e) {
-      logError("GAPI Init Fail", e);
-      setSyncStatus("error");
-      toast("Google API init failed.");
+      console.error("gapi init failed", e);
     }
   });
 }
 
+// Called by <script ... onload="gisLoaded()">
 export function gisLoaded() {
-  if (!window.google?.accounts?.oauth2?.initTokenClient) {
-    toast("Google sign-in failed to load.");
+  const btn = $("auth-btn");
+
+  // If not configured, keep disabled but explain why
+  if (!GOOGLE_CLIENT_ID) {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = t("signIn");
+      btn.title = "Google Client ID missing in config.js";
+    }
     return;
   }
-  driveTokenClient = window.google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: DRIVE_SCOPE,
-    callback: async (resp) => {
-      if (resp?.error) {
-        logError("Drive Auth Fail", resp);
-        setSyncStatus("error");
-        toast("Sign-in failed.");
-        return;
+
+  tokenClient = window.google?.accounts?.oauth2?.initTokenClient?.({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: DRIVE_SCOPES,
+    callback: (resp) => {
+      if (resp?.access_token) {
+        accessToken = resp.access_token;
+        setDriveSignedIn(true);
+        if (btn) btn.textContent = t("synced"); // or "Logged In"
+      } else {
+        setDriveSignedIn(false);
+        if (btn) btn.textContent = t("signIn");
       }
-      window.gapi.client.setToken(resp);
-      setSyncStatus("synced");
-      await findCloudFileIfExists();
     }
   });
-  gisInited = true;
-  maybeEnableAuth();
+
+  // ✅ Enable the button now that GIS is ready
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = t("signIn");
+    btn.title = "";
+  }
 }
 
 export function signInDrive() {
-  if (!driveTokenClient) return;
-  setSyncStatus("working");
-  driveTokenClient.requestAccessToken({ prompt: "" });
-}
+  const btn = $("auth-btn");
 
-// ... rest of drive functions (findCloudFileIfExists, ensureCloudFile, handleCloudSave, handleCloudLoad, queueUpload, buildMultipartBody, driveMultipartCreate, driveMultipartUpdate, driveDownloadFile) - copy them here
+  if (!tokenClient) {
+    toast(t("sessionExpired")); // or "Drive not ready"
+    if (btn) btn.disabled = false;
+    return;
+  }
 
-export function isDriveSignedIn() {
   try {
-    return !!window.gapi?.client?.getToken?.();
-  } catch {
-    return false;
+    tokenClient.requestAccessToken({ prompt: "consent" });
+  } catch (e) {
+    console.error("signInDrive failed", e);
+    toast(t("sessionExpired"));
   }
 }
 
-// Expose for Google API onload callbacks (required!)
-window.gapiLoaded = gapiLoaded;
-window.gisLoaded = gisLoaded;
+export function isDriveSignedIn() {
+  return !!accessToken;
+}
