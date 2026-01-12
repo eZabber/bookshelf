@@ -1,26 +1,24 @@
+// js/render.js
 //# Rendering
 import { $ } from "./dom-utils.js";
 import { t } from "./i18n.js";
-import { state, persistLibrary } from "./state.js";
-import { normalizeStr, safeUrl, getAuthorName } from "./utils.js";
-import { setActiveTab } from "./ui.js";
+import { library, currentShelf, filterState } from "./state.js";
+import { normalizeStr } from "./dom-utils.js";
+import { safeUrl, getAuthorName } from "./utils.js";
 
 export function updateShelfCounts() {
-  const lib = state.library;
-  $("count-read") && ($("count-read").textContent = String(lib.read?.length || 0));
-  $("count-wishlist") && ($("count-wishlist").textContent = String(lib.wishlist?.length || 0));
-  $("count-loans") && ($("count-loans").textContent = String(lib.loans?.length || 0));
+  $("count-read") && ($("count-read").textContent = String(library.read?.length || 0));
+  $("count-wishlist") && ($("count-wishlist").textContent = String(library.wishlist?.length || 0));
+  $("count-loans") && ($("count-loans").textContent = String(library.loans?.length || 0));
 }
 
 function getVisibleBooks() {
-  const allItems = Array.isArray(state.library[state.currentShelf])
-    ? state.library[state.currentShelf]
-    : [];
+  const allItems = Array.isArray(library[currentShelf]) ? library[currentShelf] : [];
 
-  const term = normalizeStr(state.filterState.text);
+  const term = normalizeStr(filterState.text);
   const cleanTerm = term.replace(/[\s-]/g, "");
 
-  if (!term && !state.filterState.year && !state.filterState.month && !state.filterState.rating) {
+  if (!term && !filterState.year && !filterState.month && !filterState.rating) {
     return { allItems, visibleItems: allItems };
   }
 
@@ -33,22 +31,35 @@ function getVisibleBooks() {
       !term || titleLc.includes(term) || authorLc.includes(term) || isbnLc.includes(cleanTerm);
 
     const dateStr =
-      state.currentShelf === "read" ? String(b.dateRead || "") :
-      state.currentShelf === "loans" ? String(b.returnDate || "") : "";
+      currentShelf === "read" ? String(b.dateRead || "") :
+      currentShelf === "loans" ? String(b.returnDate || "") : "";
 
-    const matchYear = !state.filterState.year || dateStr.startsWith(state.filterState.year);
+    const matchYear = !filterState.year || dateStr.startsWith(filterState.year);
+
     const matchMonth =
-      !state.filterState.month ||
-      (dateStr.length >= 7 && dateStr.substring(5, 7) === state.filterState.month);
+      !filterState.month ||
+      (dateStr.length >= 7 && dateStr.substring(5, 7) === filterState.month);
 
     const matchRating =
-      !state.filterState.rating ||
-      Number(b.rating || 0) === Number(state.filterState.rating);
+      !filterState.rating || Number(b.rating || 0) === Number(filterState.rating);
 
     return matchText && matchYear && matchMonth && matchRating;
   });
 
   return { allItems, visibleItems };
+}
+
+function clearFiltersAndInputs() {
+  // IMPORTANT: do not reassign filterState object — mutate fields
+  filterState.text = "";
+  filterState.year = "";
+  filterState.month = "";
+  filterState.rating = "";
+
+  const ft = $("filter-text"); if (ft) ft.value = "";
+  const fy = $("filter-year"); if (fy) fy.value = "";
+  const fm = $("filter-month"); if (fm) fm.value = "";
+  const fr = $("filter-rating"); if (fr) fr.value = "";
 }
 
 function renderFilterStatus(allCount, visibleCount) {
@@ -70,11 +81,7 @@ function renderFilterStatus(allCount, visibleCount) {
     right.className = "filter-clear-link";
     right.textContent = t("clearBtn");
     right.addEventListener("click", () => {
-      state.filterState = { text: "", year: "", month: "", rating: "" };
-      const ft = $("filter-text"); if (ft) ft.value = "";
-      const fy = $("filter-year"); if (fy) fy.value = "";
-      const fm = $("filter-month"); if (fm) fm.value = "";
-      const fr = $("filter-rating"); if (fr) fr.value = "";
+      clearFiltersAndInputs();
       renderBooks();
     });
 
@@ -88,8 +95,8 @@ function createBookCard(book) {
   const li = document.createElement("li");
   li.className = "book-card";
 
-  // thumb
   const coverUrl = safeUrl(book?.cover);
+
   if (coverUrl) {
     const img = document.createElement("img");
     img.className = "book-thumb";
@@ -128,6 +135,7 @@ export function renderBooks() {
   list.textContent = "";
 
   const { allItems, visibleItems } = getVisibleBooks();
+
   updateShelfCounts();
   renderFilterStatus(allItems.length, visibleItems.length);
 
