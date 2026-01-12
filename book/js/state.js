@@ -136,3 +136,9 @@ export function bumpUploadFailCount() {
 export function setAppStatus(v) {
   appStatus = String(v || "idle");
 }
+
+export function setSyncStatus(status) {
+  // keep a single string status that UI can reflect
+  // examples: "idle", "syncing", "ok", "error"
+  appStatus = String(status || "idle");
+}
