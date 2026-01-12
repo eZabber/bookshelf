@@ -1,5 +1,6 @@
 /* =========================
    My BookShelf — style.css
+   Clean + safe overlays
    ========================= */
 
 /* --- CSS VARIABLES --- */
@@ -14,7 +15,7 @@
 
   --meta:#666666;
   --border:#dddddd;
-  --shadow:rgba(0,0,0,0.05);
+  --shadow:rgba(0,0,0,0.06);
 
   --isbn-bg:#eeeeee;
   --isbn-text:#444444;
@@ -35,7 +36,7 @@ body.dark-mode{
 
   --meta:#aaaaaa;
   --border:#333333;
-  --shadow:rgba(0,0,0,0.5);
+  --shadow:rgba(0,0,0,0.55);
 
   --isbn-bg:#333333;
   --isbn-text:#cccccc;
@@ -43,7 +44,6 @@ body.dark-mode{
 
 /* --- BASE / RESETS --- */
 *{ box-sizing:border-box; }
-
 html, body{ height:100%; }
 
 body{
@@ -59,7 +59,7 @@ body{
 }
 
 button, input, select{
-  font:inherit;                 /* ✅ consistent Android/iOS */
+  font:inherit;
   color:inherit;
 }
 
@@ -146,18 +146,23 @@ header{
   cursor:not-allowed;
 }
 
-/* --- SIDE MENU & OVERLAY --- */
+/* --- SIDE MENU & OVERLAY (SAFE DEFAULTS) --- */
+/* IMPORTANT: overlays must not block clicks unless "open" */
 #menu-overlay{
   position:fixed;
   inset:0;
   background:rgba(0,0,0,.5);
   z-index:1999;
+
   opacity:0;
+  display:none;
   pointer-events:none;
+
   transition:opacity .25s ease;
 }
 
 #menu-overlay.open{
+  display:block;
   opacity:1;
   pointer-events:auto;
 }
@@ -363,21 +368,21 @@ header{
   font-weight:800;
 }
 
-/* --- SEARCH / ADD CONTROLS (FIXED) --- */
+/* --- SEARCH / ADD CONTROLS (BIGGER + CENTERED ON MOBILE) --- */
 .controls{
   display:flex;
-  gap:8px;
-  margin-bottom:20px;
-  align-items:center;     /* ✅ was stretch */
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:center;
 }
 
 #isbn-input{
-  flex:1;
-  min-width:0;
-  height:var(--tap);      /* ✅ align with buttons */
+  flex:1 1 320px;
+  min-width:220px;
+  height:var(--tap);
   padding:0 12px;
   font-size:16px;
-  line-height:var(--tap); /* ✅ stops “squashed” look */
+  line-height:var(--tap);
   border:1px solid var(--border);
   border-radius:var(--radius-sm);
   background:var(--card);
@@ -394,17 +399,47 @@ header{
   background:var(--primary);
   color:#fff;
   font-weight:800;
-  display:inline-flex;         /* ✅ consistent */
+  display:inline-flex;
   align-items:center;
   justify-content:center;
 }
 
 .scan-btn{ background:var(--accent); }
 
-/* super small screens: avoid squishing */
-@media (max-width:420px){
-  .controls{ flex-wrap:wrap; }
-  #isbn-input{ flex-basis:100%; }
+@media (max-width:560px){
+  .controls{ justify-content:center; }
+
+  #isbn-input{
+    flex:1 1 100%;
+    width:100%;
+  }
+
+  #btn-add{
+    height:64px;
+    min-width:180px;
+    font-size:1.15rem;
+    border-radius:14px;
+    font-weight:800;
+  }
+
+  #btn-scan{
+    height:64px;
+    width:90px;
+    font-size:1.5rem;
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+}
+
+@media (min-width:561px){
+  #btn-add, #btn-scan{
+    height:52px;
+    border-radius:12px;
+  }
+  #btn-add{ min-width:140px; font-weight:800; }
+  #btn-scan{ width:70px; font-size:1.25rem; }
 }
 
 /* --- READER --- */
@@ -601,16 +636,25 @@ select.rating{
   color:var(--text);
 }
 
-/* --- MODAL --- */
+/* --- MODAL (SAFE DEFAULTS) --- */
+/* IMPORTANT: modal overlay must not block clicks unless shown */
 #modal-overlay{
-  display:none;
   position:fixed;
   inset:0;
   background:rgba(0,0,0,.6);
   z-index:3000;
+
+  display:none;
+  pointer-events:none;
+
   align-items:center;
   justify-content:center;
   padding:18px;
+}
+
+#modal-overlay.show{
+  display:flex;
+  pointer-events:auto;
 }
 
 .modal-content{
@@ -707,63 +751,4 @@ select.rating{
 #debug-log.show{
   opacity:1;
   transform:translateX(-50%) translateY(0);
-}
-
-/* ===== Controls layout: input on its own row, buttons centered under it (mobile) ===== */
-.controls{
-  display:flex;
-  flex-wrap:wrap;
-  gap:12px;
-  align-items:center;
-}
-
-.controls #isbn-input{
-  flex: 1 1 320px;
-  min-width: 220px;
-}
-
-.controls #btn-add,
-.controls #btn-scan{
-  flex: 0 0 auto;
-}
-
-/* Mobile: put buttons on a centered row below the input */
-@media (max-width: 560px){
-  .controls{
-    justify-content:center;
-  }
-
-  .controls #isbn-input{
-    flex: 1 1 100%;
-    width:100%;
-  }
-
-  .controls #btn-add{
-    height:64px;
-    min-width: 180px;
-    font-size:1.15rem;
-    border-radius:14px;
-    font-weight:700;
-  }
-
-  .controls #btn-scan{
-    height:64px;
-    width:90px;
-    font-size:1.5rem;
-    border-radius:14px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-}
-
-/* Slightly bigger on larger screens too (optional) */
-@media (min-width: 561px){
-  .controls #btn-add,
-  .controls #btn-scan{
-    height:52px;
-    border-radius:12px;
-  }
-  .controls #btn-add{ min-width:140px; font-weight:700; }
-  .controls #btn-scan{ width:70px; font-size:1.25rem; }
 }
