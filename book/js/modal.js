@@ -1,11 +1,10 @@
 // js/modal.js
 import { $, setText, toast, safeUrl, makeId, todayISO } from "./dom-utils.js";
 import { t } from "./i18n.js";
-import { library, setCurrentShelf, persistLibrary } from "./state.js";
+import { library, persistLibrary } from "./state.js";
 import { normKey, getAuthorName } from "./utils.js";
 import { stopCamera, getCameraState, setScanLocked } from "./camera.js";
-import { renderBooks } from "./render.js";
-import { updateShelfCounts } from "./render.js"; // exported helper
+import { renderBooks, updateShelfCounts } from "./render.js";
 
 export let pendingBook = null;
 
@@ -53,7 +52,7 @@ export function closeModal() {
   setScanLocked(false);
 
   const cam = getCameraState();
-  if (cam.running) stopCamera();
+  if (cam.html5QrCode) stopCamera();
 }
 
 export function confirmAdd(targetShelf) {
@@ -105,8 +104,6 @@ export function confirmAdd(targetShelf) {
 
   persistLibrary();
   updateShelfCounts();
-
   closeModal();
-  setCurrentShelf(targetShelf);
   renderBooks();
 }
