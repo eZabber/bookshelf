@@ -117,6 +117,11 @@ export function setCloudFileId(id) {
   emit("cloudfile-changed", cloudFileId);
 }
 
+export function setDriveSignedIn(next) {
+  driveSignedIn = !!next;
+  emit("drive-auth-changed", driveSignedIn);
+}
+
 // some modules import this name specifically
 export function requireSignedInDrive() {
   return !!driveSignedIn;
