@@ -3,7 +3,7 @@ import { $, setText, addClick } from "./dom-utils.js";
 import { currentLang, setCurrentLang, applyLanguageToUI } from "./i18n.js";
 import { loadLibrary, setLibrary, setCurrentShelf } from "./state.js";
 import { renderBooks, updateShelfCounts } from "./render.js";
-import { openMenu, closeMenu } from "./init.js";
+import { initMenuWiring, initThemeWiring, initLanguageWiring, initFooterYear } from "./init.js";
 import { gapiLoaded, gisLoaded, signInDrive } from "./drive.js";
 import { applyFilters, clearFilters } from "./filters.js";
 import { handleManualAdd } from "./lookups.js";
@@ -12,23 +12,21 @@ import { closeModal, confirmAdd } from "./modal.js";
 
 // ✅ expose Google callback hooks globally
 window.gapiLoaded = gapiLoaded;
-window.gisLoaded = () => gisLoaded($("auth-btn"));
+window.gisLoaded = gisLoaded;
 
 window.addEventListener("DOMContentLoaded", () => {
   // Load local data safely
   const loaded = loadLibrary();
   setLibrary(loaded);
 
-  // Menu open/close
-  addClick("menu-btn", openMenu);
-  addClick("menu-overlay", closeMenu);
+  // ✅ IMPORTANT: enable Sign In button (disabled buttons don't emit click)
+  const authBtn = $("auth-btn");
+  if (authBtn) authBtn.disabled = false;
 
-  // Language
-  $("language-select")?.addEventListener("change", (e) => {
-    setCurrentLang(e.target.value);
-    applyLanguageToUI();
-    renderBooks();
-  });
+  initMenuWiring();
+  initThemeWiring();
+  initLanguageWiring();
+  initFooterYear();
 
   // Filters
   addClick("btn-clear-filters", () => {
@@ -71,7 +69,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   // Auth
-  addClick("auth-btn", (e) => signInDrive(e.target));
+  addClick("auth-btn", signInDrive);
 
   // Footer year
   setText("year", new Date().getFullYear());

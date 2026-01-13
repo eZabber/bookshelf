@@ -1,5 +1,5 @@
 // js/init.js
-import { $ } from "./dom-utils.js";
+import { $, addClick } from "./dom-utils.js";
 import { setCurrentLang } from "./i18n.js";
 import { renderBooks } from "./render.js";
 
@@ -21,8 +21,8 @@ export function closeMenu() {
 }
 
 export function initMenuWiring() {
-  $("menu-btn")?.addEventListener("click", openMenu);
-  $("menu-overlay")?.addEventListener("click", closeMenu);
+  addClick("menu-btn", openMenu);
+  addClick("menu-overlay", closeMenu);
 }
 
 /**
