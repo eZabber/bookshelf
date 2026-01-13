@@ -1,0 +1,148 @@
+/* book/css/components.css */
+
+/* --- BUTTON STYLES (general) --- */
+.btn-sm{
+  width:auto;
+  padding:10px 12px;
+  border-radius:var(--radius-sm);
+  border:1px solid var(--border);
+  background:transparent;
+  font-weight:600;
+}
+
+.btn-sm:hover{ background:rgba(128,128,128,.10); }
+
+.btn-del{
+  border:1px solid #e74c3c;
+  color:#e74c3c;
+}
+
+/* --- MAIN TABS --- */
+.tabs{
+  display:flex;
+  background:var(--border);
+  border-radius:var(--radius-sm);
+  padding:4px;
+  margin-bottom:20px;
+}
+
+.tab{
+  flex:1;
+  text-align:center;
+  padding:10px 8px;
+  border-radius:calc(var(--radius-sm) - 2px);
+  cursor:pointer;
+  font-size:.9rem;
+  color:var(--meta);
+}
+
+.tab.active{
+  background:var(--card);
+  color:var(--text);
+  box-shadow:0 2px 6px var(--shadow);
+  font-weight:800;
+}
+
+/* --- SEARCH / ADD CONTROLS (BIGGER + CENTERED ON MOBILE) --- */
+.controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:center;
+}
+
+#isbn-input{
+  flex:1 1 320px;
+  min-width:220px;
+  height:var(--tap);
+  padding:0 12px;
+  font-size:16px;
+  line-height:var(--tap);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  background:var(--card);
+  color:var(--text);
+  outline:none;
+}
+
+#isbn-input:focus{ border-color:var(--accent); }
+
+.action-btn{
+  height:var(--tap);
+  padding:0 14px;
+  border-radius:var(--radius-sm);
+  background:var(--primary);
+  color:#fff;
+  font-weight:800;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.scan-btn{ background:var(--accent); }
+
+@media (max-width:560px){
+  .controls{ justify-content:center; }
+
+  #isbn-input{
+    flex:1 1 100%;
+    width:100%;
+  }
+
+  #btn-add{
+    height:64px;
+    min-width:180px;
+    font-size:1.15rem;
+    border-radius:14px;
+    font-weight:800;
+  }
+
+  #btn-scan{
+    height:64px;
+    width:90px;
+    font-size:1.5rem;
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+}
+
+@media (min-width:561px){
+  #btn-add, #btn-scan{
+    height:52px;
+    border-radius:12px;
+  }
+  #btn-add{ min-width:140px; font-weight:800; }
+  #btn-scan{ width:70px; font-size:1.25rem; }
+}
+
+/* --- READER --- */
+#reader-container{
+  display:none;
+  margin-bottom:15px;
+  border-radius:var(--radius-sm);
+  overflow:hidden;
+}
+
+/* --- FILTER STATUS BAR --- */
+#filter-status{
+  background:var(--isbn-bg);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:8px 12px;
+  margin-bottom:15px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:.85rem;
+}
+
+.filter-clear-link{
+  color:var(--accent);
+  cursor:pointer;
+  text-decoration:underline;
+  font-weight:800;
+}
+
+.filter-clear-link:hover{ opacity:.85; }

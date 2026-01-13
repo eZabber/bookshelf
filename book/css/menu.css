@@ -1,0 +1,180 @@
+/* book/css/menu.css */
+
+/* --- SIDE MENU & OVERLAY (SAFE DEFAULTS) --- */
+/* IMPORTANT: overlays must not block clicks unless "open" */
+#menu-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.5);
+  z-index:1999;
+
+  opacity:0;
+  display:none;
+  pointer-events:none;
+
+  transition:opacity .25s ease;
+}
+
+#menu-overlay.open{
+  display:block;
+  opacity:1;
+  pointer-events:auto;
+}
+
+#side-menu{
+  position:fixed;
+  top:0; left:0;
+  width:280px;
+  height:100%;
+  background:var(--card);
+  box-shadow:2px 0 14px rgba(0,0,0,.25);
+  transform:translateX(-100%);
+  transition:transform .25s ease;
+  z-index:2000;
+
+  padding:18px 18px 22px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+
+#side-menu.open{ transform:translateX(0); }
+
+.menu-title{
+  font-weight:800;
+  color:var(--primary);
+  display:block;
+  margin:0 0 10px;
+}
+
+.menu-section{
+  border-bottom:1px solid var(--border);
+  padding-bottom:14px;
+  margin-bottom:6px;
+}
+
+.menu-input, .menu-select{
+  width:100%;
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  background:var(--card);
+  color:var(--text);
+  font-size:16px; /* prevents iOS zoom */
+}
+
+.menu-input:focus, .menu-select:focus{
+  border-color:var(--accent);
+}
+
+.menu-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:10px;
+}
+
+.menu-actions{ margin-top:10px; }
+
+/* --- TOGGLE SWITCH --- */
+.toggle-switch{
+  position:relative;
+  display:inline-block;
+  width:44px;
+  height:24px;
+  flex-shrink:0;
+}
+
+.toggle-switch input{
+  opacity:0;
+  width:0;
+  height:0;
+}
+
+.slider{
+  position:absolute;
+  inset:0;
+  cursor:pointer;
+  background:var(--border);
+  border-radius:24px;
+  transition:.25s;
+}
+
+.slider:before{
+  content:"";
+  position:absolute;
+  height:18px;
+  width:18px;
+  left:3px;
+  top:3px;
+  background:#fff;
+  border-radius:50%;
+  transition:.25s;
+}
+
+.toggle-switch input:checked + .slider{
+  background:var(--accent);
+}
+
+.toggle-switch input:checked + .slider:before{
+  transform:translateX(20px);
+}
+
+/* --- FILTER GRID --- */
+.filter-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:10px;
+}
+
+.filter-field label{
+  display:block;
+  font-size:.75rem;
+  color:var(--meta);
+  margin-bottom:4px;
+}
+
+/* --- SHELF COUNTERS (IN MENU) --- */
+.shelf-counters{
+  display:flex;
+  justify-content:space-between;
+  background:var(--isbn-bg);
+  padding:10px 0;
+  border-radius:var(--radius-sm);
+  border:1px solid var(--border);
+}
+
+.stat-box{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  position:relative;
+}
+
+.stat-box:not(:last-child)::after{
+  content:"";
+  position:absolute;
+  right:0;
+  top:12%;
+  height:76%;
+  width:1px;
+  background:var(--border);
+}
+
+.stat-label{
+  font-size:.7rem;
+  color:var(--meta);
+  text-transform:uppercase;
+}
+
+.stat-num{
+  font-size:1.1rem;
+  font-weight:800;
+  color:var(--primary);
+}

@@ -1,0 +1,63 @@
+/* book/css/header.css */
+
+/* --- HEADER & AUTH --- */
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:20px;
+}
+
+.header-left{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+
+.header-right{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-shrink:0;
+}
+
+.app-title{
+  margin:0;
+  font-size:1.4rem;
+  color:var(--primary);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.title-my{ font-weight:400; opacity:.8; }
+.title-main{ font-weight:700; }
+
+#menu-btn{
+  padding:6px 8px;
+  line-height:1;
+  font-size:1.5rem;
+  border-radius:10px;
+}
+
+#menu-btn:hover{ background:rgba(128,128,128,.12); }
+
+#sync-wrapper{ display:flex; align-items:center; gap:8px; }
+#sync-dot{ width:10px; height:10px; border-radius:50%; background:#bbb; }
+
+.header-auth-btn{
+  border:1px solid var(--primary);
+  color:var(--primary);
+  background:transparent;
+  font-size:.75rem;
+  padding:6px 10px;
+  border-radius:10px;
+  font-weight:700;
+}
+
+.header-auth-btn:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}

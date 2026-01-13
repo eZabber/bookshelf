@@ -1,0 +1,38 @@
+/* book/css/footer.css */
+
+/* --- FOOTER --- */
+.app-footer{
+  margin-top:40px;
+  padding:20px 0;
+  border-top:1px solid var(--border);
+  text-align:center;
+  font-size:.8rem;
+  color:var(--meta);
+}
+
+/* --- TOAST / DEBUG LOG --- */
+#debug-log{
+  position:fixed;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%) translateY(10px);
+  background:var(--card);
+  color:var(--text);
+  border:1px solid var(--border);
+  box-shadow:0 12px 30px rgba(0,0,0,.18);
+  border-radius:var(--radius);
+  padding:10px 14px;
+  max-width:min(520px, 92vw);
+  font-size:.9rem;
+  line-height:1.25;
+  text-align:center;
+  z-index:4000;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 160ms ease, transform 160ms ease;
+}
+
+#debug-log.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
