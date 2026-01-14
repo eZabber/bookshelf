@@ -100,6 +100,12 @@ export const hardDeleteBook = async (id) => {
     await saveLocally();
 };
 
+export const wipeAllData = async () => {
+    appData.books = [];
+    await saveLocally();
+    showToast('All data deleted');
+};
+
 // --- Storage Logic ---
 
 const broadcastUpdate = () => {
