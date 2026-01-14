@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyBookShelf - Library</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <button id="hamburger-btn" class="btn-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12h18M3 6h18M3 18h18" />
+                </svg>
+            </button>
+            <h1>Library</h1>
+            <div style="width: 24px;"></div>
+        </header>
+
+        <main>
+            <div class="flex gap-2 mb-1" style="overflow-x: auto; padding-bottom: 0.5rem;">
+                <select id="sort-select" style="min-width: 120px;">
+                    <option value="added-desc">Newest First</option>
+                    <option value="added-asc">Oldest First</option>
+                    <option value="year-desc">Year (Newest)</option>
+                    <option value="rating">Highest Rating</option>
+                </select>
+                <input type="text" id="filter-search" placeholder="Filter..." style="flex: 1; min-width: 150px;">
+            </div>
+
+            <!-- Import Feature Area -->
+            <div class="card">
+                <details>
+                    <summary style="cursor: pointer; font-weight: 500;">Import from Goodreads (CSV)</summary>
+                    <div class="mt-2">
+                        <input type="file" id="import-file" accept=".csv">
+                        <button id="import-btn" class="btn btn-primary mt-1">Run Import</button>
+                        <div id="import-status" class="mt-1 text-secondary" style="font-size: 0.9em;"></div>
+                    </div>
+                </details>
+            </div>
+
+            <div id="book-list" class="mt-2">
+                <!-- Book Cards will be injected here -->
+                <div class="text-center" style="padding: 2rem; color: var(--text-secondary);">
+                    Loading books...
+                </div>
+            </div>
+        </main>
+
+        <!-- Side Navigation Shared Structure -->
+        <div id="sidenav-overlay" class="sidenav-overlay"></div>
+        <nav id="sidenav" class="sidenav">
+            <!-- Same Nav Content as index.html - ideally we'd dynamically load this, 
+                 but keeping it simple static per requirements -->
+            <div class="sidenav-header">
+                <span>MyBookShelf</span>
+                <button id="close-menu-btn" class="btn-icon" style="margin-left: auto;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="sidenav-nav">
+                <a href="index.html" class="nav-item"><span class="nav-icon">➕</span> Add Book</a>
+                <a href="browse.html" class="nav-item"><span class="nav-icon">📚</span> Library</a>
+                <a href="reading.html" class="nav-item"><span class="nav-icon">📖</span> Reading</a>
+                <a href="future.html" class="nav-item"><span class="nav-icon">🔮</span> To Read</a>
+            </div>
+            <div class="theme-toggle" id="theme-toggle">
+                <span>Dark Mode</span><span id="theme-icon">🌙</span>
+            </div>
+        </nav>
+    </div>
+
+    <script type="module">
+        import { initMenuWiring } from './js/init.js';
+        import { initBrowse } from './js/browse.js';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initMenuWiring();
+            initBrowse();
+        });
+    </script>
+</body>
+
+</html>

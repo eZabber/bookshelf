@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My BookShelf</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+
+<body>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="top-bar">
+            <div class="header-left">
+                <button id="hamburger-btn" class="icon-btn" aria-label="Menu">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+                <div class="logo-area">
+                    <span class="logo-icon">📚</span>
+                    <span class="logo-text"><span>My</span> <strong>BookShelf</strong></span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="sign-in-btn" class="btn-pill">Sign In</button>
+                <div id="status-dot" class="status-dot"></div>
+            </div>
+        </header>
+
+        <!-- Tabs -->
+        <div class="tabs-container">
+            <div class="segmented-control">
+                <button class="tab-btn" data-tab="read" data-i18n="nav.reading">Read</button>
+                <button class="tab-btn" data-tab="wishlist" data-i18n="nav.wishlist">Wishlist</button>
+                <button class="tab-btn" data-tab="loan" data-i18n="nav.loans">Loans</button>
+            </div>
+        </div>
+
+        <!-- Input Row -->
+        <div class="input-row">
+            <input type="text" id="add-input" placeholder="..." data-i18n-placeholder="search.placeholder"
+                class="rounded-input">
+            <button id="add-btn" class="btn-dark" data-i18n="nav.add">Add</button>
+            <button id="scan-btn" class="btn-green-icon" aria-label="Scan">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Scanner Region (Hidden by default) -->
+        <div id="scanner-container" class="scanner-wrapper hidden">
+            <div id="reader"></div>
+        </div>
+
+        <!-- Book List Area -->
+        <main id="main-content" class="book-list-container">
+            <!-- Books will be rendered here -->
+            <div class="empty-state" data-i18n="msg.welcome">Select a tab to view or add books.</div>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            Created by eZabber ©
+        </footer>
+
+        <!-- Overlay & Side Menu -->
+        <div id="menu-overlay" class="overlay"></div>
+        <aside id="side-menu" class="side-menu">
+            <div class="menu-header">
+                <h3>My BookShelf</h3>
+                <button id="close-menu-btn" class="icon-btn">&times;</button>
+            </div>
+
+            <div class="menu-section">
+                <h4>Filters</h4>
+                <div class="filter-group">
+                    <input type="text" id="filter-search" placeholder="Search title/author..."
+                        class="rounded-input small">
+                </div>
+                <div class="filter-group flex gap-2">
+                    <select id="filter-year" class="rounded-input small">
+                        <option value="">All Years</option>
+                    </select>
+                    <select id="filter-rating" class="rounded-input small">
+                        <option value="">All Ratings</option>
+                        <option value="5">5 ★</option>
+                        <option value="4">4 ★</option>
+                        <option value="3">3 ★</option>
+                        <option value="2">2 ★</option>
+                        <option value="1">1 ★</option>
+                    </select>
+                </div>
+                <!-- Month filter not critical if Year is there, but requested -->
+                <div class="filter-group">
+                    <select id="filter-month" class="rounded-input small">
+                        <option value="">All Months</option>
+                        <option value="0">January</option>
+                        <option value="1">February</option>
+                        <option value="2">March</option>
+                        <option value="3">April</option>
+                        <option value="4">May</option>
+                        <option value="5">June</option>
+                        <option value="6">July</option>
+                        <option value="7">August</option>
+                        <option value="8">September</option>
+                        <option value="9">October</option>
+                        <option value="10">November</option>
+                        <option value="11">December</option>
+                    </select>
+                </div>
+                <button id="clear-filters-btn" class="btn-pill mt-2" style="font-size:0.8rem;">Clear Filters</button>
+            </div>
+
+            <div class="menu-section">
+                <!-- Lang Selector -->
+                <div class="filter-group flex items-center justify-between"
+                    style="border-top: 1px solid var(--divider-color); padding-top:12px; margin-top:12px;">
+                    <label style="margin:0; font-size:0.9rem;">Language</label>
+                    <select id="lang-select" class="rounded-input small" style="width: auto;">
+                        <option value="en">English</option>
+                        <option value="fi">Suomi</option>
+                        <option value="et">Eesti</option>
+                    </select>
+                </div>
+            </div>
+
+            <nav class="menu-nav mt-2">
+                <div class="menu-item" id="import-csv-trigger">Import Goodreads CSV</div>
+                <div class="menu-item" id="export-csv-btn">Export CSV</div>
+                <input type="file" id="import-file" accept=".csv" class="hidden">
+            </nav>
+        </aside>
+
+        <!-- Toast Container -->
+        <div class="toast-container"></div>
+    </div>
+
+    <!-- Save / Edit Modal -->
+    <div id="save-modal-overlay" class="overlay" style="z-index: 200;">
+        <div class="modal-card">
+            <h3 id="modal-title">Save Book</h3>
+
+            <div class="form-group mt-2">
+                <label>Status</label>
+                <div class="segmented-control small">
+                    <button class="status-btn" data-value="read">Read</button>
+                    <button class="status-btn" data-value="wishlist">Wishlist</button>
+                    <button class="status-btn" data-value="loan">Loan</button>
+                </div>
+            </div>
+
+            <div class="form-group checkbox-row mt-2">
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="modal-audiobook">
+                    Audiobook
+                </label>
+            </div>
+
+            <div class="form-group mt-2">
+                <label>Cover</label>
+                <div class="flex gap-2">
+                    <input type="url" id="modal-cover" class="rounded-input small" placeholder="https://...">
+                    <label for="modal-cover-file" class="btn-pill flex items-center justify-center cursor-pointer"
+                        style="min-width: 40px;">
+                        📂
+                    </label>
+                    <input type="file" id="modal-cover-file" accept="image/*" class="hidden">
+                </div>
+            </div>
+
+            <div class="form-group mt-2">
+                <label>Notes</label>
+                <textarea id="modal-notes" class="rounded-input small" rows="2"></textarea>
+            </div>
+
+            <div class="form-group mt-2">
+                <div class="flex gap-2">
+                    <div class="flex-1">
+                        <label>Rating</label>
+                        <select id="modal-rating" class="rounded-input small">
+                            <option value="0">No Rating</option>
+                            <option value="5">5 ★★★★★</option>
+                            <option value="4">4 ★★★★</option>
+                            <option value="3">3 ★★★</option>
+                            <option value="2">2 ★★</option>
+                            <option value="1">1 ★</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label>Date Read</label>
+                        <input type="date" id="modal-date-read" class="rounded-input small">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conditional Fields (Only Loan Reminder) -->
+            <div id="modal-read-fields" class="hidden"></div>
+            <!-- Deprecated wrapper, keeping ID to prevent JS error if not removed from JS yet, but better to remove logic -->
+
+
+            <div id="modal-loan-fields" class="mt-2 hidden">
+                <label>Reminder Date</label>
+                <div class="flex gap-2">
+                    <input type="date" id="modal-reminder-date" class="rounded-input small">
+                    <a id="modal-calendar-link" href="#" target="_blank" class="btn-pill hidden">Event ↗</a>
+                </div>
+            </div>
+
+            <div class="modal-actions mt-2">
+                <button id="modal-cancel-btn" class="btn-pill">Cancel</button>
+                <button id="modal-save-btn" class="btn-dark">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Selection Modal -->
+    <div id="search-modal-overlay" class="overlay" style="z-index: 205;">
+        <div class="modal-card">
+            <h3>Select Book</h3>
+            <div id="search-results-list" class="mt-2"
+                style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                <!-- Results rendered here -->
+            </div>
+            <div class="modal-actions mt-2">
+                <button id="search-cancel-btn" class="btn-pill">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scanner Lib -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <!-- App Scripts -->
+    <script type="module" src="js/init.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyBookShelf - To Read</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <button id="hamburger-btn" class="btn-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12h18M3 6h18M3 18h18" />
+                </svg>
+            </button>
+            <h1>To Read</h1>
+            <div style="width: 24px;"></div>
+        </header>
+
+        <main>
+            <div id="book-list" class="mt-2">
+                <div class="text-center" style="padding: 2rem; color: var(--text-secondary);">
+                    Loading books...
+                </div>
+            </div>
+        </main>
+
+        <div id="sidenav-overlay" class="sidenav-overlay"></div>
+        <nav id="sidenav" class="sidenav">
+            <div class="sidenav-header">
+                <span>MyBookShelf</span>
+                <button id="close-menu-btn" class="btn-icon" style="margin-left: auto;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="sidenav-nav">
+                <a href="index.html" class="nav-item"><span class="nav-icon">➕</span> Add Book</a>
+                <a href="browse.html" class="nav-item"><span class="nav-icon">📚</span> Library</a>
+                <a href="reading.html" class="nav-item"><span class="nav-icon">📖</span> Reading</a>
+                <a href="future.html" class="nav-item"><span class="nav-icon">🔮</span> To Read</a>
+            </div>
+            <div class="theme-toggle" id="theme-toggle">
+                <span>Dark Mode</span><span id="theme-icon">🌙</span>
+            </div>
+        </nav>
+    </div>
+
+    <script type="module">
+        import { initMenuWiring } from './js/init.js';
+        import { initSimpleList } from './js/lists.js';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initMenuWiring();
+            initSimpleList('future');
+        });
+    </script>
+</body>
+
+</html>
