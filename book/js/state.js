@@ -1,8 +1,9 @@
 // State Management
 export const STATE = {
-    currentTab: localStorage.getItem('active_tab') || 'read', // read | wishlist | loans
+    currentTab: localStorage.getItem('active_tab') || 'read', // read | wishlist | loan
     currentUser: null,
-    isScanning: false
+    isScanning: false,
+    driveSignedIn: false
 };
 
 // Observers
@@ -29,5 +30,10 @@ export const setUser = (user) => {
 
 export const setScanning = (scanning) => {
     STATE.isScanning = scanning;
+    notify();
+};
+
+export const setDriveSignedIn = (signedIn) => {
+    STATE.driveSignedIn = signedIn;
     notify();
 };
