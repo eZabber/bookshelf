@@ -32,6 +32,12 @@ export const renderBookCard = (book, onEdit) => {
                 <p>${escapeHtml(book.author)} ${year}</p>
                 ${book.isbn ? `<p style="font-size:0.7rem;color:#aaa;font-family:monospace; margin-bottom: 4px;">${escapeHtml(book.isbn)}</p>` : ''}
                 
+                ${book.genres && book.genres.length > 0 ?
+            `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">
+                        ${book.genres.slice(0, 3).map(g => `<span style="font-size:0.65rem;background:#f0f0f0;padding:2px 6px;border-radius:4px;color:#666;">${escapeHtml(g)}</span>`).join('')}
+                    </div>`
+            : ''}
+
                 <select class="rating-select rounded-input small" style="width: auto; min-width: 90px; padding: 2px 24px 2px 8px; height: 28px; font-size: 0.75rem; border: 1px solid transparent; background-color: #f7f7f7;">
                     <option value="0" ${!book.rating ? 'selected' : ''}>Rate...</option>
                     <option value="5" ${book.rating == 5 ? 'selected' : ''}>★★★★★</option>
