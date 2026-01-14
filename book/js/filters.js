@@ -32,17 +32,23 @@ export const initFiltersWiring = () => {
     const clearBtn = $('#clear-filters-btn');
 
     // Populate years (dynamic)
-    const books = getBooks();
-    const years = [...new Set(books.map(b => b.year).filter(y => y))].sort((a, b) => b - a);
+    const populateYears = () => {
+        const books = getBooks();
+        const years = [...new Set(books.map(b => b.year).filter(y => y))].sort((a, b) => b - a);
+        const currentVal = yearSelect.value;
 
-    // Clear and refill year options, keeping "All Years"
-    yearSelect.innerHTML = '<option value="">All Years</option>';
-    years.forEach(y => {
-        const opt = document.createElement('option');
-        opt.value = y;
-        opt.textContent = y;
-        yearSelect.appendChild(opt);
-    });
+        yearSelect.innerHTML = '<option value="">All Years</option>';
+        years.forEach(y => {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            yearSelect.appendChild(opt);
+        });
+        yearSelect.value = currentVal; // Restore selection if valid
+    };
+
+    populateYears();
+    document.addEventListener('bookshelf-updated', populateYears);
 
     // Restore UI values
     if (searchInput) searchInput.value = filters.search;
