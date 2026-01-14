@@ -99,7 +99,7 @@
             <div class="menu-section">
                 <!-- Lang Selector (Now on Top) -->
                 <div class="filter-group flex items-center justify-between" style="padding-bottom: 8px;">
-                    <label style="margin:0; font-size:0.9rem;">Language</label>
+                    <label style="margin:0; font-size:0.9rem;" data-i18n="filter.language">Language</label>
                     <select id="lang-select" class="rounded-input small" style="width: auto;">
                         <option value="en">English</option>
                         <option value="fi">Suomi</option>
@@ -152,35 +152,62 @@
                         placeholder="Filter by Keyword..." class="rounded-input small">
                 </div>
 
-                <div class="filter-group">
-                    <select id="filter-month" class="rounded-input small">
-                        <option value="">All Months</option>
-                        <option value="0">January</option>
-                        <option value="1">February</option>
-                        <option value="2">March</option>
-                        <option value="3">April</option>
-                        <option value="4">May</option>
-                        <option value="5">June</option>
-                        <option value="6">July</option>
-                        <option value="7">August</option>
-                        <option value="8">September</option>
-                        <option value="9">October</option>
-                        <option value="10">November</option>
-                        <option value="11">December</option>
+                <div class="filter-group flex items-center justify-between" style="padding-bottom: 8px;">
+                    <label style="margin:0; font-size:0.9rem;" data-i18n="filter.language">Language</label>
+                    <select id="lang-select" class="rounded-input small" style="width: auto;">
+                        <option value="en">English</option>
+                        <option value="fi">Suomi</option>
+                        <option value="et">Eesti</option>
                     </select>
                 </div>
-                <button id="clear-filters-btn" class="btn-pill mt-2" style="font-size:0.8rem;">Clear Filters</button>
+            </div>
+
+            <div class="menu-section" style="border-top: 1px solid var(--divider-color); padding-top:12px;">
+                <h4>Filters</h4>
+                <!-- ... filters ... -->
+                <!-- Skipped unchanged inputs to focus on Months & Buttons - But replace block must be contiguous? -->
+                <!-- Since inputs were changed in previous step, I will only target the sections I need, possibly multi-replace if tool allowed, but "AllowMultiple" is false for replace_file_content (tool says ONLY SINGLE CONTIGUOUS). -->
+                <!-- I will have to do multiple calls or one large one. -->
+                <!-- Let's target the language label first, then months/buttons. -->
+                <!-- Actually, I can replace from line 101 to 185 if I include everything. That is big but safe if I copy correctly. Verify intermediate content. -->
+                <!-- Lines 111-154 were modified in previous step. I should verify current content. -->
+                <!-- Instead, I will do smaller replacements. -->
+                <!-- 1. Language Label -->
+                <!-- 2. Months & Clear Button & Bottom Menu -->
+
+                <!-- This tool call targets Month section and below (156-185 approx). -->
+
+                <div class="filter-group">
+                    <select id="filter-month" class="rounded-input small">
+                        <option value="" data-i18n="filter.month">All Months</option>
+                        <option value="0" data-i18n="month.0">January</option>
+                        <option value="1" data-i18n="month.1">February</option>
+                        <option value="2" data-i18n="month.2">March</option>
+                        <option value="3" data-i18n="month.3">April</option>
+                        <option value="4" data-i18n="month.4">May</option>
+                        <option value="5" data-i18n="month.5">June</option>
+                        <option value="6" data-i18n="month.6">July</option>
+                        <option value="7" data-i18n="month.7">August</option>
+                        <option value="8" data-i18n="month.8">September</option>
+                        <option value="9" data-i18n="month.9">October</option>
+                        <option value="10" data-i18n="month.10">November</option>
+                        <option value="11" data-i18n="month.11">December</option>
+                    </select>
+                </div>
+                <button id="clear-filters-btn" class="btn-pill mt-2" style="font-size:0.8rem;"
+                    data-i18n="filter.clear">Clear Filters</button>
             </div>
 
             <nav class="menu-nav mt-2" style="border-top: 1px solid var(--divider-color); padding-top:12px;">
-                <div class="menu-item" id="import-csv-trigger">Import Goodreads CSV</div>
-                <div class="menu-item" id="export-csv-btn">Export CSV</div>
+                <div class="menu-item" id="import-csv-trigger" data-i18n="btn.import">Import Goodreads CSV</div>
+                <div class="menu-item" id="export-csv-btn" data-i18n="btn.export">Export CSV</div>
                 <input type="file" id="import-file" accept=".csv" class="hidden">
             </nav>
 
             <div style="margin-top: auto; padding-top: 20px;">
                 <button id="delete-data-btn" class="btn-pill"
-                    style="width: 100%; color: #C53030; border-color: #FEB2B2; background: #FFF5F5;">
+                    style="width: 100%; color: #C53030; border-color: #FEB2B2; background: #FFF5F5;"
+                    data-i18n="btn.delete">
                     Delete All Data
                 </button>
             </div>

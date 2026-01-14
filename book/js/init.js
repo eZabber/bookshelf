@@ -236,8 +236,10 @@ export const initMenuWiring = () => {
     };
 
     // Stats Logic
+    // Stats Logic
     const updateMenuStats = async () => {
         const { getBooks } = await import('./storage.js');
+        const { t } = await import('./i18n.js');
         const books = getBooks();
         const container = document.getElementById('menu-library-stats');
         if (!container) return;
@@ -250,19 +252,21 @@ export const initMenuWiring = () => {
 
         container.innerHTML = `
             <div style="flex:1; text-align:center; background:#f7f7f7; padding:8px; border-radius:8px;">
-                <div style="font-size:0.75rem; color:#888;">Read</div>
+                <div style="font-size:0.75rem; color:#888;">${t('stats.read')}</div>
                 <div style="font-size:1.1rem; font-weight:700;">${stats.read}</div>
             </div>
             <div style="flex:1; text-align:center; background:#f7f7f7; padding:8px; border-radius:8px;">
-                <div style="font-size:0.75rem; color:#888;">Wishlist</div>
+                <div style="font-size:0.75rem; color:#888;">${t('stats.wishlist')}</div>
                 <div style="font-size:1.1rem; font-weight:700;">${stats.wishlist}</div>
             </div>
             <div style="flex:1; text-align:center; background:#f7f7f7; padding:8px; border-radius:8px;">
-                <div style="font-size:0.75rem; color:#888;">Loan</div>
+                <div style="font-size:0.75rem; color:#888;">${t('stats.loan')}</div>
                 <div style="font-size:1.1rem; font-weight:700;">${stats.loan}</div>
             </div>
         `;
     };
+
+    document.addEventListener('language-changed', updateMenuStats);
 
     if (menuBtn) menuBtn.addEventListener('click', () => toggleMenu(true));
     if (closeBtn) closeBtn.addEventListener('click', () => toggleMenu(false));
