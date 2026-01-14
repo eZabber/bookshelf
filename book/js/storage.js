@@ -192,9 +192,12 @@ const saveToDrive = async (isNew = false) => {
 
         const metadata = {
             name: CONFIG.DATA_FILENAME,
-            mimeType: 'application/json',
-            parents: CONFIG.SCOPES.includes('appdata') ? ['appDataFolder'] : []
+            mimeType: 'application/json'
         };
+
+        if (isNew || !fileId) {
+            metadata.parents = CONFIG.SCOPES.includes('appdata') ? ['appDataFolder'] : [];
+        }
 
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
