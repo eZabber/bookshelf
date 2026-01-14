@@ -205,24 +205,23 @@ export const initMenuWiring = () => {
             overlay.classList.remove('visible');
         }
     };
-    overlay.classList.remove('visible');
-}
-    };
-if (menuBtn) menuBtn.addEventListener('click', () => toggleMenu(true));
-if (closeBtn) closeBtn.addEventListener('click', () => toggleMenu(false));
-if (overlay) overlay.addEventListener('click', () => toggleMenu(false));
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') toggleMenu(false); });
 
-const deleteBtn = $('#delete-data-btn');
-if (deleteBtn) {
-    deleteBtn.addEventListener('click', async () => {
-        if (confirm('Are you definitely sure? This will delete ALL books properly and cannot be undone.')) {
-            const { wipeAllData } = await import('./storage.js');
-            await wipeAllData();
-            toggleMenu(false);
-        }
-    });
-}
+    if (menuBtn) menuBtn.addEventListener('click', () => toggleMenu(true));
+    if (closeBtn) closeBtn.addEventListener('click', () => toggleMenu(false));
+    if (overlay) overlay.addEventListener('click', () => toggleMenu(false));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') toggleMenu(false); });
+
+    const deleteBtn = $('#delete-data-btn');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', async () => {
+            // Red confirm box or just standard confirm? Standard is fine per request "popup" (native is safest)
+            if (confirm('Are you definitely sure? This will delete ALL books properly and cannot be undone.')) {
+                const { wipeAllData } = await import('./storage.js');
+                await wipeAllData();
+                toggleMenu(false);
+            }
+        });
+    }
 };
 
 export const initTabWiring = () => {
