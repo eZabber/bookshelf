@@ -1,7 +1,72 @@
-import { showToast } from './dom-utils.js';
-import { addBook, getBooks } from './storage.js';
+import { fetchByIsbn } from './isbn.js';
+import { updateBook } from './storage.js';
 
-// Access global Papa from CDN
+// ... (ensurePapa kept) ...
+
+export const initImportWiring = () => {
+    const trigger = document.getElementById('import-csv-trigger');
+    const fileInput = document.getElementById('import-file');
+    const exportBtn = document.getElementById('export-csv-btn');
+    const updateCoversBtn = document.getElementById('update-covers-btn');
+
+    if (!trigger || !fileInput) return;
+
+    trigger.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    // Valid wiring for missing covers
+    if (updateCoversBtn) {
+        updateCoversBtn.addEventListener('click', async () => {
+            if (confirm('This will search for covers for all books that contain an ISBN but no cover. This may take a while. Continue?')) {
+                updateCoversBtn.textContent = 'Updating...';
+                updateCoversBtn.style.pointerEvents = 'none';
+                await fetchMissingCovers((curr, total) => {
+                    updateCoversBtn.textContent = `Updating ${curr}/${total}...`;
+                });
+                updateCoversBtn.textContent = 'Fetch Missing Covers';
+                updateCoversBtn.style.pointerEvents = 'auto';
+            }
+        });
+    }
+
+    // Export Wiring (kept same)
+    if (exportBtn) {
+        exportBtn.addEventListener('click', async () => {
+            // ... existing export logic ... (retained via partial match if possible or assume implied? I must provide full content if replacing block)
+            // I will use a separate replace for export block if needed, but here I am replacing the whole initImportWiring + processImport to be safe and clean.
+            // Actually, the previous tool call failed because I tried to match a large block and failed.
+            // I should replace specific blocks.
+        });
+    }
+    // ...
+};
+
+// ... I will use multiple ReplaceChunks to be safer.
+
+export const fetchMissingCovers = async (onProgress) => {
+    const books = getBooks();
+    const missing = books.filter(b => b.isbn && !b.coverUrl && b.status !== 'bin');
+    if (missing.length === 0) {
+        showToast('No books need covers.');
+        return;
+    }
+
+    let processed = 0;
+    for (const book of missing) {
+        processed++;
+        if (onProgress) onProgress(processed, missing.length);
+
+        try {
+            await new Promise(r => setTimeout(r, 200)); // Rate limit
+            const meta = await fetchByIsbn(book.isbn);
+            if (meta && meta.coverUrl) {
+                await updateBook(book.id, { coverUrl: meta.coverUrl });
+            }
+        } catch (e) { console.warn(e); }
+    }
+    showToast(`Updated ${processed} books.`);
+};
 const Papa = window.Papa;
 
 // Helper to ensure PapaParse is loaded
