@@ -198,12 +198,42 @@ export const initMenuWiring = () => {
         const isOpen = menu.classList.contains('visible');
         const shouldOpen = forceOpen !== null ? forceOpen : !isOpen;
         if (shouldOpen) {
+            updateMenuStats();
             menu.classList.add('visible');
             overlay.classList.add('visible');
         } else {
             menu.classList.remove('visible');
             overlay.classList.remove('visible');
         }
+    };
+
+    // Stats Logic
+    const updateMenuStats = async () => {
+        const { getBooks } = await import('./storage.js');
+        const books = getBooks();
+        const container = document.getElementById('menu-library-stats');
+        if (!container) return;
+
+        const stats = {
+            read: books.filter(b => b.status === 'read').length,
+            wishlist: books.filter(b => b.status === 'wishlist').length,
+            loan: books.filter(b => b.status === 'loan').length
+        };
+
+        container.innerHTML = `
+            <div style="flex:1; text-align:center; background:#f7f7f7; padding:8px; border-radius:8px;">
+                <div style="font-size:0.75rem; color:#888;">Read</div>
+                <div style="font-size:1.1rem; font-weight:700;">${stats.read}</div>
+            </div>
+            <div style="flex:1; text-align:center; background:#f7f7f7; padding:8px; border-radius:8px;">
+                <div style="font-size:0.75rem; color:#888;">Wishlist</div>
+                <div style="font-size:1.1rem; font-weight:700;">${stats.wishlist}</div>
+            </div>
+            <div style="flex:1; text-align:center; background:#f7f7f7; padding:8px; border-radius:8px;">
+                <div style="font-size:0.75rem; color:#888;">Loan</div>
+                <div style="font-size:1.1rem; font-weight:700;">${stats.loan}</div>
+            </div>
+        `;
     };
 
     if (menuBtn) menuBtn.addEventListener('click', () => toggleMenu(true));

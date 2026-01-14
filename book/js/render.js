@@ -111,7 +111,7 @@ export const renderList = (container, books, onEdit, totalCount = null) => {
     const statsEl = document.getElementById('filter-stats');
     if (statsEl) {
         if (totalCount !== null && totalCount !== books.length) {
-            statsEl.textContent = `Showing ${books.length} of ${totalCount} books`;
+            statsEl.textContent = `${books.length} of ${totalCount} books found`;
             statsEl.classList.remove('hidden');
         } else {
             statsEl.classList.add('hidden');
