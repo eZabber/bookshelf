@@ -98,11 +98,11 @@ export const initFiltersWiring = () => {
     const readYearSelect = $('#filter-read-year');
     const ratingSelect = $('#filter-rating');
     const monthSelect = $('#filter-month');
-    const genreSelect = $('#filter-genre');
+    const keywordInput = $('#filter-keyword');
     const sortSelect = $('#filter-sort');
     const clearBtn = $('#clear-filters-btn');
 
-    // Populate Dymanic Filters (Years & Genres)
+    // Populate Dymanic Filters (Years)
     const populateDynamic = () => {
         const books = getBooks();
 
@@ -135,22 +135,6 @@ export const initFiltersWiring = () => {
             });
             if (currReadYear) readYearSelect.value = currReadYear;
         }
-
-        // Genres
-        const allGenres = books.flatMap(b => b.genres || []);
-        const uniqueGenres = [...new Set(allGenres)].sort();
-
-        const currGenre = genreSelect ? genreSelect.value : '';
-        if (genreSelect) {
-            genreSelect.innerHTML = '<option value="">All Genres</option>';
-            uniqueGenres.forEach(g => {
-                const opt = document.createElement('option');
-                opt.value = g;
-                opt.textContent = g;
-                genreSelect.appendChild(opt);
-            });
-            if (currGenre) genreSelect.value = currGenre;
-        }
     };
 
     populateDynamic();
@@ -163,7 +147,7 @@ export const initFiltersWiring = () => {
     if (readYearSelect) readYearSelect.value = filters.readYear;
     if (ratingSelect) ratingSelect.value = filters.rating;
     if (monthSelect) monthSelect.value = filters.month;
-    if (genreSelect) genreSelect.value = filters.genre;
+    if (keywordInput) keywordInput.value = filters.keyword || '';
     if (sortSelect) sortSelect.value = filters.sort;
 
     const apply = () => {
@@ -173,7 +157,7 @@ export const initFiltersWiring = () => {
         if (readYearSelect) filters.readYear = readYearSelect.value;
         filters.rating = ratingSelect.value;
         filters.month = monthSelect.value;
-        if (genreSelect) filters.genre = genreSelect.value;
+        if (keywordInput) filters.keyword = keywordInput.value.toLowerCase();
         if (sortSelect) filters.sort = sortSelect.value;
 
         saveFilters();
@@ -188,7 +172,7 @@ export const initFiltersWiring = () => {
     };
 
     // Events
-    [titleInput, authorInput, yearSelect, readYearSelect, ratingSelect, monthSelect, genreSelect, sortSelect].forEach(el => {
+    [titleInput, authorInput, yearSelect, readYearSelect, ratingSelect, monthSelect, keywordInput, sortSelect].forEach(el => {
         if (el) el.addEventListener('input', apply);
     });
 
@@ -200,7 +184,7 @@ export const initFiltersWiring = () => {
             if (readYearSelect) readYearSelect.value = '';
             ratingSelect.value = '';
             monthSelect.value = '';
-            if (genreSelect) genreSelect.value = '';
+            if (keywordInput) keywordInput.value = '';
             if (sortSelect) sortSelect.value = 'added-desc';
             apply();
         });
