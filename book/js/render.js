@@ -48,9 +48,9 @@ export const renderBookCard = (book, onEdit) => {
                         <option value="1" ${book.rating == 1 ? 'selected' : ''}>★</option>
                     </select>
 
-                    ${book.status === 'read' && book.dateRead ? `
-                        <span style="font-size:0.75rem; color:#666; margin-left: 4px; padding: 4px 8px; background: #fdfdfd; border-radius: 4px; border: 1px solid #eee;">
-                            ${new Date(book.dateRead).toLocaleDateString('en-GB')}
+                    ${book.status === 'read' ? `
+                        <span style="font-size:0.75rem; color:${book.dateRead ? '#666' : '#aaa'}; margin-left: 4px; padding: 4px 8px; background: #fdfdfd; border-radius: 4px; border: 1px solid #eee;">
+                            ${book.dateRead ? new Date(book.dateRead).toLocaleDateString('en-GB') : 'No Date'}
                         </span>
                     ` : ''}
                 </div>
