@@ -50,7 +50,7 @@ export const renderBookCard = (book, onEdit) => {
 
                     ${book.status === 'read' && book.dateRead ? `
                         <span style="font-size:0.75rem; color:#666; margin-left: 4px; padding: 4px 8px; background: #fdfdfd; border-radius: 4px; border: 1px solid #eee;">
-                            ${new Date(book.dateRead).toLocaleDateString()}
+                            ${new Date(book.dateRead).toLocaleDateString('en-GB')}
                         </span>
                     ` : ''}
                 </div>
