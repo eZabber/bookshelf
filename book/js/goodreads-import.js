@@ -2,9 +2,73 @@ import { showToast } from './dom-utils.js';
 import { addBook, addBooks, getBooks, updateBook } from './storage.js';
 import { fetchByIsbn } from './isbn.js';
 
-// ... (Papa check unchanged)
+const ensurePapa = async () => {
+    if (window.Papa) return;
+    return new Promise((resolve, reject) => {
+        if (document.querySelector('#papa-script')) {
+            const check = setInterval(() => {
+                if (window.Papa) { clearInterval(check); resolve(); }
+            }, 100);
+            return;
+        }
+        const script = document.createElement('script');
+        script.id = 'papa-script';
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.body.appendChild(script);
+    });
+};
 
-// ...
+export const initImportWiring = () => {
+    const trigger = document.getElementById('import-csv-trigger');
+    const fileInput = document.getElementById('import-file');
+    const exportBtn = document.getElementById('export-csv-btn');
+
+    if (trigger && fileInput) {
+        trigger.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', async () => {
+            const file = fileInput.files[0];
+            if (!file) return;
+            trigger.textContent = 'Importing...';
+            trigger.style.pointerEvents = 'none';
+
+            try {
+                await ensurePapa();
+                window.Papa.parse(file, {
+                    header: true, skipEmptyLines: true,
+                    complete: async (results) => {
+                        await processImport(results.data, (c, t) => trigger.textContent = `Importing ${c}/${t}...`);
+                        trigger.textContent = 'Import Goodreads CSV';
+                        trigger.style.pointerEvents = 'auto';
+                        fileInput.value = '';
+                    },
+                    error: (err) => { console.error(err); showToast('CSV Error'); trigger.textContent = 'Import Goodreads CSV'; trigger.style.pointerEvents = 'auto'; }
+                });
+            } catch (e) { showToast('Parser Error'); trigger.style.pointerEvents = 'auto'; }
+        });
+    }
+
+    if (exportBtn) {
+        exportBtn.addEventListener('click', async () => {
+            await ensurePapa();
+            const books = getBooks();
+            if (!books.length) { showToast('No books'); return; }
+            const csvData = books.map(b => ({
+                Title: b.title, Author: b.author, ISBN: b.isbn || '', Status: b.status,
+                Rating: b.rating || 0, DateRead: b.dateRead || '', Notes: b.notes || '',
+                Year: b.year || '', Added: b.addedAt, Genres: (b.genres || []).join(', ')
+            }));
+            const csv = window.Papa.unparse(csvData);
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `mybookshelf_export_${new Date().toISOString().slice(0, 10)}.csv`;
+            link.click();
+        });
+    }
+};
 
 const processImport = async (rows, onProgress) => {
     let added = 0;

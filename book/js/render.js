@@ -8,7 +8,9 @@ export const renderBookCard = (book, onEdit) => {
     // Cover
     let coverHtml = '';
     if (book.coverUrl) {
-        coverHtml = `<img src="${escapeHtml(book.coverUrl)}" alt="Cover" loading="lazy">`;
+        let secureUrl = book.coverUrl;
+        if (secureUrl.startsWith('http:')) secureUrl = secureUrl.replace('http:', 'https:');
+        coverHtml = `<img src="${escapeHtml(secureUrl)}" alt="Cover" loading="lazy">`;
     } else {
         coverHtml = `<div style="width:60px;height:90px;background:#eee;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:0.8rem;">No Cover</div>`;
     }
