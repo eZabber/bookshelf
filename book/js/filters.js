@@ -7,7 +7,184 @@ let filters = {
     search: '',
     year: '',
     rating: '',
-    month: ''
+    month: '',
+    genre: '',
+    sort: 'added-desc'
+};
+
+// Persistance
+const loadFilters = () => {
+    try {
+        const saved = localStorage.getItem('mybookshelf_filters');
+        if (saved) filters = { ...filters, ...JSON.parse(saved) };
+    } catch (e) { }
+};
+
+const saveFilters = () => {
+    localStorage.setItem('mybookshelf_filters', JSON.stringify(filters));
+};
+
+export const initFiltersWiring = () => {
+    loadFilters();
+
+    const searchInput = $('#filter-search');
+    const yearSelect = $('#filter-year');
+    const ratingSelect = $('#filter-rating');
+    const monthSelect = $('#filter-month');
+    const genreSelect = $('#filter-genre');
+    const sortSelect = $('#filter-sort');
+    const clearBtn = $('#clear-filters-btn');
+
+    // Populate Dymanic Filters (Years & Genres)
+    const populateDynamic = () => {
+        const books = getBooks();
+
+        // Years
+        const years = [...new Set(books.map(b => b.year).filter(y => y))].sort((a, b) => b - a);
+        const currYear = yearSelect.value;
+        yearSelect.innerHTML = '<option value="">All Years</option>';
+        years.forEach(y => {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            yearSelect.appendChild(opt);
+        });
+        if (currYear) yearSelect.value = currYear;
+
+        // Genres
+        // Flatten all genres from all books
+        const allGenres = books.flatMap(b => b.genres || []);
+        // Count frequency? Or just unique?
+        const uniqueGenres = [...new Set(allGenres)].sort();
+
+        const currGenre = genreSelect ? genreSelect.value : '';
+        if (genreSelect) {
+            genreSelect.innerHTML = '<option value="">All Genres</option>';
+            uniqueGenres.forEach(g => {
+                const opt = document.createElement('option');
+                opt.value = g;
+                opt.textContent = g;
+                genreSelect.appendChild(opt);
+            });
+            if (currGenre) genreSelect.value = currGenre;
+        }
+    };
+
+    populateDynamic();
+    document.addEventListener('bookshelf-updated', populateDynamic);
+
+    // Restore UI
+    if (searchInput) searchInput.value = filters.search;
+    if (yearSelect) yearSelect.value = filters.year;
+    if (ratingSelect) ratingSelect.value = filters.rating;
+    if (monthSelect) monthSelect.value = filters.month;
+    if (genreSelect) genreSelect.value = filters.genre;
+    if (sortSelect) sortSelect.value = filters.sort;
+
+    const apply = () => {
+        filters.search = searchInput.value.toLowerCase();
+        filters.year = yearSelect.value;
+        filters.rating = ratingSelect.value;
+        filters.month = monthSelect.value;
+        if (genreSelect) filters.genre = genreSelect.value;
+        if (sortSelect) filters.sort = sortSelect.value;
+
+        saveFilters();
+
+        const allBooks = getBooks();
+        let visible = allBooks.filter(b => b.status === STATE.currentTab);
+
+        // Filter
+        visible = filterBooksLogic(visible);
+
+        // Sort
+        visible = sortBooksLogic(visible);
+
+        renderList($('#main-content'), visible, null, allBooks.filter(b => b.status === STATE.currentTab).length);
+    };
+
+    // Events
+    [searchInput, yearSelect, ratingSelect, monthSelect, genreSelect, sortSelect].forEach(el => {
+        if (el) el.addEventListener('input', apply);
+    });
+
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            yearSelect.value = '';
+            ratingSelect.value = '';
+            monthSelect.value = '';
+            if (genreSelect) genreSelect.value = '';
+            if (sortSelect) sortSelect.value = 'added-desc';
+            apply();
+        });
+    }
+
+    return apply;
+};
+
+// Pure logic for filtering
+const filterBooksLogic = (books) => {
+    let visible = books;
+
+    if (filters.search) {
+        visible = visible.filter(b =>
+            (b.title && b.title.toLowerCase().includes(filters.search)) ||
+            (b.author && b.author.toLowerCase().includes(filters.search))
+        );
+    }
+    if (filters.year) {
+        visible = visible.filter(b => b.year == filters.year);
+    }
+    if (filters.rating) {
+        visible = visible.filter(b => (b.rating || 0) == parseInt(filters.rating));
+    }
+    if (filters.month) {
+        visible = visible.filter(b => {
+            const dateStr = b.dateRead || b.addedAt;
+            if (!dateStr) return false;
+            const d = new Date(dateStr);
+            return d.getMonth() == parseInt(filters.month);
+        });
+    }
+    if (filters.genre) {
+        visible = visible.filter(b => b.genres && b.genres.includes(filters.genre));
+    }
+    return visible;
+};
+
+// Pure logic for sorting
+const sortBooksLogic = (books) => {
+    // Clone to sort
+    const sorted = [...books];
+    const s = filters.sort || 'added-desc';
+
+    sorted.sort((a, b) => {
+        if (s === 'title-asc') return (a.title || '').localeCompare(b.title || '');
+        if (s === 'title-desc') return (b.title || '').localeCompare(a.title || '');
+        if (s === 'author-asc') return (a.author || '').localeCompare(b.author || '');
+        if (s === 'author-desc') return (b.author || '').localeCompare(a.author || '');
+        if (s === 'rating-desc') return (b.rating || 0) - (a.rating || 0);
+        // Default: added-desc (newest first)
+        // Parse dates to handle ISO strings correct
+        const dateA = new Date(a.addedAt || 0);
+        const dateB = new Date(b.addedAt || 0);
+        return dateB - dateA;
+    });
+
+    return sorted;
+};
+
+// Export for init reference if needed, but internally used
+export const filterBooks = (books) => {
+    // This function signature is being used in init.js: filterBooks(books) -> filteredBooks
+    // It assumes sorting happens here too? 
+    // Init.js calls: filtered = filterBooks(filtered)
+    // So distinct Logic functions are good, but we need to respect the public API `filterBooks`.
+
+    let res = filterBooksLogic(books);
+    res = sortBooksLogic(res);
+    return res;
 };
 
 // Persistance

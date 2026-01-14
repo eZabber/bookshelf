@@ -8,7 +8,8 @@ const normalize = (data) => {
         publisher: data.publisher || '',
         year: data.publishedDate ? parseInt(data.publishedDate.substring(0, 4)) : null,
         coverUrl: data.imageLinks?.thumbnail || data.cover?.medium || data.cover?.small || null,
-        isbn: data.isbn || null
+        isbn: data.isbn || null,
+        genres: data.categories || data.subjects || []
     };
 };
 
