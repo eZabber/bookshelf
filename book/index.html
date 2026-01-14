@@ -152,31 +152,6 @@
                         placeholder="Filter by Keyword..." class="rounded-input small">
                 </div>
 
-                <div class="filter-group flex items-center justify-between" style="padding-bottom: 8px;">
-                    <label style="margin:0; font-size:0.9rem;" data-i18n="filter.language">Language</label>
-                    <select id="lang-select" class="rounded-input small" style="width: auto;">
-                        <option value="en">English</option>
-                        <option value="fi">Suomi</option>
-                        <option value="et">Eesti</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="menu-section" style="border-top: 1px solid var(--divider-color); padding-top:12px;">
-                <h4>Filters</h4>
-                <!-- ... filters ... -->
-                <!-- Skipped unchanged inputs to focus on Months & Buttons - But replace block must be contiguous? -->
-                <!-- Since inputs were changed in previous step, I will only target the sections I need, possibly multi-replace if tool allowed, but "AllowMultiple" is false for replace_file_content (tool says ONLY SINGLE CONTIGUOUS). -->
-                <!-- I will have to do multiple calls or one large one. -->
-                <!-- Let's target the language label first, then months/buttons. -->
-                <!-- Actually, I can replace from line 101 to 185 if I include everything. That is big but safe if I copy correctly. Verify intermediate content. -->
-                <!-- Lines 111-154 were modified in previous step. I should verify current content. -->
-                <!-- Instead, I will do smaller replacements. -->
-                <!-- 1. Language Label -->
-                <!-- 2. Months & Clear Button & Bottom Menu -->
-
-                <!-- This tool call targets Month section and below (156-185 approx). -->
-
                 <div class="filter-group">
                     <select id="filter-month" class="rounded-input small">
                         <option value="" data-i18n="filter.month">All Months</option>
