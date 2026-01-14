@@ -38,14 +38,23 @@ export const renderBookCard = (book, onEdit) => {
                     </div>`
             : ''}
 
-                <select class="rating-select rounded-input small" style="width: auto; min-width: 90px; padding: 2px 24px 2px 8px; height: 28px; font-size: 0.75rem; border: 1px solid transparent; background-color: #f7f7f7;">
-                    <option value="0" ${!book.rating ? 'selected' : ''}>Rate...</option>
-                    <option value="5" ${book.rating == 5 ? 'selected' : ''}>★★★★★</option>
-                    <option value="4" ${book.rating == 4 ? 'selected' : ''}>★★★★</option>
-                    <option value="3" ${book.rating == 3 ? 'selected' : ''}>★★★</option>
-                    <option value="2" ${book.rating == 2 ? 'selected' : ''}>★★</option>
-                    <option value="1" ${book.rating == 1 ? 'selected' : ''}>★</option>
-                </select>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+                    <select class="rating-select rounded-input small" style="width: auto; min-width: 90px; padding: 2px 24px 2px 8px; height: 28px; font-size: 0.75rem; border: 1px solid transparent; background-color: #f7f7f7;">
+                        <option value="0" ${!book.rating ? 'selected' : ''}>Rate...</option>
+                        <option value="5" ${book.rating == 5 ? 'selected' : ''}>★★★★★</option>
+                        <option value="4" ${book.rating == 4 ? 'selected' : ''}>★★★★</option>
+                        <option value="3" ${book.rating == 3 ? 'selected' : ''}>★★★</option>
+                        <option value="2" ${book.rating == 2 ? 'selected' : ''}>★★</option>
+                        <option value="1" ${book.rating == 1 ? 'selected' : ''}>★</option>
+                    </select>
+
+                    ${book.status === 'read' ? `
+                        <input type="date" class="date-read-input rounded-input small" 
+                            style="padding: 2px 6px; height: 28px; font-size: 0.75rem; border: 1px solid transparent; background-color: #f7f7f7; width: auto;"
+                            value="${book.dateRead ? book.dateRead.split('T')[0] : ''}"
+                            title="Date Read">
+                    ` : ''}
+                </div>
 
                 ${badgesHtml}
             </div>
@@ -63,12 +72,22 @@ export const renderBookCard = (book, onEdit) => {
     const ratingSelect = card.querySelector('.rating-select');
     if (ratingSelect) {
         ratingSelect.addEventListener('change', async (e) => {
-            e.stopPropagation(); // Prevent card click if any
+            e.stopPropagation();
             const newRating = parseInt(e.target.value);
             await updateBook(book.id, { ...book, rating: newRating });
         });
-        // Prevent click bubble
         ratingSelect.addEventListener('click', e => e.stopPropagation());
+    }
+
+    // Wire Date Read Change
+    const dateInput = card.querySelector('.date-read-input');
+    if (dateInput) {
+        dateInput.addEventListener('change', async (e) => {
+            e.stopPropagation();
+            const newDate = e.target.value ? new Date(e.target.value).toISOString() : null;
+            await updateBook(book.id, { ...book, dateRead: newDate });
+        });
+        dateInput.addEventListener('click', e => e.stopPropagation());
     }
 
     // Wire Actions
