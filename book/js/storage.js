@@ -77,6 +77,28 @@ export const addBook = async (book) => {
     return book;
 };
 
+export const addBooks = async (newBooks) => {
+    if (!newBooks || !newBooks.length) return;
+
+    // Prepare all books
+    const processed = newBooks.map(book => {
+        if (!book.id) book.id = crypto.randomUUID();
+        if (!book.addedAt) book.addedAt = new Date().toISOString();
+
+        book.status = book.status || 'read';
+        book.isAudiobook = !!book.isAudiobook;
+        book.rating = book.rating || 0;
+        return book;
+    });
+
+    if (!appData.books) appData.books = [];
+    appData.books.unshift(...processed);
+
+    await saveLocally();
+    showToast(`${processed.length} books imported`);
+    return processed;
+};
+
 export const updateBook = async (id, changes) => {
     if (!appData.books) return;
     const idx = appData.books.findIndex(b => b.id === id);
