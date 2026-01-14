@@ -89,11 +89,37 @@
             </div>
 
             <div class="menu-section">
+                <!-- Lang Selector (Now on Top) -->
+                <div class="filter-group flex items-center justify-between" style="padding-bottom: 8px;">
+                    <label style="margin:0; font-size:0.9rem;">Language</label>
+                    <select id="lang-select" class="rounded-input small" style="width: auto;">
+                        <option value="en">English</option>
+                        <option value="fi">Suomi</option>
+                        <option value="et">Eesti</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="menu-section" style="border-top: 1px solid var(--divider-color); padding-top:12px;">
                 <h4>Filters</h4>
                 <div class="filter-group">
-                    <input type="text" id="filter-search" placeholder="Search title/author..."
-                        class="rounded-input small">
+                    <input type="text" id="filter-title" placeholder="Filter by Title..." class="rounded-input small">
                 </div>
+                <div class="filter-group">
+                    <input type="text" id="filter-author" placeholder="Filter by Author..." class="rounded-input small">
+                </div>
+
+                <div class="filter-group">
+                    <select id="filter-sort" class="rounded-input small">
+                        <option value="added-desc">Recently Added</option>
+                        <option value="title-asc">Title (A-Z)</option>
+                        <option value="title-desc">Title (Z-A)</option>
+                        <option value="author-asc">Author (A-Z)</option>
+                        <option value="author-desc">Author (Z-A)</option>
+                        <option value="rating-desc">Rating (High-Low)</option>
+                    </select>
+                </div>
+
                 <div class="filter-group flex gap-2">
                     <select id="filter-year" class="rounded-input small">
                         <option value="">All Years</option>
@@ -107,7 +133,13 @@
                         <option value="1">1 ★</option>
                     </select>
                 </div>
-                <!-- Month filter not critical if Year is there, but requested -->
+
+                <div class="filter-group">
+                    <select id="filter-genre" class="rounded-input small">
+                        <option value="">All Genres</option>
+                    </select>
+                </div>
+
                 <div class="filter-group">
                     <select id="filter-month" class="rounded-input small">
                         <option value="">All Months</option>
@@ -128,22 +160,8 @@
                 <button id="clear-filters-btn" class="btn-pill mt-2" style="font-size:0.8rem;">Clear Filters</button>
             </div>
 
-            <div class="menu-section">
-                <!-- Lang Selector -->
-                <div class="filter-group flex items-center justify-between"
-                    style="border-top: 1px solid var(--divider-color); padding-top:12px; margin-top:12px;">
-                    <label style="margin:0; font-size:0.9rem;">Language</label>
-                    <select id="lang-select" class="rounded-input small" style="width: auto;">
-                        <option value="en">English</option>
-                        <option value="fi">Suomi</option>
-                        <option value="et">Eesti</option>
-                    </select>
-                </div>
-            </div>
-
-            <nav class="menu-nav mt-2">
+            <nav class="menu-nav mt-2" style="border-top: 1px solid var(--divider-color); padding-top:12px;">
                 <div class="menu-item" id="import-csv-trigger">Import Goodreads CSV</div>
-                <div class="menu-item" id="update-covers-btn">Fetch Missing Covers</div>
                 <div class="menu-item" id="export-csv-btn">Export CSV</div>
                 <input type="file" id="import-file" accept=".csv" class="hidden">
             </nav>
