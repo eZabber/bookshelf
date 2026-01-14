@@ -125,7 +125,7 @@ const fetchGoogleBooks = async (isbn) => {
 const searchFinna = async (query) => {
     try {
         const q = encodeURIComponent(query);
-        const fields = 'title,authors,year,images,isbns,subjects';
+        const fields = 'title,authors,year,images,isbns,subjects,topic';
         const url = `https://api.finna.fi/v1/search?lookfor=${q}&field[]=${fields.split(',').join('&field[]=')}`;
 
         const res = await fetch(url);
@@ -133,13 +133,15 @@ const searchFinna = async (query) => {
 
         if (data.records && data.records.length > 0) {
             return data.records.map(rec => {
+                const subjects = rec.subjects ? rec.subjects.flat() : [];
+                const topics = rec.topic ? (Array.isArray(rec.topic) ? rec.topic : [rec.topic]) : [];
                 return normalize({
                     title: rec.title,
                     authors: Array.isArray(rec.authors) ? rec.authors : (rec.authors ? [rec.authors] : []),
                     year: rec.year,
                     finnaImage: rec.images ? rec.images[0] : null,
                     isbn: rec.isbns ? rec.isbns[0] : null,
-                    genres: rec.subjects ? rec.subjects.flat() : [],
+                    genres: [...new Set([...subjects, ...topics])],
                     source: 'Finna'
                 });
             });
@@ -150,19 +152,21 @@ const searchFinna = async (query) => {
 
 const fetchFinna = async (isbn) => {
     try {
-        const url = `https://api.finna.fi/v1/search?lookfor=${isbn}&type=AllFields&field[]=title&field[]=authors&field[]=year&field[]=images&field[]=isbns&field[]=subjects`;
+        const url = `https://api.finna.fi/v1/search?lookfor=${isbn}&type=AllFields&field[]=title&field[]=authors&field[]=year&field[]=images&field[]=isbns&field[]=subjects&field[]=topic`;
         const res = await fetch(url);
         const data = await res.json();
 
         if (data.records && data.records.length > 0) {
             const rec = data.records[0];
+            const subjects = rec.subjects ? rec.subjects.flat() : [];
+            const topics = rec.topic ? (Array.isArray(rec.topic) ? rec.topic : [rec.topic]) : [];
             return normalize({
                 title: rec.title,
                 authors: Array.isArray(rec.authors) ? rec.authors : (rec.authors ? [rec.authors] : []),
                 year: rec.year,
                 finnaImage: rec.images ? rec.images[0] : null,
                 isbn: isbn,
-                genres: rec.subjects ? rec.subjects.flat() : [],
+                genres: [...new Set([...subjects, ...topics])],
                 source: 'Finna'
             });
         }
