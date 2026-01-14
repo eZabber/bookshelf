@@ -269,4 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window._openSaveModal = openSaveModal;
         initAddWiring();
     });
+    // Dynamic Footer Year
+    const yearSpan = document.getElementById('copyright-year');
+    if (yearSpan) yearSpan.textContent = new Date().getFullYear();
 });
