@@ -16,32 +16,68 @@ const normalize = (data) => {
     };
 };
 
+// Open Library Search Fallback
+const searchOpenLibrary = async (query) => {
+    try {
+        const q = encodeURIComponent(query);
+        const res = await fetch(`https://openlibrary.org/search.json?q=${q}&limit=10`);
+        const data = await res.json();
+
+        if (data.docs && data.docs.length > 0) {
+            return data.docs.map(doc => {
+                // Normalize OL search result
+                let cover = doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` : null;
+                return {
+                    title: doc.title || '',
+                    author: Array.isArray(doc.author_name) ? doc.author_name.join(', ') : (doc.author_name || ''),
+                    publisher: Array.isArray(doc.publisher) ? doc.publisher[0] : (doc.publisher || ''),
+                    year: doc.first_publish_year || (doc.publish_year ? doc.publish_year[0] : null),
+                    coverUrl: cover,
+                    isbn: doc.isbn ? doc.isbn[0] : null,
+                    genres: doc.subject ? doc.subject.slice(0, 5) : []
+                };
+            });
+        }
+    } catch (e) { console.warn('OL Search failed', e); }
+    return [];
+};
+
 /* --- 1. Search (Query) --- */
 export const searchBooks = async (query) => {
+    let results = [];
+
+    // 1. Try Google Books
     try {
         const q = encodeURIComponent(query);
         const url = `https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=10&key=${CONFIG.API_KEY}`;
         const res = await fetch(url);
 
         if (res.status === 403) {
-            console.error('Google Books API 403 Forbidden. Check your API Key restrictions (Referrer) and ensure Books API is enabled.');
-            return [];
-        }
-
-        const data = await res.json();
-
-        if (data.items && data.items.length > 0) {
-            return data.items.map(item => {
-                const info = item.volumeInfo;
-                const isbn13 = info.industryIdentifiers?.find(id => id.type === 'ISBN_13')?.identifier;
-                const isbn10 = info.industryIdentifiers?.find(id => id.type === 'ISBN_10')?.identifier;
-                return normalize({ ...info, isbn: isbn13 || isbn10 });
-            });
+            console.error('Google Books API 403. Falling back to OpenLibrary.');
+        } else {
+            const data = await res.json();
+            if (data.items && data.items.length > 0) {
+                results = data.items.map(item => {
+                    const info = item.volumeInfo;
+                    const isbn13 = info.industryIdentifiers?.find(id => id.type === 'ISBN_13')?.identifier;
+                    const isbn10 = info.industryIdentifiers?.find(id => id.type === 'ISBN_10')?.identifier;
+                    return normalize({ ...info, isbn: isbn13 || isbn10 });
+                });
+            }
         }
     } catch (e) {
         console.warn('Google Books search failed', e);
     }
-    return [];
+
+    // 2. If no results or 403, try OpenLibrary
+    if (results.length === 0) {
+        const olResults = await searchOpenLibrary(query);
+        if (olResults.length > 0) {
+            results = olResults;
+        }
+    }
+
+    return results;
 };
 
 /* --- 2. ISBN Lookup (Single) --- */

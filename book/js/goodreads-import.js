@@ -54,15 +54,8 @@ export const initImportWiring = () => {
         });
     }
 
-    if (updateCoversBtn) {
-        updateCoversBtn.addEventListener('click', async () => {
-            if (confirm('Fetch missing covers and genres for existing books?')) {
-                updateCoversBtn.textContent = 'Updating...';
-                await fetchMissingCovers((c, t) => updateCoversBtn.textContent = `Updating ${c}/${t}`);
-                updateCoversBtn.textContent = 'Fetch Missing Covers';
-            }
-        });
-    }
+    // Manual update button removed from UI, so listener removed.
+    // Kept functionality in startBackgroundCoverFetch.
 
     if (exportBtn) {
         exportBtn.addEventListener('click', async () => {
@@ -145,6 +138,7 @@ const processImport = async (rows, onProgress) => {
 };
 
 export const fetchMissingCovers = async (onProgress) => {
+    // Kept as helper if needed later, but unlinked from UI
     const books = getBooks();
     const missing = books.filter(b => b.isbn && (!b.coverUrl || !b.genres || b.genres.length === 0) && b.status !== 'bin');
 

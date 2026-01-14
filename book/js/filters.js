@@ -4,7 +4,8 @@ import { renderList } from './render.js';
 import { STATE } from './state.js';
 
 let filters = {
-    search: '',
+    title: '',
+    author: '',
     year: '',
     rating: '',
     month: '',
@@ -28,11 +29,11 @@ const saveFilters = () => {
 const filterBooksLogic = (books) => {
     let visible = books;
 
-    if (filters.search) {
-        visible = visible.filter(b =>
-            (b.title && b.title.toLowerCase().includes(filters.search)) ||
-            (b.author && b.author.toLowerCase().includes(filters.search))
-        );
+    if (filters.title) {
+        visible = visible.filter(b => b.title && b.title.toLowerCase().includes(filters.title));
+    }
+    if (filters.author) {
+        visible = visible.filter(b => b.author && b.author.toLowerCase().includes(filters.author));
     }
     if (filters.year) {
         visible = visible.filter(b => b.year == filters.year);
@@ -67,7 +68,6 @@ const sortBooksLogic = (books) => {
         if (s === 'author-desc') return (b.author || '').localeCompare(a.author || '');
         if (s === 'rating-desc') return (b.rating || 0) - (a.rating || 0);
         // Default: added-desc (newest first)
-        // Parse dates to handle ISO strings correct
         const dateA = new Date(a.addedAt || 0);
         const dateB = new Date(b.addedAt || 0);
         return dateB - dateA;
@@ -85,7 +85,8 @@ export const filterBooks = (books) => {
 export const initFiltersWiring = () => {
     loadFilters();
 
-    const searchInput = $('#filter-search');
+    const titleInput = $('#filter-title');
+    const authorInput = $('#filter-author');
     const yearSelect = $('#filter-year');
     const ratingSelect = $('#filter-rating');
     const monthSelect = $('#filter-month');
@@ -110,7 +111,6 @@ export const initFiltersWiring = () => {
         if (currYear) yearSelect.value = currYear;
 
         // Genres
-        // Flatten all genres from all books
         const allGenres = books.flatMap(b => b.genres || []);
         const uniqueGenres = [...new Set(allGenres)].sort();
 
@@ -131,7 +131,8 @@ export const initFiltersWiring = () => {
     document.addEventListener('bookshelf-updated', populateDynamic);
 
     // Restore UI
-    if (searchInput) searchInput.value = filters.search;
+    if (titleInput) titleInput.value = filters.title || '';
+    if (authorInput) authorInput.value = filters.author || '';
     if (yearSelect) yearSelect.value = filters.year;
     if (ratingSelect) ratingSelect.value = filters.rating;
     if (monthSelect) monthSelect.value = filters.month;
@@ -139,7 +140,8 @@ export const initFiltersWiring = () => {
     if (sortSelect) sortSelect.value = filters.sort;
 
     const apply = () => {
-        filters.search = searchInput.value.toLowerCase();
+        if (titleInput) filters.title = titleInput.value.toLowerCase();
+        if (authorInput) filters.author = authorInput.value.toLowerCase();
         filters.year = yearSelect.value;
         filters.rating = ratingSelect.value;
         filters.month = monthSelect.value;
@@ -151,23 +153,21 @@ export const initFiltersWiring = () => {
         const allBooks = getBooks();
         let visible = allBooks.filter(b => b.status === STATE.currentTab);
 
-        // Filter
         visible = filterBooksLogic(visible);
-
-        // Sort
         visible = sortBooksLogic(visible);
 
         renderList($('#main-content'), visible, null, allBooks.filter(b => b.status === STATE.currentTab).length);
     };
 
     // Events
-    [searchInput, yearSelect, ratingSelect, monthSelect, genreSelect, sortSelect].forEach(el => {
+    [titleInput, authorInput, yearSelect, ratingSelect, monthSelect, genreSelect, sortSelect].forEach(el => {
         if (el) el.addEventListener('input', apply);
     });
 
     if (clearBtn) {
         clearBtn.addEventListener('click', () => {
-            searchInput.value = '';
+            if (titleInput) titleInput.value = '';
+            if (authorInput) authorInput.value = '';
             yearSelect.value = '';
             ratingSelect.value = '';
             monthSelect.value = '';
@@ -181,5 +181,5 @@ export const initFiltersWiring = () => {
 };
 
 export const applyCurrentFilters = () => {
-    // Legacy helper if needed, but logic is self-contained in init wiring closure
+    // Legacy helper
 };
