@@ -131,7 +131,7 @@ export const renderList = (container, books, onEdit, totalCount = null) => {
     }
 
     const fragment = document.createDocumentFragment();
-    books.slice().reverse().forEach(book => {
+    books.slice().forEach(book => {
         fragment.appendChild(renderBookCard(book, onEdit));
     });
     container.appendChild(fragment);
