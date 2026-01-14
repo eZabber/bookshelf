@@ -1,93 +1,36 @@
-import { $ } from './dom-utils.js';
-import { getBooks } from './storage.js';
-import { renderList } from './render.js';
-import { STATE } from './state.js';
-
 let filters = {
     title: '',
     author: '',
     year: '',
+    readYear: '',
     rating: '',
     month: '',
     genre: '',
     sort: 'added-desc'
 };
 
-// Persistance
-const loadFilters = () => {
-    try {
-        const saved = localStorage.getItem('mybookshelf_filters');
-        if (saved) filters = { ...filters, ...JSON.parse(saved) };
-    } catch (e) { }
-};
+// ... (load/save unchanged if compatible, but I need to replace the whole logic block or serve targeted chunks? replace_file_content works on chunks.)
+// I will use replace_file_content on specific blocks or the whole file if easier.
+// The file is small enough to be careful.
 
-const saveFilters = () => {
-    localStorage.setItem('mybookshelf_filters', JSON.stringify(filters));
-};
-
-// Pure logic for filtering
-const filterBooksLogic = (books) => {
-    let visible = books;
-
-    if (filters.title) {
-        visible = visible.filter(b => b.title && b.title.toLowerCase().includes(filters.title));
-    }
-    if (filters.author) {
-        visible = visible.filter(b => b.author && b.author.toLowerCase().includes(filters.author));
-    }
-    if (filters.year) {
-        visible = visible.filter(b => b.year == filters.year);
-    }
-    if (filters.rating) {
-        visible = visible.filter(b => (b.rating || 0) == parseInt(filters.rating));
-    }
-    if (filters.month) {
-        visible = visible.filter(b => {
-            const dateStr = b.dateRead || b.addedAt;
-            if (!dateStr) return false;
-            const d = new Date(dateStr);
-            return d.getMonth() == parseInt(filters.month);
-        });
-    }
-    if (filters.genre) {
-        visible = visible.filter(b => b.genres && b.genres.includes(filters.genre));
-    }
-    return visible;
-};
-
-// Pure logic for sorting
-const sortBooksLogic = (books) => {
-    // Clone to sort
-    const sorted = [...books];
-    const s = filters.sort || 'added-desc';
-
-    sorted.sort((a, b) => {
-        if (s === 'title-asc') return (a.title || '').localeCompare(b.title || '');
-        if (s === 'title-desc') return (b.title || '').localeCompare(a.title || '');
-        if (s === 'author-asc') return (a.author || '').localeCompare(b.author || '');
-        if (s === 'author-desc') return (b.author || '').localeCompare(a.author || '');
-        if (s === 'rating-desc') return (b.rating || 0) - (a.rating || 0);
-        // Default: added-desc (newest first)
-        const dateA = new Date(a.addedAt || 0);
-        const dateB = new Date(b.addedAt || 0);
-        return dateB - dateA;
+// Logic Block Update
+if (filters.year) {
+    visible = visible.filter(b => b.year == filters.year);
+}
+if (filters.readYear) {
+    visible = visible.filter(b => {
+        if (!b.dateRead) return false;
+        return new Date(b.dateRead).getFullYear() == parseInt(filters.readYear);
     });
+}
+if (filters.rating) {
+    // ...
 
-    return sorted;
-};
-
-export const filterBooks = (books) => {
-    let res = filterBooksLogic(books);
-    res = sortBooksLogic(res);
-    return res;
-};
-
-export const initFiltersWiring = () => {
-    loadFilters();
-
+    // Init Block Update
     const titleInput = $('#filter-title');
     const authorInput = $('#filter-author');
     const yearSelect = $('#filter-year');
+    const readYearSelect = $('#filter-read-year');
     const ratingSelect = $('#filter-rating');
     const monthSelect = $('#filter-month');
     const genreSelect = $('#filter-genre');
@@ -98,10 +41,10 @@ export const initFiltersWiring = () => {
     const populateDynamic = () => {
         const books = getBooks();
 
-        // Years
+        // Pub Years
         const years = [...new Set(books.map(b => b.year).filter(y => y))].sort((a, b) => b - a);
         const currYear = yearSelect.value;
-        yearSelect.innerHTML = '<option value="">All Years</option>';
+        yearSelect.innerHTML = '<option value="">Pub. Year</option>';
         years.forEach(y => {
             const opt = document.createElement('option');
             opt.value = y;
@@ -110,76 +53,56 @@ export const initFiltersWiring = () => {
         });
         if (currYear) yearSelect.value = currYear;
 
-        // Genres
-        const allGenres = books.flatMap(b => b.genres || []);
-        const uniqueGenres = [...new Set(allGenres)].sort();
+        // Read Years
+        if (readYearSelect) {
+            const readYears = [...new Set(books
+                .filter(b => b.dateRead)
+                .map(b => new Date(b.dateRead).getFullYear())
+            )].sort((a, b) => b - a);
 
-        const currGenre = genreSelect ? genreSelect.value : '';
-        if (genreSelect) {
-            genreSelect.innerHTML = '<option value="">All Genres</option>';
-            uniqueGenres.forEach(g => {
+            const currReadYear = readYearSelect.value;
+            readYearSelect.innerHTML = '<option value="">Read Year</option>';
+            readYears.forEach(y => {
                 const opt = document.createElement('option');
-                opt.value = g;
-                opt.textContent = g;
-                genreSelect.appendChild(opt);
+                opt.value = y;
+                opt.textContent = y;
+                readYearSelect.appendChild(opt);
             });
-            if (currGenre) genreSelect.value = currGenre;
+            if (currReadYear) readYearSelect.value = currReadYear;
         }
-    };
 
-    populateDynamic();
-    document.addEventListener('bookshelf-updated', populateDynamic);
+        // Genres ...
+        // ...
 
-    // Restore UI
-    if (titleInput) titleInput.value = filters.title || '';
-    if (authorInput) authorInput.value = filters.author || '';
-    if (yearSelect) yearSelect.value = filters.year;
-    if (ratingSelect) ratingSelect.value = filters.rating;
-    if (monthSelect) monthSelect.value = filters.month;
-    if (genreSelect) genreSelect.value = filters.genre;
-    if (sortSelect) sortSelect.value = filters.sort;
+        // Restore UI
+        if (titleInput) titleInput.value = filters.title || '';
+        if (authorInput) authorInput.value = filters.author || '';
+        if (yearSelect) yearSelect.value = filters.year;
+        if (readYearSelect) readYearSelect.value = filters.readYear;
+        // ...
 
-    const apply = () => {
-        if (titleInput) filters.title = titleInput.value.toLowerCase();
-        if (authorInput) filters.author = authorInput.value.toLowerCase();
-        filters.year = yearSelect.value;
-        filters.rating = ratingSelect.value;
-        filters.month = monthSelect.value;
-        if (genreSelect) filters.genre = genreSelect.value;
-        if (sortSelect) filters.sort = sortSelect.value;
+        const apply = () => {
+            if (titleInput) filters.title = titleInput.value.toLowerCase();
+            if (authorInput) filters.author = authorInput.value.toLowerCase();
+            filters.year = yearSelect.value;
+            if (readYearSelect) filters.readYear = readYearSelect.value;
+            filters.rating = ratingSelect.value;
+            // ...
 
-        saveFilters();
+            // Events
+            [titleInput, authorInput, yearSelect, readYearSelect, ratingSelect, monthSelect, genreSelect, sortSelect].forEach(el => {
+                if (el) el.addEventListener('input', apply);
+            });
 
-        const allBooks = getBooks();
-        let visible = allBooks.filter(b => b.status === STATE.currentTab);
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    if (titleInput) titleInput.value = '';
+                    if (authorInput) authorInput.value = '';
+                    yearSelect.value = '';
+                    if (readYearSelect) readYearSelect.value = '';
+                    ratingSelect.value = '';
+                    // ...
 
-        visible = filterBooksLogic(visible);
-        visible = sortBooksLogic(visible);
-
-        renderList($('#main-content'), visible, null, allBooks.filter(b => b.status === STATE.currentTab).length);
-    };
-
-    // Events
-    [titleInput, authorInput, yearSelect, ratingSelect, monthSelect, genreSelect, sortSelect].forEach(el => {
-        if (el) el.addEventListener('input', apply);
-    });
-
-    if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-            if (titleInput) titleInput.value = '';
-            if (authorInput) authorInput.value = '';
-            yearSelect.value = '';
-            ratingSelect.value = '';
-            monthSelect.value = '';
-            if (genreSelect) genreSelect.value = '';
-            if (sortSelect) sortSelect.value = 'added-desc';
-            apply();
-        });
-    }
-
-    return apply;
-};
-
-export const applyCurrentFilters = () => {
-    // Legacy helper
-};
+                    export const applyCurrentFilters = () => {
+                        // Legacy helper
+                    };
