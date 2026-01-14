@@ -3,7 +3,6 @@ import { getBooks } from './storage.js';
 import { renderList } from './render.js';
 import { STATE } from './state.js';
 import { t } from './i18n.js';
-import { t } from './i18n.js';
 
 let filters = {
     title: '',
