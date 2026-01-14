@@ -2,6 +2,8 @@ import { $ } from './dom-utils.js';
 import { getBooks } from './storage.js';
 import { renderList } from './render.js';
 import { STATE } from './state.js';
+import { t } from './i18n.js';
+import { t } from './i18n.js';
 
 let filters = {
     title: '',
@@ -109,7 +111,7 @@ export const initFiltersWiring = (onEdit) => {
         // Pub Years
         const years = [...new Set(books.map(b => b.year).filter(y => y))].sort((a, b) => b - a);
         const currYear = yearSelect.value;
-        yearSelect.innerHTML = '<option value="">Pub. Year</option>';
+        yearSelect.innerHTML = `<option value="">${t('filter.year')}</option>`;
         years.forEach(y => {
             const opt = document.createElement('option');
             opt.value = y;
@@ -126,7 +128,7 @@ export const initFiltersWiring = (onEdit) => {
             )].sort((a, b) => b - a);
 
             const currReadYear = readYearSelect.value;
-            readYearSelect.innerHTML = '<option value="">Read Year</option>';
+            readYearSelect.innerHTML = `<option value="">${t('filter.readYear')}</option>`;
             readYears.forEach(y => {
                 const opt = document.createElement('option');
                 opt.value = y;
@@ -139,6 +141,7 @@ export const initFiltersWiring = (onEdit) => {
 
     populateDynamic();
     document.addEventListener('bookshelf-updated', populateDynamic);
+    document.addEventListener('language-changed', populateDynamic);
 
     // Restore UI
     if (titleInput) titleInput.value = filters.title || '';

@@ -111,10 +111,12 @@
             <div class="menu-section" style="border-top: 1px solid var(--divider-color); padding-top:12px;">
                 <h4>Filters</h4>
                 <div class="filter-group">
-                    <input type="text" id="filter-title" placeholder="Filter by Title..." class="rounded-input small">
+                    <input type="text" id="filter-title" data-i18n-placeholder="filter.title"
+                        placeholder="Filter by Title..." class="rounded-input small">
                 </div>
                 <div class="filter-group">
-                    <input type="text" id="filter-author" placeholder="Filter by Author..." class="rounded-input small">
+                    <input type="text" id="filter-author" data-i18n-placeholder="filter.author"
+                        placeholder="Filter by Author..." class="rounded-input small">
                 </div>
 
                 <div class="filter-group flex gap-2">
@@ -128,15 +130,15 @@
 
                 <div class="filter-group flex gap-2">
                     <select id="filter-sort" class="rounded-input small" style="flex:1;">
-                        <option value="added-desc">Recently Added</option>
-                        <option value="title-asc">Title (A-Z)</option>
-                        <option value="title-desc">Title (Z-A)</option>
-                        <option value="author-asc">Author (A-Z)</option>
-                        <option value="author-desc">Author (Z-A)</option>
-                        <option value="rating-desc">Rating (High-Low)</option>
+                        <option value="added-desc" data-i18n="sort.newest">Recently Added</option>
+                        <option value="title-asc" data-i18n="sort.az">Title (A-Z)</option>
+                        <option value="title-desc" data-i18n="sort.za">Title (Z-A)</option>
+                        <option value="author-asc" data-i18n="sort.author_az">Author (A-Z)</option>
+                        <option value="author-desc" data-i18n="sort.author_za">Author (Z-A)</option>
+                        <option value="rating-desc" data-i18n="sort.rating_hl">Rating (High-Low)</option>
                     </select>
                     <select id="filter-rating" class="rounded-input small" style="flex:1;">
-                        <option value="">All Ratings</option>
+                        <option value="" data-i18n="filter.rating">All Ratings</option>
                         <option value="5">5 ★</option>
                         <option value="4">4 ★</option>
                         <option value="3">3 ★</option>
@@ -146,8 +148,8 @@
                 </div>
 
                 <div class="filter-group">
-                    <input type="text" id="filter-keyword" placeholder="Filter by Keyword..."
-                        class="rounded-input small">
+                    <input type="text" id="filter-keyword" data-i18n-placeholder="filter.keyword"
+                        placeholder="Filter by Keyword..." class="rounded-input small">
                 </div>
 
                 <div class="filter-group">

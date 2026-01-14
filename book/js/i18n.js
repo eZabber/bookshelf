@@ -14,7 +14,19 @@ export const translations = {
         'form.title': 'Title',
         'form.author': 'Author',
         'form.save': 'Save Book',
-        'filter.placeholder': 'Filter...',
+        'filter.title': 'Filter by Title...',
+        'filter.author': 'Filter by Author...',
+        'filter.keyword': 'Filter by Keyword...',
+        'filter.year': 'Pub. Year',
+        'filter.readYear': 'Read Year',
+        'filter.rating': 'All Ratings',
+        'filter.sort': 'Sort',
+        'sort.newest': 'Recently Added',
+        'sort.az': 'Title (A-Z)',
+        'sort.za': 'Title (Z-A)',
+        'sort.author_az': 'Author (A-Z)',
+        'sort.author_za': 'Author (Z-A)',
+        'sort.rating_hl': 'Rating (High-Low)',
         'msg.saved': 'Saved!',
         'msg.welcome': 'Welcome'
     },
@@ -34,6 +46,19 @@ export const translations = {
         'form.author': 'Kirjailija',
         'form.save': 'Tallenna',
         'filter.placeholder': 'Suodata...',
+        'filter.title': 'Suodata otsikolla...',
+        'filter.author': 'Suodata kirjailijalla...',
+        'filter.keyword': 'Suodata avainsanalla...',
+        'filter.year': 'Julk. Vuosi',
+        'filter.readYear': 'Luettu Vuonna',
+        'filter.rating': 'Kaikki Arviot',
+        'filter.sort': 'Järjestä',
+        'sort.newest': 'Viimeksi Lisätty',
+        'sort.az': 'Otsikko (A-Ö)',
+        'sort.za': 'Otsikko (Ö-A)',
+        'sort.author_az': 'Kirjailija (A-Ö)',
+        'sort.author_za': 'Kirjailija (Ö-A)',
+        'sort.rating_hl': 'Arvio (Korkein)',
         'msg.saved': 'Tallennettu!',
         'msg.welcome': 'Tervetuloa'
     },
@@ -53,6 +78,19 @@ export const translations = {
         'form.author': 'Autor',
         'form.save': 'Salvesta',
         'filter.placeholder': 'Filtreeri...',
+        'filter.title': 'Filtreeri pealkirjaga...',
+        'filter.author': 'Filtreeri autoriga...',
+        'filter.keyword': 'Filtreeri märksõnaga...',
+        'filter.year': 'Ilmumisaasta',
+        'filter.readYear': 'Loetud Aastal',
+        'filter.rating': 'Kõik Hinnangud',
+        'filter.sort': 'Sorteeri',
+        'sort.newest': 'Hiljuti Lisatud',
+        'sort.az': 'Pealkiri (A-Ü)',
+        'sort.za': 'Pealkiri (Ü-A)',
+        'sort.author_az': 'Autor (A-Ü)',
+        'sort.author_za': 'Autor (Ü-A)',
+        'sort.rating_hl': 'Hinnang (Kõrgeim)',
         'msg.saved': 'Salvestatud!',
         'msg.welcome': 'Tere tulemast'
     }
@@ -77,6 +115,7 @@ export const setLang = (lang) => {
         currentLang = lang;
         localStorage.setItem('lang', lang);
         applyTranslations();
+        document.dispatchEvent(new Event('language-changed'));
     }
 };
 
