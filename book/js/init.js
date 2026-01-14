@@ -255,7 +255,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initModalWiring();
 
     // Import Wiring
-    import('./goodreads-import.js').then(({ initImportWiring }) => initImportWiring());
+    import('./goodreads-import.js').then(({ initImportWiring, startBackgroundCoverFetch }) => {
+        initImportWiring();
+        // Delay auto-fetch slightly to let UI settle
+        setTimeout(() => startBackgroundCoverFetch(), 3000);
+    });
 
     // I18n
     import('./i18n.js').then(({ initI18n }) => initI18n());

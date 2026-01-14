@@ -67,6 +67,27 @@ export const fetchMissingCovers = async (onProgress) => {
     }
     showToast(`Updated ${processed} books.`);
 };
+
+// Silent version for auto-start
+export const startBackgroundCoverFetch = async () => {
+    const books = getBooks();
+    const missing = books.filter(b => b.isbn && !b.coverUrl && b.status !== 'bin');
+    if (missing.length === 0) return;
+
+    // Limit to 5 per session to avoid rate limits/slowdown
+    const batch = missing.slice(0, 5);
+    console.log(`Auto-fetching covers for ${batch.length} books...`);
+
+    for (const book of batch) {
+        try {
+            await new Promise(r => setTimeout(r, 500)); // Conservative delay
+            const meta = await fetchByIsbn(book.isbn);
+            if (meta && meta.coverUrl) {
+                await updateBook(book.id, { coverUrl: meta.coverUrl });
+            }
+        } catch (e) { console.warn(e); }
+    }
+};
 const Papa = window.Papa;
 
 // Helper to ensure PapaParse is loaded
