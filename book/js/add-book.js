@@ -125,7 +125,8 @@ export const initAddWiring = () => {
                     bookData = {
                         title: val,
                         author: 'Unknown',
-                        isbn: cleanIsbn
+                        isbn: cleanIsbn,
+                        source: 'Manual'
                     };
                 }
                 proceedToSave(bookData);

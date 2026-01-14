@@ -191,6 +191,21 @@
         <div class="modal-card">
             <h3 id="modal-title">Save Book</h3>
 
+            <div id="modal-alert" class="hidden"
+                style="background:#FFF5F5; color:#C53030; padding:8px; border-radius:6px; font-size:0.85rem; margin-top:8px; border:1px solid #FEB2B2;">
+                ⚠️ Book details not found. Please enter manually.
+            </div>
+
+            <div class="form-group mt-2">
+                <label>Title</label>
+                <input type="text" id="modal-book-title" class="rounded-input small" style="font-weight:600;">
+            </div>
+
+            <div class="form-group mt-2">
+                <label>Author</label>
+                <input type="text" id="modal-book-author" class="rounded-input small">
+            </div>
+
             <div class="form-group mt-2">
                 <label>Status</label>
                 <div class="segmented-control small">

@@ -48,17 +48,38 @@ const openSaveModal = (book, onSave) => {
     title.textContent = book.id ? 'Edit Book' : 'Save Book';
 
     // Fields
+    const titleInput = $('#modal-book-title');
+    const authorInput = $('#modal-book-author');
+    const alertBox = $('#modal-alert');
     const coverInput = $('#modal-cover');
-    const coverPreview = $('#modal-cover-preview');
 
+    if (titleInput) titleInput.value = book.title || '';
+    if (authorInput) authorInput.value = book.author || '';
     if (coverInput) coverInput.value = book.coverUrl || '';
 
-    // Preview Logic (Need img element in HTML if not present, handled in initModalWiring or assumed present)
-    // Actually index.html was missing the preview img in the last view?
-    // Checking index.html... line 174 just has check.
-    // I will add the preview element dynamically if missing or just rely on CSS?
-    // In previous steps I added it? 
-    // Let's check initModalWiring below.
+    // Show alert if manual/not found
+    if (alertBox) {
+        if (book.source === 'Manual' || book.author === 'Unknown') {
+            alertBox.textContent = '⚠️ Book details not found. Please enter manually.';
+            alertBox.classList.remove('hidden');
+        } else if (book.source && book.source !== 'Home') {
+            // Found via API
+            alertBox.textContent = `✓ Found via ${book.source}`;
+            alertBox.style.color = '#22543D';
+            alertBox.style.background = '#C6F6D5';
+            alertBox.style.borderColor = '#9AE6B4';
+            alertBox.classList.remove('hidden');
+        } else {
+            alertBox.classList.add('hidden');
+        }
+    }
+
+    // Reset Alert Style if reusing
+    if (alertBox && (book.source === 'Manual' || book.author === 'Unknown')) {
+        alertBox.style.color = '#C53030';
+        alertBox.style.background = '#FFF5F5';
+        alertBox.style.borderColor = '#FEB2B2';
+    }
 
     $('#modal-notes').value = book.notes || '';
     $('#modal-audiobook').checked = !!book.isAudiobook;
@@ -165,9 +186,16 @@ export const initModalWiring = () => {
         saveBtn.addEventListener('click', async () => {
             if (!currentModalBook) return;
 
+            currentModalBook.title = $('#modal-book-title').value;
+            currentModalBook.author = $('#modal-book-author').value;
             currentModalBook.coverUrl = $('#modal-cover').value;
             currentModalBook.notes = $('#modal-notes').value;
             currentModalBook.isAudiobook = $('#modal-audiobook').checked;
+
+            if (!currentModalBook.title) {
+                showToast('Title is required');
+                return;
+            }
 
             // Always save Rating & Date
             currentModalBook.rating = parseInt($('#modal-rating').value);
