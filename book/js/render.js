@@ -48,11 +48,10 @@ export const renderBookCard = (book, onEdit) => {
                         <option value="1" ${book.rating == 1 ? 'selected' : ''}>★</option>
                     </select>
 
-                    ${book.status === 'read' ? `
-                        <input type="date" class="date-read-input rounded-input small" 
-                            style="padding: 2px 6px; height: 28px; font-size: 0.75rem; border: 1px solid transparent; background-color: #f7f7f7; width: auto;"
-                            value="${book.dateRead ? book.dateRead.split('T')[0] : ''}"
-                            title="Date Read">
+                    ${book.status === 'read' && book.dateRead ? `
+                        <span style="font-size:0.75rem; color:#666; margin-left: 4px; padding: 4px 8px; background: #fdfdfd; border-radius: 4px; border: 1px solid #eee;">
+                            ${new Date(book.dateRead).toLocaleDateString()}
+                        </span>
                     ` : ''}
                 </div>
 
@@ -77,17 +76,6 @@ export const renderBookCard = (book, onEdit) => {
             await updateBook(book.id, { ...book, rating: newRating });
         });
         ratingSelect.addEventListener('click', e => e.stopPropagation());
-    }
-
-    // Wire Date Read Change
-    const dateInput = card.querySelector('.date-read-input');
-    if (dateInput) {
-        dateInput.addEventListener('change', async (e) => {
-            e.stopPropagation();
-            const newDate = e.target.value ? new Date(e.target.value).toISOString() : null;
-            await updateBook(book.id, { ...book, dateRead: newDate });
-        });
-        dateInput.addEventListener('click', e => e.stopPropagation());
     }
 
     // Wire Actions
