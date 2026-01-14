@@ -1,3 +1,4 @@
+import { CONFIG } from './config.js';
 
 // Metadata normalization helper
 const normalize = (data) => {
@@ -15,7 +16,8 @@ const normalize = (data) => {
 export const searchBooks = async (query) => {
     try {
         const q = encodeURIComponent(query);
-        const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=10`);
+        const url = `https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=10&key=${CONFIG.API_KEY}`;
+        const res = await fetch(url);
         const data = await res.json();
 
         if (data.items && data.items.length > 0) {
@@ -37,7 +39,8 @@ export const searchBooks = async (query) => {
 // Google Books API (ISBN)
 const fetchGoogleBooks = async (isbn) => {
     try {
-        const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+        const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=${CONFIG.API_KEY}`;
+        const res = await fetch(url);
         const data = await res.json();
         if (data.totalItems > 0 && data.items[0].volumeInfo) {
             const info = data.items[0].volumeInfo;

@@ -83,7 +83,9 @@ export const initImportWiring = () => {
                 header: true,
                 skipEmptyLines: true,
                 complete: async (results) => {
-                    await processImport(results.data);
+                    await processImport(results.data, (current, total) => {
+                        trigger.textContent = `Importing ${current}/${total}...`;
+                    });
                     trigger.textContent = 'Import Goodreads CSV';
                     trigger.style.pointerEvents = 'auto';
                     fileInput.value = '';
