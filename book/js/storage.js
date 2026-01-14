@@ -173,18 +173,56 @@ const loadFromDrive = async (fileId) => {
             fileId: fileId,
             alt: 'media'
         });
-        const remoteData = response.result; // Should be JSON object
+        const remoteData = response.result;
 
-        // Merge Strategy: Remote wins for now, or simplistic "latest wins" if we tracked text.
-        // For now: Remote overwrites local if remote is newer? 
-        // Or manual merge?
-        // Simple: Remote becomes source of truth for now.
         if (remoteData && remoteData.books) {
-            appData = remoteData;
+            console.log('Storage: Remote data loaded. Merging...');
+
+            // MERGE LOGIC
+            const localBooks = appData.books || [];
+            const remoteBooks = remoteData.books || [];
+            const mergedMap = new Map();
+
+            // 1. Start with Remote (Baseline)
+            remoteBooks.forEach(b => mergedMap.set(b.id, b));
+
+            // 2. Merge Local (Overwrites if newer, Adds if new)
+            let hasLocalChanges = false;
+            localBooks.forEach(localBook => {
+                if (mergedMap.has(localBook.id)) {
+                    const remoteBook = mergedMap.get(localBook.id);
+                    const localTime = new Date(localBook.updatedAt || localBook.addedAt || 0).getTime();
+                    const remoteTime = new Date(remoteBook.updatedAt || remoteBook.addedAt || 0).getTime();
+
+                    // If local is significantly newer (allow 1s drift), keep local
+                    if (localTime > remoteTime + 1000) {
+                        mergedMap.set(localBook.id, localBook);
+                        hasLocalChanges = true;
+                    }
+                } else {
+                    // Local book not in remote -> Add it
+                    mergedMap.set(localBook.id, localBook);
+                    hasLocalChanges = true;
+                }
+            });
+
+            // 3. Update App Data
+            appData = {
+                ...remoteData,
+                books: Array.from(mergedMap.values())
+            };
+
+            // 4. Save & Sync Back if needed
             migrateData();
             localStorage.setItem(CACHE_KEY, JSON.stringify(appData));
             broadcastUpdate();
             showToast('Synced with Cloud');
+
+            // If we merged in local changes, push back to cloud immediately
+            if (hasLocalChanges) {
+                console.log('Storage: Local changes merged. Pushing back to Cloud...');
+                await saveToDrive();
+            }
         }
     } catch (e) {
         console.error('Load Drive Error:', e);
