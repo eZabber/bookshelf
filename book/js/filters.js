@@ -98,7 +98,7 @@ export const initFiltersWiring = () => {
             });
         }
 
-        renderList($('#main-content'), visible);
+        renderList($('#main-content'), visible, null, allBooks.filter(b => b.status === STATE.currentTab).length);
     };
 
     // Events

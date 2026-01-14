@@ -489,6 +489,14 @@ select.rounded-input.small {
   cursor: pointer;
 }
 
+/* Filter Stats */
+.filter-stats {
+  padding: 0 20px 10px;
+  font-size: 0.85rem;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
 .hidden {
   display: none !important;
 }

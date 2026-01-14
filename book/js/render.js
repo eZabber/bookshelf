@@ -98,11 +98,22 @@ export const renderBookCard = (book, onEdit) => {
     return card;
 };
 
-export const renderList = (container, books, onEdit) => {
+export const renderList = (container, books, onEdit, totalCount = null) => {
     container.innerHTML = '';
 
+    // Update Stats
+    const statsEl = document.getElementById('filter-stats');
+    if (statsEl) {
+        if (totalCount !== null && totalCount !== books.length) {
+            statsEl.textContent = `Showing ${books.length} of ${totalCount} books`;
+            statsEl.classList.remove('hidden');
+        } else {
+            statsEl.classList.add('hidden');
+        }
+    }
+
     if (!books || books.length === 0) {
-        container.innerHTML = '<div class="empty-state">No books in this list.</div>';
+        container.innerHTML = '<div class="empty-state">No books match your filters.</div>';
         return;
     }
 
