@@ -2,12 +2,15 @@ import { CONFIG } from './config.js';
 
 // Metadata normalization helper
 const normalize = (data) => {
+    let cover = data.imageLinks?.thumbnail || data.cover?.medium || data.cover?.small || null;
+    if (cover && cover.startsWith('http:')) cover = cover.replace('http:', 'https:');
+
     return {
         title: data.title || '',
         author: Array.isArray(data.authors) ? data.authors.join(', ') : (data.authors || ''),
         publisher: data.publisher || '',
         year: data.publishedDate ? parseInt(data.publishedDate.substring(0, 4)) : null,
-        coverUrl: data.imageLinks?.thumbnail || data.cover?.medium || data.cover?.small || null,
+        coverUrl: cover,
         isbn: data.isbn || null,
         genres: data.categories || data.subjects || []
     };
@@ -19,6 +22,12 @@ export const searchBooks = async (query) => {
         const q = encodeURIComponent(query);
         const url = `https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=10&key=${CONFIG.API_KEY}`;
         const res = await fetch(url);
+
+        if (res.status === 403) {
+            console.error('Google Books API 403 Forbidden. Check your API Key restrictions (Referrer) and ensure Books API is enabled.');
+            return [];
+        }
+
         const data = await res.json();
 
         if (data.items && data.items.length > 0) {
@@ -42,6 +51,12 @@ const fetchGoogleBooks = async (isbn) => {
     try {
         const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=${CONFIG.API_KEY}`;
         const res = await fetch(url);
+
+        if (res.status === 403) {
+            console.warn(`Google Books API 403 for ISBN ${isbn}. Check Key.`);
+            return null;
+        }
+
         const data = await res.json();
         if (data.totalItems > 0 && data.items[0].volumeInfo) {
             const info = data.items[0].volumeInfo;

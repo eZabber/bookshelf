@@ -33,7 +33,7 @@ export const initStorage = async () => {
         }
 
         // 2. If signed in, try to Sync
-        if (gapi && gapi.client && gapi.client.getToken()) {
+        if (window.gapi && window.gapi.client && window.gapi.client.getToken()) {
             await syncWithDrive();
         }
     } catch (e) {
