@@ -322,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initMenuWiring();
     initTabWiring();
-    initFiltersWiring();
+    initFiltersWiring(handleEditValues);
     initModalWiring();
 
     // Import Wiring

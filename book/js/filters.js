@@ -89,7 +89,7 @@ export const filterBooks = (books) => {
     return res;
 };
 
-export const initFiltersWiring = () => {
+export const initFiltersWiring = (onEdit) => {
     loadFilters();
 
     const titleInput = $('#filter-title');
@@ -168,7 +168,7 @@ export const initFiltersWiring = () => {
         visible = filterBooksLogic(visible);
         visible = sortBooksLogic(visible);
 
-        renderList($('#main-content'), visible, null, allBooks.filter(b => b.status === STATE.currentTab).length);
+        renderList($('#main-content'), visible, onEdit, allBooks.filter(b => b.status === STATE.currentTab).length);
     };
 
     // Events
