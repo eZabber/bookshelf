@@ -70,10 +70,10 @@ const sortBooksLogic = (books) => {
     const s = filters.sort || 'added-desc';
 
     sorted.sort((a, b) => {
-        if (s === 'title-asc') return (b.title || '').localeCompare(a.title || '');
-        if (s === 'title-desc') return (a.title || '').localeCompare(b.title || '');
-        if (s === 'author-asc') return (b.author || '').localeCompare(a.author || '');
-        if (s === 'author-desc') return (a.author || '').localeCompare(b.author || '');
+        if (s === 'title-asc') return (a.title || '').localeCompare(b.title || '');
+        if (s === 'title-desc') return (b.title || '').localeCompare(a.title || '');
+        if (s === 'author-asc') return (a.author || '').localeCompare(b.author || '');
+        if (s === 'author-desc') return (b.author || '').localeCompare(a.author || '');
         if (s === 'rating-desc') return (b.rating || 0) - (a.rating || 0);
         // Default: added-desc (newest first)
         const dateA = new Date(a.addedAt || 0);
