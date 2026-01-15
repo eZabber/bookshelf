@@ -178,19 +178,23 @@ export const initFiltersWiring = (onEdit) => {
         if (el) el.addEventListener('input', apply);
     });
 
-    if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-            if (titleInput) titleInput.value = '';
-            if (authorInput) authorInput.value = '';
-            yearSelect.value = '';
-            if (readYearSelect) readYearSelect.value = '';
-            ratingSelect.value = '';
-            monthSelect.value = '';
-            if (keywordInput) keywordInput.value = '';
-            if (sortSelect) sortSelect.value = 'added-desc';
-            apply();
-        });
-    }
+    const clearAllFilters = () => {
+        if (titleInput) titleInput.value = '';
+        if (authorInput) authorInput.value = '';
+        if (yearSelect) yearSelect.value = '';
+        if (readYearSelect) readYearSelect.value = '';
+        if (ratingSelect) ratingSelect.value = '';
+        if (monthSelect) monthSelect.value = '';
+        if (keywordInput) keywordInput.value = '';
+        if (sortSelect) sortSelect.value = 'added-desc';
+        // Reset internal state
+        filters = { sort: 'added-desc' };
+        apply();
+    };
+
+    if (clearBtn) clearBtn.addEventListener('click', clearAllFilters);
+    document.addEventListener('clear-filters-req', clearAllFilters);
+
 
     return apply;
 };
