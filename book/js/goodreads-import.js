@@ -58,7 +58,13 @@ export const initImportWiring = () => {
             const csvData = books.map(b => ({
                 Title: b.title, Author: b.author, ISBN: b.isbn || '', Status: b.status,
                 Rating: b.rating || 0, DateRead: b.dateRead || '', Notes: b.notes || '',
-                Year: b.year || '', Added: b.addedAt, Genres: (b.genres || []).join(', ')
+                Year: b.year || '', Added: b.addedAt, Genres: (b.genres || []).join(', '),
+
+                // Loan Data
+                LoanStatus: b.loanType || '',
+                BorrowedFrom: (b.loanType === 'borrowed') ? (b.borrowedFromName || '') : '',
+                LoanedTo: (b.loanType === 'loanedOut') ? (b.loanedToName || '') : '',
+                DueDate: b.reminderDate || ''
             }));
             const csv = window.Papa.unparse(csvData);
             const blob = new Blob([csv], { type: 'text/csv' });
