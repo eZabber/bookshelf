@@ -90,14 +90,34 @@ export const renderBookCard = (book, onEdit) => {
         })() : ''}
             </div>
         </div>
-        <div class="book-actions">
-            <button class="action-link ax-toggle-own" style="background:${book.own ? 'var(--accent-green)' : 'var(--pill-bg)'}; color:${book.own ? 'white' : 'var(--text-color)'}; border:1px solid ${book.own ? 'transparent' : 'var(--divider-color)'}; opacity:${book.own ? '1' : '0.8'};">
-                ${book.own ? t('card.own_yes') : t('card.own_no')}
-            </button>
-            <button class="action-link ax-edit">${t('btn.edit_card')}</button>
-            ${(book.status === 'wishlist' || book.status === 'loan') ? `<button class="action-link ax-mark-read" style="color:var(--accent-green);border:1px solid var(--accent-green);background:white;">${t('btn.mark_read')}</button>` : ''}
-            <button class="action-link ax-bin" style="color:#C53030;">${t('btn.bin')}</button>
+        })() : ''}
+            </div>
         </div>
+        <div class="book-actions">
+            ${(() => {
+            let btns = '';
+            // Own Toggle
+            btns += `<button class="action-link ax-toggle-own" style="background:${book.own ? 'var(--accent-green)' : 'var(--pill-bg)'}; color:${book.own ? 'white' : 'var(--text-color)'}; border:1px solid ${book.own ? 'transparent' : 'var(--divider-color)'}; opacity:${book.own ? '1' : '0.8'}; white-space:nowrap;">
+                            ${book.own ? t('card.own_yes') : t('card.own_no')}
+                         </button>`;
+
+            // Edit
+            btns += `<button class="action-link ax-edit">${t('btn.edit_card')}</button>`;
+
+            // Mark Read (Wishlist or Loan)
+            if (book.status === 'wishlist' || book.status === 'loan') {
+                btns += `<button class="action-link ax-mark-read" style="color:var(--accent-green);border:1px solid var(--accent-green);background:white;white-space:nowrap;">
+                                ${t('btn.mark_read')}
+                             </button>`;
+            }
+
+            // Bin
+            btns += `<button class="action-link ax-bin" style="color:#C53030;">${t('btn.bin')}</button>`;
+
+            return btns;
+        })()}
+        </div>
+    `;
     `;
 
     card.innerHTML = html;
@@ -148,7 +168,7 @@ export const renderBookCard = (book, onEdit) => {
 
     if (binBtn) {
         binBtn.addEventListener('click', async () => {
-            if (confirm(`Move "${book.title}" to Bin?`)) {
+            if (confirm(`Move "${book.title}" to Bin ? `)) {
                 await deleteBook(book.id);
             }
         });
@@ -164,7 +184,7 @@ export const renderList = (container, books, onEdit, totalCount = null) => {
     const statsEl = document.getElementById('filter-stats');
     if (statsEl) {
         if (totalCount !== null && totalCount !== books.length) {
-            statsEl.textContent = `${books.length} of ${totalCount} books found`;
+            statsEl.textContent = `${ books.length } of ${ totalCount } books found`;
             statsEl.classList.remove('hidden');
         } else {
             statsEl.classList.add('hidden');
