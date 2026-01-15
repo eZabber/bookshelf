@@ -22,7 +22,7 @@ export const renderBookCard = (book, onEdit) => {
     if (book.isAudiobook) badgesHtml += `<span class="badge badge-audio">${t('badge.audio')}</span>`;
     if (book.status === 'read') badgesHtml += `<span class="badge badge-read">${t('stats.read')}</span>`;
     if (book.status === 'wishlist') badgesHtml += `<span class="badge badge-wish">${t('badge.wish')}</span>`;
-    if (book.status === 'loan') badgesHtml += `<span class="badge badge-loan">${t('stats.loan')}</span>`;
+    if (book.status === 'loan' || (book.loanType && book.loanType !== 'none')) badgesHtml += `<span class="badge badge-loan">${t('stats.loan')}</span>`;
     if (book.status === 'toread') badgesHtml += `<span class="badge badge-toread">${t('badge.toread')}</span>`;
     badgesHtml += '</div>';
 
