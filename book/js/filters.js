@@ -84,6 +84,17 @@ const sortBooksLogic = (books) => {
     return sorted;
 };
 
+export const isFiltersActive = () => {
+    return filters.title ||
+        filters.author ||
+        filters.year ||
+        filters.readYear ||
+        filters.rating ||
+        filters.month ||
+        filters.keyword ||
+        (filters.sort && filters.sort !== 'added-desc');
+};
+
 export const filterBooks = (books) => {
     let res = filterBooksLogic(books);
     res = sortBooksLogic(res);
@@ -170,7 +181,8 @@ export const initFiltersWiring = (onEdit) => {
         visible = filterBooksLogic(visible);
         visible = sortBooksLogic(visible);
 
-        renderList($('#main-content'), visible, onEdit, allBooks.filter(b => b.status === STATE.currentTab).length);
+        const isActive = isFiltersActive();
+        renderList($('#main-content'), visible, onEdit, allBooks.filter(b => b.status === STATE.currentTab).length, isActive);
     };
 
     // Events

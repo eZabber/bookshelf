@@ -3,9 +3,29 @@ import { STATE, setTab } from './state.js';
 import { getBooks, updateBook, initStorage } from './storage.js'; // Added initStorage
 import { renderList } from './render.js';
 import { handleAuthClick, handleSignoutClick } from './auth.js'; // Added handleSignoutClick
-import { initFiltersWiring, filterBooks } from './filters.js';
+import { initFiltersWiring, filterBooks, isFiltersActive } from './filters.js';
 import { createCalendarUrl } from './calendar-link.js';
 import { t } from './i18n.js';
+
+/* --- Image Helper --- */
+// ... (skip lines 10-493) ...
+
+export const refreshList = () => {
+    const books = getBooks();
+    let filtered;
+
+    // Get Tab Books
+    if (STATE.currentTab === 'loan') {
+        filtered = books.filter(b => b.status === 'loan' || (b.loanType && b.loanType !== 'none'));
+    } else {
+        filtered = books.filter(b => b.status === STATE.currentTab);
+    }
+    const totalForTab = filtered.length;
+
+    filtered = filterBooks(filtered);
+    const active = isFiltersActive();
+    renderList($('#main-content'), filtered, handleEditValues, totalForTab, active);
+};
 
 /* --- Image Helper --- */
 const processImageFile = (file) => {
@@ -495,14 +515,17 @@ export const refreshList = () => {
     const books = getBooks();
     let filtered;
 
+    // Get Tab Books
     if (STATE.currentTab === 'loan') {
         filtered = books.filter(b => b.status === 'loan' || (b.loanType && b.loanType !== 'none'));
     } else {
         filtered = books.filter(b => b.status === STATE.currentTab);
     }
+    const totalForTab = filtered.length;
 
     filtered = filterBooks(filtered);
-    renderList($('#main-content'), filtered, handleEditValues);
+    const active = isFiltersActive();
+    renderList($('#main-content'), filtered, handleEditValues, totalForTab, active);
 };
 
 const handleEditValues = (bookId) => {

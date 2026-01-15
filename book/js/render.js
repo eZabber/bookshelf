@@ -190,15 +190,23 @@ export const renderBookCard = (book, onEdit) => {
     return card;
 };
 
-export const renderList = (container, books, onEdit, totalCount = null) => {
+export const renderList = (container, books, onEdit, totalCount = null, filtersActive = false) => {
     container.innerHTML = '';
 
     // Update Stats
     const statsEl = document.getElementById('filter-stats');
     if (statsEl) {
-        if (totalCount !== null && totalCount !== books.length) {
+        // Show if counts differ OR if filters explicitly active (e.g. sort change)
+        const countsDiffer = totalCount !== null && totalCount !== books.length;
+
+        if (countsDiffer || filtersActive) {
+            let text = `${books.length} books found`;
+            if (countsDiffer) {
+                text = `${books.length} of ${totalCount} books found`;
+            }
+
             statsEl.innerHTML = `
-                ${books.length} of ${totalCount} books found
+                ${text}
                 <button onclick="document.dispatchEvent(new Event('clear-filters-req'))" 
                     style="margin-left:12px; font-size:0.8rem; padding:4px 10px; border:1px solid var(--divider-color); background:var(--pill-bg); color:var(--text-color); border-radius:6px; cursor:pointer; transition:all 0.2s;">
                     ${t('filter.clear')}
