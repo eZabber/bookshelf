@@ -59,41 +59,29 @@ const openSaveModal = (book, onSave) => {
     if (authorInput) authorInput.value = book.author || '';
     if (coverInput) coverInput.value = book.coverUrl || '';
 
-    // Show alert if manual/not found
-    if (alertBox) {
-        if (book.source === 'Manual' || book.author === 'Unknown') {
-            alertBox.textContent = '⚠️ Book details not found. Please enter manually.';
-            alertBox.classList.remove('hidden');
-        } else if (book.source && book.source !== 'Home') {
-            // Found via API
-            alertBox.textContent = `✓ Found via ${book.source}`;
-            alertBox.style.color = '#22543D';
-            alertBox.style.background = '#C6F6D5';
-            alertBox.style.borderColor = '#9AE6B4';
-            alertBox.classList.remove('hidden');
-        } else {
-            alertBox.classList.add('hidden');
-        }
-    }
-
-    // Reset Alert Style if reusing
-    if (alertBox && (book.source === 'Manual' || book.author === 'Unknown')) {
-        alertBox.style.color = '#C53030';
-        alertBox.style.background = '#FFF5F5';
-        alertBox.style.borderColor = '#FEB2B2';
-    }
+    // Show alert (DEPRECATED/REMOVED per request - kept hidden)
+    if (alertBox) alertBox.classList.add('hidden');
 
     $('#modal-notes').value = book.notes || '';
     $('#modal-audiobook').checked = !!book.isAudiobook;
     $('#modal-own').checked = !!book.own;
 
-    // Source Info Populating
+    // Source Info Populating (Localized + Subtle)
     const sourceInfo = $('#modal-source-info');
     if (sourceInfo) {
-        let sourceText = `Source: ${book.source || 'Manual'}`;
+        let srcRaw = book.source || 'Manual';
+        let srcDisplay = srcRaw;
+
+        // Localize common sources
+        if (srcRaw === 'Manual') srcDisplay = t('source.manual');
+        else if (srcRaw === 'Import' || srcRaw === 'Goodreads Import') srcDisplay = t('source.import');
+
+        // Construct Text
+        let sourceText = `${t('source.label')}${srcDisplay}`;
+
         if (book.addedAt || book.importedAt) {
             const date = new Date(book.addedAt || book.importedAt);
-            sourceText += ` • Fetched: ${date.toLocaleDateString()}`;
+            sourceText += ` • ${date.toLocaleDateString()}`;
         }
         sourceInfo.textContent = sourceText;
     }
@@ -111,6 +99,13 @@ const openSaveModal = (book, onSave) => {
             coverPreview.src = '';
             coverPreview.classList.add('hidden');
         }
+    }
+
+    // Explicit Translation for Change Cover Button (Sync)
+    // We do this here (on open) to ensure it's always correct language
+    const changeCoverLabel = $('label[for="modal-cover-file"]');
+    if (changeCoverLabel) {
+        changeCoverLabel.textContent = t('btn.change_cover');
     }
 
     // Status Buttons
@@ -234,13 +229,7 @@ export const initModalWiring = () => {
         previewContainer.appendChild(coverPreview);
     }
 
-    // Explicit Translation for Change Cover Button (Ensure it's not raw key)
-    const changeCoverLabel = $('label[for="modal-cover-file"]');
-    if (changeCoverLabel) {
-        import('./i18n.js').then(({ t }) => {
-            changeCoverLabel.textContent = t('btn.change_cover');
-        });
-    }
+
 
     if (fileInput) {
         fileInput.addEventListener('change', async () => {
