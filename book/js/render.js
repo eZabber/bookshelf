@@ -19,11 +19,11 @@ export const renderBookCard = (book, onEdit) => {
 
     // Badges
     let badgesHtml = '<div class="badges-row">';
-    if (book.isAudiobook) badgesHtml += '<span class="badge badge-audio">Audio</span>';
-    if (book.status === 'read') badgesHtml += '<span class="badge badge-read">Read</span>';
-    if (book.status === 'wishlist') badgesHtml += '<span class="badge badge-wish">Wish</span>';
-    if (book.status === 'loan') badgesHtml += '<span class="badge badge-loan">Loan</span>';
-    if (book.status === 'toread') badgesHtml += '<span class="badge badge-toread">To Read</span>';
+    if (book.isAudiobook) badgesHtml += `<span class="badge badge-audio">${t('badge.audio')}</span>`;
+    if (book.status === 'read') badgesHtml += `<span class="badge badge-read">${t('stats.read')}</span>`;
+    if (book.status === 'wishlist') badgesHtml += `<span class="badge badge-wish">${t('badge.wish')}</span>`;
+    if (book.status === 'loan') badgesHtml += `<span class="badge badge-loan">${t('stats.loan')}</span>`;
+    if (book.status === 'toread') badgesHtml += `<span class="badge badge-toread">${t('badge.toread')}</span>`;
     badgesHtml += '</div>';
 
     const html = `
@@ -42,7 +42,7 @@ export const renderBookCard = (book, onEdit) => {
 
                 <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
                     <select class="rating-select rounded-input small" style="width: auto; min-width: 90px; padding: 2px 24px 2px 8px; height: 28px; font-size: 0.75rem; border: 1px solid transparent; background-color: #f7f7f7;">
-                        <option value="0" ${!book.rating ? 'selected' : ''}>Rate...</option>
+                        <option value="0" ${!book.rating ? 'selected' : ''}>${t('form.rate_placeholder')}</option>
                         <option value="5" ${book.rating == 5 ? 'selected' : ''}>★★★★★</option>
                         <option value="4" ${book.rating == 4 ? 'selected' : ''}>★★★★</option>
                         <option value="3" ${book.rating == 3 ? 'selected' : ''}>★★★</option>
@@ -94,9 +94,9 @@ export const renderBookCard = (book, onEdit) => {
             <button class="action-link ax-toggle-own" style="background:${book.own ? 'var(--accent-green)' : 'var(--pill-bg)'}; color:${book.own ? 'white' : 'var(--text-color)'}; border:1px solid ${book.own ? 'transparent' : 'var(--divider-color)'}; opacity:${book.own ? '1' : '0.8'};">
                 ${book.own ? t('card.own_yes') : t('card.own_no')}
             </button>
-            <button class="action-link ax-edit">Edit</button>
-            ${(book.status === 'wishlist' || book.status === 'loan') ? `<button class="action-link ax-mark-read" style="color:var(--accent-green);border:1px solid var(--accent-green);background:white;">Mark Read</button>` : ''}
-            <button class="action-link ax-bin" style="color:#C53030;">Bin</button>
+            <button class="action-link ax-edit">${t('btn.edit_card')}</button>
+            ${(book.status === 'wishlist' || book.status === 'loan') ? `<button class="action-link ax-mark-read" style="color:var(--accent-green);border:1px solid var(--accent-green);background:white;">${t('btn.mark_read')}</button>` : ''}
+            <button class="action-link ax-bin" style="color:#C53030;">${t('btn.bin')}</button>
         </div>
     `;
 

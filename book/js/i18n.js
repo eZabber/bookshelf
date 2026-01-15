@@ -74,7 +74,14 @@ export const translations = {
         'btn.save': 'Save',
         'modal.edit_title': 'Edit Book',
         'modal.save_title': 'Save Book',
-        'modal.tab_details': 'Details'
+        'modal.tab_details': 'Details',
+        'btn.edit_card': 'Edit',
+        'btn.mark_read': 'Mark Read',
+        'btn.bin': 'Bin',
+        'badge.audio': 'Audio',
+        'badge.wish': 'Wish',
+        'badge.toread': 'To Read',
+        'form.rate_placeholder': 'Rate...'
     },
     fi: {
         'app.title': 'Kirjahyllyni',
@@ -150,7 +157,14 @@ export const translations = {
         'btn.save': 'Tallenna',
         'modal.edit_title': 'Muokkaa Kirjaa',
         'modal.save_title': 'Tallenna Kirja',
-        'modal.tab_details': 'Tiedot'
+        'modal.tab_details': 'Tiedot',
+        'btn.edit_card': 'Muokkaa',
+        'btn.mark_read': 'Merkitse Luetuksi',
+        'btn.bin': 'Poista',
+        'badge.audio': 'Ääni',
+        'badge.wish': 'Toive',
+        'badge.toread': 'Luettava',
+        'form.rate_placeholder': 'Arvioi...'
     },
     et: {
         'app.title': 'Minu Raamaturiiul',
@@ -226,7 +240,14 @@ export const translations = {
         'btn.save': 'Salvesta',
         'modal.edit_title': 'Muuda Raamatut',
         'modal.save_title': 'Salvesta Raamat',
-        'modal.tab_details': 'Üksikasjad'
+        'modal.tab_details': 'Üksikasjad',
+        'btn.edit_card': 'Muuda',
+        'btn.mark_read': 'Märgi Loetuks',
+        'btn.bin': 'Kustuta',
+        'badge.audio': 'Heli',
+        'badge.wish': 'Soovileht',
+        'badge.toread': 'Lugemist Ootav',
+        'form.rate_placeholder': 'Hinda...'
     }
 };
 
