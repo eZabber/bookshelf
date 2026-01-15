@@ -482,17 +482,17 @@ export const initTabWiring = () => {
             if (btn.dataset.tab === STATE.currentTab) btn.classList.add('active');
             else btn.classList.remove('active');
         });
-        refreshList();
+        refreshLibraryList();
     };
     tabs.forEach(btn => {
         btn.addEventListener('click', () => setTab(btn.dataset.tab));
     });
     import('./state.js').then(({ subscribe }) => subscribe(updateUI));
-    document.addEventListener('bookshelf-updated', refreshList);
+    document.addEventListener('bookshelf-updated', refreshLibraryList);
     updateUI();
 };
 
-export const refreshList = () => {
+export const refreshLibraryList = () => {
     const books = getBooks();
     let filtered;
 
@@ -515,7 +515,7 @@ const handleEditValues = (bookId) => {
     openSaveModal(book, async (updatedBook) => {
         await updateBook(book.id, updatedBook);
         showToast('Book updated');
-        refreshList();
+        refreshLibraryList();
     });
 };
 
