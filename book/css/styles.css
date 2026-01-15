@@ -495,7 +495,34 @@ select.rounded-input.small {
   padding: 4px;
   flex-wrap: wrap;
   border: 1px solid var(--divider-color);
-  background: var(--bg-color);
+  background: var(--pill-bg);
+  /* Use pill bg for better contrast */
+}
+
+.loan-type-btn {
+  flex: 1;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 6px;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-light);
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.loan-type-btn:hover {
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--text-color);
+}
+
+.loan-type-btn.active {
+  background: var(--white);
+  color: var(--text-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+  border-color: var(--divider-color);
 }
 
 .checkbox-row label {
