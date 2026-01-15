@@ -8,26 +8,7 @@ import { createCalendarUrl } from './calendar-link.js';
 import { t } from './i18n.js';
 
 /* --- Image Helper --- */
-// ... (skip lines 10-493) ...
 
-export const refreshList = () => {
-    const books = getBooks();
-    let filtered;
-
-    // Get Tab Books
-    if (STATE.currentTab === 'loan') {
-        filtered = books.filter(b => b.status === 'loan' || (b.loanType && b.loanType !== 'none'));
-    } else {
-        filtered = books.filter(b => b.status === STATE.currentTab);
-    }
-    const totalForTab = filtered.length;
-
-    filtered = filterBooks(filtered);
-    const active = isFiltersActive();
-    renderList($('#main-content'), filtered, handleEditValues, totalForTab, active);
-};
-
-/* --- Image Helper --- */
 const processImageFile = (file) => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
