@@ -515,8 +515,6 @@ export const refreshLibraryList = () => {
     filtered = filterBooks(filtered);
     const active = isFiltersActive();
     renderList($('#main-content'), filtered, handleEditValues, totalForTab, active);
-    // --- Manual Wiring ---
-    initManualWiring();
 };
 
 const initManualWiring = () => {
