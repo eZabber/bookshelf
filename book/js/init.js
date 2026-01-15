@@ -227,11 +227,19 @@ export const initModalWiring = () => {
         coverPreview = document.createElement('img');
         coverPreview.id = 'modal-cover-preview';
         coverPreview.className = 'hidden';
-        coverPreview.style.height = '40px';
+        coverPreview.style.height = '100px'; // Increased from 40px
         coverPreview.style.marginLeft = '10px';
         coverPreview.style.borderRadius = '4px';
         coverPreview.style.objectFit = 'cover';
         previewContainer.appendChild(coverPreview);
+    }
+
+    // Explicit Translation for Change Cover Button (Ensure it's not raw key)
+    const changeCoverLabel = $('label[for="modal-cover-file"]');
+    if (changeCoverLabel) {
+        import('./i18n.js').then(({ t }) => {
+            changeCoverLabel.textContent = t('btn.change_cover');
+        });
     }
 
     if (fileInput) {
