@@ -17,6 +17,19 @@
   --max-width: 600px;
 }
 
+body.dark-mode {
+  --bg-color: #1a202c;
+  --text-color: #f7fafc;
+  --text-light: #a0aec0;
+  --primary-color: #4fd1c5;
+  /* Brighter accent for dark */
+  --divider-color: #2d3748;
+  --pill-bg: #2d3748;
+  --white: #2d3748;
+  /* Cards/Modals background */
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

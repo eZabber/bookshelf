@@ -5,6 +5,7 @@ import { renderList } from './render.js';
 import { handleAuthClick, handleSignoutClick } from './auth.js'; // Added handleSignoutClick
 import { initFiltersWiring, filterBooks } from './filters.js';
 import { createCalendarUrl } from './calendar-link.js';
+import { t } from './i18n.js';
 
 /* --- Image Helper --- */
 const processImageFile = (file) => {
@@ -285,6 +286,32 @@ export const initMenuWiring = () => {
                 toggleMenu(false);
             }
         });
+    }
+
+    // Theme Logic
+    const themeBtn = $('#theme-toggle-btn');
+    const updateThemeUI = () => {
+        const isDark = document.body.classList.contains('dark-mode');
+        if (themeBtn) {
+            const key = isDark ? 'nav.mode_light' : 'nav.mode_dark';
+            themeBtn.textContent = t(key);
+            themeBtn.setAttribute('data-i18n', key);
+        }
+    };
+
+    if (themeBtn) {
+        themeBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            updateThemeUI();
+        });
+    }
+
+    // Init Theme
+    if (localStorage.getItem('theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+        updateThemeUI();
     }
 };
 
