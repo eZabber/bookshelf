@@ -203,136 +203,147 @@
                 ⚠️ Book details not found. Please enter manually.
             </div>
 
-            <div class="form-group mt-2">
-                <label>Title</label>
-                <input type="text" id="modal-book-title" class="rounded-input small" style="font-weight:600;">
+            <!-- Tabs -->
+            <div class="segmented-control small mb-4" style="width:100%; margin-top:8px;">
+                <button class="modal-tab-btn active" data-tab="details" data-i18n="modal.tab_details">Details</button>
+                <button class="modal-tab-btn" data-tab="notes" data-i18n="form.notes">Notes</button>
             </div>
 
-            <div class="form-group mt-2">
-                <label>Author</label>
-                <input type="text" id="modal-book-author" class="rounded-input small">
-            </div>
-
-            <div class="form-group mt-2">
-                <label data-i18n="form.status">Status</label>
-                <div class="segmented-control small">
-                    <button class="status-btn" data-value="read" data-i18n="stats.read">Read</button>
-                    <button class="status-btn" data-value="wishlist" data-i18n="stats.wishlist">Wishlist</button>
-                    <button class="status-btn" data-value="loan" data-i18n="stats.loan">Loan</button>
+            <!-- TAB: Details -->
+            <div id="modal-tab-details">
+                <div class="form-group mt-2">
+                    <label>Title</label>
+                    <input type="text" id="modal-book-title" class="rounded-input small" style="font-weight:600;">
                 </div>
-            </div>
 
-            <div class="form-group mt-2 flex flex-row items-center gap-6">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" id="modal-audiobook" class="cursor-pointer">
-                    <span data-i18n="form.audiobook">Audiobook</span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" id="modal-own" class="cursor-pointer">
-                    <span data-i18n="form.own_book">Own This Book</span>
-                </label>
-            </div>
+                <div class="form-group mt-2">
+                    <label>Author</label>
+                    <input type="text" id="modal-book-author" class="rounded-input small">
+                </div>
 
-            <div class="form-group mt-2">
-                <label data-i18n="form.cover">Cover</label>
-                <div class="flex items-center gap-2">
-                    <!-- URL Input hidden but functional for saving -->
-                    <input type="url" id="modal-cover" class="rounded-input small hidden" placeholder="https://...">
+                <div class="form-group mt-2">
+                    <label data-i18n="form.status">Status</label>
+                    <div class="segmented-control small">
+                        <button class="status-btn" data-value="read" data-i18n="stats.read">Read</button>
+                        <button class="status-btn" data-value="wishlist" data-i18n="stats.wishlist">Wishlist</button>
+                        <button class="status-btn" data-value="loan" data-i18n="stats.loan">Loan</button>
+                    </div>
+                </div>
 
-                    <label for="modal-cover-file" class="btn-pill flex items-center justify-center cursor-pointer"
-                        style="min-width: 120px;">
-                        Change Cover
+                <div class="form-group mt-2 flex flex-row items-center gap-6">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="modal-audiobook" class="cursor-pointer">
+                        <span data-i18n="form.audiobook">Audiobook</span>
                     </label>
-                    <input type="file" id="modal-cover-file" accept="image/*" class="hidden">
-
-                    <!-- Preview Container -->
-                    <div id="cover-preview-container"></div>
-                </div>
-            </div>
-
-            <div class="form-group mt-2">
-                <label data-i18n="form.notes">Notes</label>
-                <textarea id="modal-notes" class="rounded-input small" rows="2"></textarea>
-            </div>
-
-            <div class="form-group mt-2">
-                <div class="flex gap-2">
-                    <div class="flex-1">
-                        <label data-i18n="form.rating">Rating</label>
-                        <select id="modal-rating" class="rounded-input small">
-                            <option value="0" data-i18n="form.no_rating">No Rating</option>
-                            <option value="5">5 ★★★★★</option>
-                            <option value="4">4 ★★★★</option>
-                            <option value="3">3 ★★★</option>
-                            <option value="2">2 ★★</option>
-                            <option value="1">1 ★</option>
-                        </select>
-                    </div>
-                    <div class="flex-1">
-                        <label data-i18n="form.date_read">Date Read</label>
-                        <input type="date" id="modal-date-read" class="rounded-input small">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Conditional Fields (Only Loan Reminder) -->
-            <div id="modal-read-fields" class="hidden"></div>
-            <!-- Deprecated wrapper, keeping ID to prevent JS error if not removed from JS yet, but better to remove logic -->
-
-
-            <div id="modal-loan-fields" class="mt-2 hidden">
-                <div class="form-group mb-2">
-                    <label data-i18n="loan.type">Loan Type</label>
-                    <div class="segmented-control small" style="width:100%;">
-                        <button class="loan-type-btn active" data-value="borrowed"
-                            data-i18n="loan.borrowed">Borrowed</button>
-                        <button class="loan-type-btn" data-value="loanedOut" data-i18n="loan.loaned_out">Loaned
-                            Out</button>
-                    </div>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="modal-own" class="cursor-pointer">
+                        <span data-i18n="form.own_book">Own This Book</span>
+                    </label>
                 </div>
 
-                <!-- Borrowed Fields -->
-                <div id="loan-borrowed-section">
-                    <div class="form-group mt-2">
-                        <label data-i18n="loan.borrowed_from">Borrowed From</label>
-                        <div class="flex gap-2">
-                            <select id="modal-borrowed-type" class="rounded-input small" style="flex:1;">
-                                <option value="library" data-i18n="loan.source.library">Library</option>
-                                <option value="friend" data-i18n="loan.source.friend">Friend</option>
-                                <option value="school" data-i18n="loan.source.school">School</option>
-                                <option value="work" data-i18n="loan.source.work">Work</option>
-                                <option value="other" data-i18n="loan.source.other">Other</option>
-                            </select>
-                            <input type="text" id="modal-borrowed-name" class="rounded-input small" style="flex:1.5;"
-                                placeholder="Name (Optional)" data-i18n-placeholder="loan.name_placeholder">
-                        </div>
-                    </div>
-                </div>
+                <div class="form-group mt-2">
+                    <label data-i18n="form.cover">Cover</label>
+                    <div class="flex items-center gap-2">
+                        <!-- URL Input hidden but functional for saving -->
+                        <input type="url" id="modal-cover" class="rounded-input small hidden" placeholder="https://...">
 
-                <!-- Loaned Out Fields -->
-                <div id="loan-loaned-section" class="hidden">
-                    <div class="form-group mt-2">
-                        <label data-i18n="loan.loaned_to">Loaned To</label>
-                        <input type="text" id="modal-loaned-to" class="rounded-input small" placeholder="Name"
-                            data-i18n-placeholder="loan.name_placeholder">
+                        <label for="modal-cover-file" class="btn-pill flex items-center justify-center cursor-pointer"
+                            style="min-width: 120px;">
+                            Change Cover
+                        </label>
+                        <input type="file" id="modal-cover-file" accept="image/*" class="hidden">
+
+                        <!-- Preview Container -->
+                        <div id="cover-preview-container"></div>
                     </div>
                 </div>
 
                 <div class="form-group mt-2">
-                    <label data-i18n="loan.return_date">Return Date</label>
                     <div class="flex gap-2">
-                        <input type="date" id="modal-reminder-date" class="rounded-input small">
-                        <a id="modal-calendar-link" href="#" target="_blank" class="btn-pill"
-                            data-i18n="btn.event">Event ↗</a>
+                        <div class="flex-1">
+                            <label data-i18n="form.rating">Rating</label>
+                            <select id="modal-rating" class="rounded-input small">
+                                <option value="0" data-i18n="form.no_rating">No Rating</option>
+                                <option value="5">5 ★★★★★</option>
+                                <option value="4">4 ★★★★</option>
+                                <option value="3">3 ★★★</option>
+                                <option value="2">2 ★★</option>
+                                <option value="1">1 ★</option>
+                            </select>
+                        </div>
+                        <div class="flex-1">
+                            <label data-i18n="form.date_read">Date Read</label>
+                            <input type="date" id="modal-date-read" class="rounded-input small">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Conditional Fields (Only Loan Reminder) -->
+                <div id="modal-read-fields" class="hidden"></div>
+
+                <div id="modal-loan-fields" class="mt-2 hidden">
+                    <div class="form-group mb-2">
+                        <label data-i18n="loan.type">Loan Type</label>
+                        <div class="segmented-control small" style="width:100%;">
+                            <button class="loan-type-btn active" data-value="borrowed"
+                                data-i18n="loan.borrowed">Borrowed</button>
+                            <button class="loan-type-btn" data-value="loanedOut" data-i18n="loan.loaned_out">Loaned
+                                Out</button>
+                        </div>
+                    </div>
+
+                    <!-- Borrowed Fields -->
+                    <div id="loan-borrowed-section">
+                        <div class="form-group mt-2">
+                            <label data-i18n="loan.borrowed_from">Borrowed From</label>
+                            <div class="flex gap-2">
+                                <select id="modal-borrowed-type" class="rounded-input small" style="flex:1;">
+                                    <option value="library" data-i18n="loan.source.library">Library</option>
+                                    <option value="friend" data-i18n="loan.source.friend">Friend</option>
+                                    <option value="school" data-i18n="loan.source.school">School</option>
+                                    <option value="work" data-i18n="loan.source.work">Work</option>
+                                    <option value="other" data-i18n="loan.source.other">Other</option>
+                                </select>
+                                <input type="text" id="modal-borrowed-name" class="rounded-input small"
+                                    style="flex:1.5;" placeholder="Name (Optional)"
+                                    data-i18n-placeholder="loan.name_placeholder">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loaned Out Fields -->
+                    <div id="loan-loaned-section" class="hidden">
+                        <div class="form-group mt-2">
+                            <label data-i18n="loan.loaned_to">Loaned To</label>
+                            <input type="text" id="modal-loaned-to" class="rounded-input small" placeholder="Name"
+                                data-i18n-placeholder="loan.name_placeholder">
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-2">
+                        <label data-i18n="loan.return_date">Return Date</label>
+                        <div class="flex gap-2">
+                            <input type="date" id="modal-reminder-date" class="rounded-input small">
+                            <a id="modal-calendar-link" href="#" target="_blank" class="btn-pill"
+                                data-i18n="btn.event">Event ↗</a>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-2 border-t border-gray-200">
+                        <button id="btn-end-loan" class="btn-pill w-full flex justify-center items-center gap-2"
+                            style="width:100%; justify-content:center; color: var(--text-color);">
+                            <span>Mark as returned</span>
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <div class="mt-4 pt-2 border-t border-gray-200">
-                <button id="btn-end-loan" class="btn-pill w-full flex justify-center items-center gap-2"
-                    style="width:100%; justify-content:center; color: var(--text-color);">
-                    <span>Mark as returned</span>
-                </button>
+            <!-- TAB: Notes -->
+            <div id="modal-tab-notes" class="hidden">
+                <div class="form-group mt-2">
+                    <label data-i18n="form.notes">Notes</label>
+                    <textarea id="modal-notes" class="rounded-input small" rows="12" style="height: 300px;"></textarea>
+                </div>
             </div>
 
             <div class="modal-actions mt-2">
