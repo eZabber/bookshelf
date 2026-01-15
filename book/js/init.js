@@ -563,6 +563,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initTabWiring();
     initFiltersWiring(handleEditValues);
     initModalWiring();
+    initManualWiring(); // Added missing call
 
     // Import Wiring
     import('./goodreads-import.js').then(({ initImportWiring, startBackgroundCoverFetch }) => {
