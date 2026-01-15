@@ -302,6 +302,7 @@ export const translations = {
         'manual.filters.title': 'Filtreerimine & Sortimine',
         'manual.filters.body': 'Kasuta ülemist riba raamatute leidmiseks. Filtreeri aasta, hinde või kuupäeva järgi. Sordi lisamise, aasta või hinde alusel.',
         'nav.manual': 'Kasutusjuhend',
+        'btn.close': 'Sulge',
     }
 };
 
