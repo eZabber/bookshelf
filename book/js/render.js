@@ -102,10 +102,13 @@ export const renderBookCard = (book, onEdit) => {
             // Edit
             btns += `<button class="action-link ax-edit">${t('btn.edit_card')}</button>`;
 
-            // Mark Read (Wishlist or Loan)
-            if (book.status === 'wishlist' || book.status === 'loan') {
-                btns += `<button class="action-link ax-mark-read" style="color:var(--accent-green);border:1px solid var(--accent-green);background:white;white-space:nowrap;">
-                                ${t('btn.mark_read')}
+            // Mark Read/Unread Toggle
+            // Show if Wishlist, Loan, or if it's a Read book that is actually a Loan
+            const isLoan = book.status === 'loan' || (book.loanType && book.loanType !== 'none');
+            if (book.status === 'wishlist' || isLoan || book.status === 'read') {
+                const isRead = book.status === 'read';
+                btns += `<button class="action-link ax-mark-read" style="color:var(--accent-green);border:1px solid var(--accent-green);background:${isRead ? 'var(--accent-green)' : 'white'}; color:${isRead ? 'white' : 'var(--accent-green)'}; white-space:nowrap;">
+                                ${isRead ? t('btn.mark_unread') : t('btn.mark_read')}
                              </button>`;
             }
 
@@ -116,7 +119,6 @@ export const renderBookCard = (book, onEdit) => {
         })()}
         </div>
     `;
-
 
     card.innerHTML = html;
 
@@ -153,20 +155,33 @@ export const renderBookCard = (book, onEdit) => {
 
     if (markReadBtn) {
         markReadBtn.addEventListener('click', async () => {
-            // Optimistic UI or wait?
-            // Update status to read, set dateRead to today
+            const isRead = book.status === 'read';
+            let newStatus = 'read';
+            let newDate = new Date().toISOString();
+
+            if (isRead) {
+                // Toggle back to unread
+                // If it was a loan, go back to loan. Else wishlist?
+                // We check loanType to be sure.
+                if (book.loanType && book.loanType !== 'none') {
+                    newStatus = 'loan';
+                } else {
+                    newStatus = 'wishlist';
+                }
+                newDate = null;
+            }
+
             await updateBook(book.id, {
                 ...book,
-                status: 'read',
-                dateRead: new Date().toISOString()
+                status: newStatus,
+                dateRead: newDate
             });
-            // storage.js should trigger refresh
         });
     }
 
     if (binBtn) {
         binBtn.addEventListener('click', async () => {
-            if (confirm(`Move "${book.title}" to Bin ? `)) {
+            if (confirm(`Move "${book.title}" to Bin?`)) {
                 await deleteBook(book.id);
             }
         });
