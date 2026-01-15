@@ -60,7 +60,20 @@ export const translations = {
         'loan.source.work': 'Work',
         'loan.source.school': 'School',
         'loan.source.other': 'Other',
-        'loan.name_placeholder': 'Name...'
+        'loan.name_placeholder': 'Name...',
+        'form.status': 'Status',
+        'form.audiobook': 'Audiobook',
+        'form.own_book': 'Own This Book',
+        'form.cover': 'Cover',
+        'form.notes': 'Notes',
+        'form.rating': 'Rating',
+        'form.no_rating': 'No Rating',
+        'form.date_read': 'Date Read',
+        'btn.event': 'Event ↗',
+        'btn.cancel': 'Cancel',
+        'btn.save': 'Save',
+        'modal.edit_title': 'Edit Book',
+        'modal.save_title': 'Save Book'
     },
     fi: {
         'app.title': 'Kirjahyllyni',
@@ -122,7 +135,20 @@ export const translations = {
         'loan.source.work': 'Työ',
         'loan.source.school': 'Koulu',
         'loan.source.other': 'Muu',
-        'loan.name_placeholder': 'Nimi...'
+        'loan.name_placeholder': 'Nimi...',
+        'form.status': 'Tila',
+        'form.audiobook': 'Äänikirja',
+        'form.own_book': 'Omistettu',
+        'form.cover': 'Kansi',
+        'form.notes': 'Muistiinpanot',
+        'form.rating': 'Arvio',
+        'form.no_rating': 'Ei arviota',
+        'form.date_read': 'Luettu Pvm',
+        'btn.event': 'Tapahtuma ↗',
+        'btn.cancel': 'Peruuta',
+        'btn.save': 'Tallenna',
+        'modal.edit_title': 'Muokkaa Kirjaa',
+        'modal.save_title': 'Tallenna Kirja'
     },
     et: {
         'app.title': 'Minu Raamaturiiul',
@@ -184,7 +210,20 @@ export const translations = {
         'loan.source.work': 'Töö',
         'loan.source.school': 'Kool',
         'loan.source.other': 'Muu',
-        'loan.name_placeholder': 'Nimi...'
+        'loan.name_placeholder': 'Nimi...',
+        'form.status': 'Olek',
+        'form.audiobook': 'Heliraamat',
+        'form.own_book': 'Oman seda raamatut',
+        'form.cover': 'Kaas',
+        'form.notes': 'Märkmed',
+        'form.rating': 'Hinne',
+        'form.no_rating': 'Hinne puudub',
+        'form.date_read': 'Loetud Kuupäev',
+        'btn.event': 'Sündmus ↗',
+        'btn.cancel': 'Loobu',
+        'btn.save': 'Salvesta',
+        'modal.edit_title': 'Muuda Raamatut',
+        'modal.save_title': 'Salvesta Raamat'
     }
 };
 

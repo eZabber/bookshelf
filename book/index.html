@@ -214,27 +214,27 @@
             </div>
 
             <div class="form-group mt-2">
-                <label>Status</label>
+                <label data-i18n="form.status">Status</label>
                 <div class="segmented-control small">
-                    <button class="status-btn" data-value="read">Read</button>
-                    <button class="status-btn" data-value="wishlist">Wishlist</button>
-                    <button class="status-btn" data-value="loan">Loan</button>
+                    <button class="status-btn" data-value="read" data-i18n="stats.read">Read</button>
+                    <button class="status-btn" data-value="wishlist" data-i18n="stats.wishlist">Wishlist</button>
+                    <button class="status-btn" data-value="loan" data-i18n="stats.loan">Loan</button>
                 </div>
             </div>
 
-            <div class="form-group checkbox-row mt-2">
-                <label class="flex items-center gap-2">
+            <div class="form-group checkbox-row mt-2 flex items-center gap-2">
+                <label class="flex items-center gap-2" style="margin-right: 16px;">
                     <input type="checkbox" id="modal-audiobook">
-                    Audiobook
+                    <span data-i18n="form.audiobook">Audiobook</span>
                 </label>
-                <label class="flex items-center gap-2" style="margin-left: 16px;">
+                <label class="flex items-center gap-2">
                     <input type="checkbox" id="modal-own">
-                    Own This Book
+                    <span data-i18n="form.own_book">Own This Book</span>
                 </label>
             </div>
 
             <div class="form-group mt-2">
-                <label>Cover</label>
+                <label data-i18n="form.cover">Cover</label>
                 <div class="flex gap-2">
                     <input type="url" id="modal-cover" class="rounded-input small" placeholder="https://...">
                     <label for="modal-cover-file" class="btn-pill flex items-center justify-center cursor-pointer"
@@ -246,16 +246,16 @@
             </div>
 
             <div class="form-group mt-2">
-                <label>Notes</label>
+                <label data-i18n="form.notes">Notes</label>
                 <textarea id="modal-notes" class="rounded-input small" rows="2"></textarea>
             </div>
 
             <div class="form-group mt-2">
                 <div class="flex gap-2">
                     <div class="flex-1">
-                        <label>Rating</label>
+                        <label data-i18n="form.rating">Rating</label>
                         <select id="modal-rating" class="rounded-input small">
-                            <option value="0">No Rating</option>
+                            <option value="0" data-i18n="form.no_rating">No Rating</option>
                             <option value="5">5 ★★★★★</option>
                             <option value="4">4 ★★★★</option>
                             <option value="3">3 ★★★</option>
@@ -264,7 +264,7 @@
                         </select>
                     </div>
                     <div class="flex-1">
-                        <label>Date Read</label>
+                        <label data-i18n="form.date_read">Date Read</label>
                         <input type="date" id="modal-date-read" class="rounded-input small">
                     </div>
                 </div>
@@ -317,14 +317,15 @@
                     <label data-i18n="loan.return_date">Return Date</label>
                     <div class="flex gap-2">
                         <input type="date" id="modal-reminder-date" class="rounded-input small">
-                        <a id="modal-calendar-link" href="#" target="_blank" class="btn-pill">Event ↗</a>
+                        <a id="modal-calendar-link" href="#" target="_blank" class="btn-pill"
+                            data-i18n="btn.event">Event ↗</a>
                     </div>
                 </div>
             </div>
 
             <div class="modal-actions mt-2">
-                <button id="modal-cancel-btn" class="btn-pill">Cancel</button>
-                <button id="modal-save-btn" class="btn-dark">Save</button>
+                <button id="modal-cancel-btn" class="btn-pill" data-i18n="btn.cancel">Cancel</button>
+                <button id="modal-save-btn" class="btn-dark" data-i18n="btn.save">Save</button>
             </div>
         </div>
     </div>

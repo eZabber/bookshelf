@@ -46,7 +46,8 @@ const openSaveModal = (book, onSave) => {
 
     if (!modal) return;
 
-    title.textContent = book.id ? 'Edit Book' : 'Save Book';
+    title.textContent = book.id ? t('modal.edit_title') : t('modal.save_title');
+    title.setAttribute('data-i18n', book.id ? 'modal.edit_title' : 'modal.save_title');
 
     // Fields
     const titleInput = $('#modal-book-title');
