@@ -103,9 +103,11 @@ const openSaveModal = (book, onSave) => {
 
     // Explicit Translation for Change Cover Button (Sync)
     // We do this here (on open) to ensure it's always correct language
+    // Explicit Translation for Change Cover Button (Sync) with Fallback
     const changeCoverLabel = $('label[for="modal-cover-file"]');
     if (changeCoverLabel) {
-        changeCoverLabel.textContent = t('btn.change_cover');
+        const val = t('btn.change_cover');
+        changeCoverLabel.textContent = (val && val !== 'btn.change_cover') ? val : 'Change Cover';
     }
 
     // Status Buttons
