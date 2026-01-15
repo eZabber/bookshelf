@@ -73,10 +73,62 @@ const fetchOpenLibrary = async (isbn) => {
 };
 
 // 2. Google Books (Secondary)
+// 2. Google Books (Secondary)
 const searchGoogleBooks = async (query) => {
     if (!CONFIG.API_KEY) return [];
     try {
         const q = encodeURIComponent(query);
+        const url = `https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=10&key=${CONFIG.API_KEY}`;
+        const res = await fetch(url);
+
+        if (res.status === 403) {
+            console.warn('Google Books API 403 Forbidden.');
+            return [];
+        }
+
+        const data = await res.json();
+        if (data.items && data.items.length > 0) {
+            return data.items.map(item => {
+                const info = item.volumeInfo;
+                const isbn13 = info.industryIdentifiers?.find(id => id.type === 'ISBN_13')?.identifier;
+                const isbn10 = info.industryIdentifiers?.find(id => id.type === 'ISBN_10')?.identifier;
+                return normalize({
+                    ...info,
+                    isbn: isbn13 || isbn10,
+                    source: 'GoogleBooks'
+                });
+            });
+        }
+    } catch (e) { console.warn('Google Books search failed', e); }
+    return [];
+};
+
+const fetchGoogleBooks = async (isbn) => {
+    if (!CONFIG.API_KEY) return null;
+    try {
+        const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=${CONFIG.API_KEY}`;
+        const res = await fetch(url);
+        if (res.status === 403) return null;
+
+        const data = await res.json();
+        if (data.totalItems > 0 && data.items[0].volumeInfo) {
+            const info = data.items[0].volumeInfo;
+            const isbn13 = info.industryIdentifiers?.find(id => id.type === 'ISBN_13')?.identifier || isbn;
+            return normalize({
+                ...info,
+                isbn: isbn13,
+                source: 'GoogleBooks'
+            });
+        }
+    } catch (e) { console.warn('Google Books lookup failed', e); }
+    return null;
+};
+
+// 3. Finna API (Tertiary)
+const searchFinna = async (query) => {
+    try {
+        const q = encodeURIComponent(query);
+        const fields = 'title,authors,year,images,isbns,subjects,topic';
         const url = `https://api.finna.fi/v1/search?lookfor=${q}&field[]=${fields.split(',').join('&field[]=')}`;
 
         const res = await fetch(url);
