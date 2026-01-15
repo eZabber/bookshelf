@@ -58,8 +58,8 @@ export const renderBookCard = (book, onEdit) => {
                 </div>
 
                 ${badgesHtml}
-
-                ${book.status === 'loan' ? (() => {
+                
+                ${(book.status === 'loan' || (book.loanType && book.loanType !== 'none')) ? (() => {
             let loanInfo = '';
             const isOverdue = book.reminderDate && new Date(book.reminderDate) < new Date();
             const returnDateStr = book.reminderDate ? new Date(book.reminderDate).toLocaleDateString('en-GB') : '';
