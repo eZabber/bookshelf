@@ -907,19 +907,21 @@ body.dark-mode .loan-type-btn.active {
 /* Modal Action Buttons Redesign */
 .modal-action-btn {
   flex: 1;
-  height: 40px !important;
+  min-height: 36px;
+  /* Ensure touch target but flexible */
   border-radius: 8px !important;
   display: flex !important;
   align-items: center;
   justify-content: center;
   margin: 0 !important;
   box-shadow: none !important;
-  font-size: 0.95rem !important;
-  /* Slightly larger text */
-  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  /* Match tab font size (0.95 was slightly larger) */
+  font-weight: 500 !important;
+  /* Match tab weight (tabs are 500) */
   border: 1px solid transparent !important;
   padding: 0 !important;
-  /* Reset padding to rely on flex centering */
+  transition: all 0.2s;
 }
 
 .modal-action-btn.action-cancel {
