@@ -826,6 +826,16 @@ body.dark-mode .ax-bin:hover {
   background: rgba(197, 48, 48, 0.2);
 }
 
+body.dark-mode .action-link {
+  background: #1a202c;
+  color: #E2E8F0;
+  border-color: #4A5568;
+}
+
+body.dark-mode .action-link:hover {
+  background: #2D3748;
+}
+
 /* Segmented Controls in Dark Mode */
 body.dark-mode .segmented-control,
 body.dark-mode .segmented-control.small {
