@@ -87,6 +87,17 @@ const openSaveModal = (book, onSave) => {
     $('#modal-audiobook').checked = !!book.isAudiobook;
     $('#modal-own').checked = !!book.own;
 
+    // Source Info Populating
+    const sourceInfo = $('#modal-source-info');
+    if (sourceInfo) {
+        let sourceText = `Source: ${book.source || 'Manual'}`;
+        if (book.addedAt || book.importedAt) {
+            const date = new Date(book.addedAt || book.importedAt);
+            sourceText += ` • Fetched: ${date.toLocaleDateString()}`;
+        }
+        sourceInfo.textContent = sourceText;
+    }
+
     const fileInput = $('#modal-cover-file');
     if (fileInput) fileInput.value = '';
 
@@ -216,12 +227,6 @@ export const initModalWiring = () => {
             const file = fileInput.files[0];
             if (file) {
                 try {
-                    const { processImageFile } = await import('./dom-utils.js'); // Ensure imported if needed, or assume global? 
-                    // Wait, processImageFile was likely global or imported. Let's assume it's available or import it.
-                    // Checking previous file view, it wasn't imported in init.js explicitly at top?
-                    // Retaining original logic but wrapping in try/catch.
-                    // Actually, let's look at the original code. It called processImageFile(file).
-                    // I will import it dynamically to be safe if it's not there.
                     const { processImageFile } = await import('./dom-utils.js');
                     const dataUrl = await processImageFile(file);
                     coverUrlInput.value = dataUrl;
