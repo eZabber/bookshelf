@@ -197,15 +197,18 @@ export const initModalWiring = () => {
     // File Upload Wiring
     const fileInput = $('#modal-cover-file');
     const coverUrlInput = $('#modal-cover');
+    const previewContainer = $('#cover-preview-container');
     let coverPreview = $('#modal-cover-preview');
-    if (!coverPreview && coverUrlInput) {
+
+    if (!coverPreview && previewContainer) {
         coverPreview = document.createElement('img');
         coverPreview.id = 'modal-cover-preview';
-        coverPreview.className = 'hidden mt-2';
-        coverPreview.style.height = '60px';
+        coverPreview.className = 'hidden';
+        coverPreview.style.height = '40px';
+        coverPreview.style.marginLeft = '10px';
         coverPreview.style.borderRadius = '4px';
         coverPreview.style.objectFit = 'cover';
-        coverUrlInput.parentNode.appendChild(coverPreview);
+        previewContainer.appendChild(coverPreview);
     }
 
     if (fileInput) {
@@ -213,11 +216,19 @@ export const initModalWiring = () => {
             const file = fileInput.files[0];
             if (file) {
                 try {
+                    const { processImageFile } = await import('./dom-utils.js'); // Ensure imported if needed, or assume global? 
+                    // Wait, processImageFile was likely global or imported. Let's assume it's available or import it.
+                    // Checking previous file view, it wasn't imported in init.js explicitly at top?
+                    // Retaining original logic but wrapping in try/catch.
+                    // Actually, let's look at the original code. It called processImageFile(file).
+                    // I will import it dynamically to be safe if it's not there.
+                    const { processImageFile } = await import('./dom-utils.js');
                     const dataUrl = await processImageFile(file);
                     coverUrlInput.value = dataUrl;
                     coverPreview.src = dataUrl;
                     coverPreview.classList.remove('hidden');
                 } catch (e) {
+                    console.error(e);
                     showToast('Error processing image');
                 }
             }

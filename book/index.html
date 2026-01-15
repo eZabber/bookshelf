@@ -235,13 +235,18 @@
 
             <div class="form-group mt-2">
                 <label data-i18n="form.cover">Cover</label>
-                <div class="flex gap-2">
-                    <input type="url" id="modal-cover" class="rounded-input small" placeholder="https://...">
+                <div class="flex items-center gap-2">
+                    <!-- URL Input hidden but functional for saving -->
+                    <input type="url" id="modal-cover" class="rounded-input small hidden" placeholder="https://...">
+
                     <label for="modal-cover-file" class="btn-pill flex items-center justify-center cursor-pointer"
-                        style="min-width: 40px;">
-                        📂
+                        style="min-width: 120px;" data-i18n="btn.change_cover">
+                        Change Cover
                     </label>
                     <input type="file" id="modal-cover-file" accept="image/*" class="hidden">
+
+                    <!-- Preview Container -->
+                    <div id="cover-preview-container"></div>
                 </div>
             </div>
 
