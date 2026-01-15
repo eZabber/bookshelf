@@ -604,6 +604,10 @@ document.addEventListener('DOMContentLoaded', () => {
         window._openSaveModal = openSaveModal;
         initAddWiring();
     });
+
+    // Backup Wiring
+    import('./backup.js').then(({ initBackupWiring }) => initBackupWiring());
+
     // Dynamic Footer Year
     const yearSpan = document.getElementById('copyright-year');
     if (yearSpan) yearSpan.textContent = new Date().getFullYear();

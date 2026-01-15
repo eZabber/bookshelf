@@ -177,10 +177,17 @@
             <nav class="menu-nav mt-2" style="border-top: 1px solid var(--divider-color); padding-top:12px;">
                 <div class="menu-item" id="import-csv-trigger" data-i18n="btn.import">Import Goodreads CSV</div>
                 <div class="menu-item" id="export-csv-btn" data-i18n="btn.export">Export CSV</div>
-                <div class="menu-item" id="theme-toggle-btn" data-i18n="nav.mode">Dark Mode</div>
-                <div class="menu-item" id="user-manual-btn" data-i18n="nav.manual"
-                    style="margin-top:auto; border-top:1px solid var(--divider-color);">User Manual</div>
+
+                <div class="menu-item" id="import-json-trigger"
+                    style="border-top:1px dashed var(--divider-color); margin-top:8px; padding-top:8px;"
+                    data-i18n="btn.import_json">Import Backup (JSON)</div>
+                <div class="menu-item" id="export-json-btn" data-i18n="btn.export_json">Export Backup (JSON)</div>
+
+                <div class="menu-item" id="theme-toggle-btn" data-i18n="nav.mode"
+                    style="margin-top:8px; border-top:1px solid var(--divider-color);">Dark Mode</div>
+                <div class="menu-item" id="user-manual-btn" data-i18n="nav.manual">User Manual</div>
                 <input type="file" id="import-file" accept=".csv" class="hidden">
+                <input type="file" id="import-json-file" accept=".json" class="hidden">
             </nav>
 
             <div style="margin-top: auto; padding-top: 20px;">
