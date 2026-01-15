@@ -218,10 +218,10 @@ body {
   color: var(--white);
   border: none;
   border-radius: 10px;
-  padding: 0 24px;
-  height: 46px;
+  padding: 0 20px;
+  height: 38px;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   cursor: pointer;
   white-space: nowrap;
   transition: opacity 0.2s;
