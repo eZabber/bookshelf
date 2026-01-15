@@ -42,7 +42,9 @@ export const translations = {
         'menu.stats': 'Library Stats',
         'menu.filters': 'Filters',
         'msg.saved': 'Saved!',
-        'msg.welcome': 'Welcome'
+        'msg.welcome': 'Welcome',
+        'card.own_yes': 'Own: Yes',
+        'card.own_no': 'Own: No'
     },
     fi: {
         'app.title': 'Kirjahyllyni',

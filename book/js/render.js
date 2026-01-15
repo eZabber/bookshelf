@@ -61,6 +61,9 @@ export const renderBookCard = (book, onEdit) => {
             </div>
         </div>
         <div class="book-actions">
+            <button class="action-link ax-toggle-own" style="background:${book.own ? '#E6FFFA' : '#f0f0f0'}; color:${book.own ? '#2C7A7B' : 'inherit'}; border-color:${book.own ? '#81E6D9' : 'transparent'};">
+                ${book.own ? 'Own: Yes' : 'Own: No'}
+            </button>
             <button class="action-link ax-edit">Edit</button>
             ${(book.status === 'wishlist' || book.status === 'loan') ? `<button class="action-link ax-mark-read" style="color:var(--accent-green);border:1px solid var(--accent-green);background:white;">Mark Read</button>` : ''}
             <button class="action-link ax-bin" style="color:#C53030;">Bin</button>
@@ -84,6 +87,17 @@ export const renderBookCard = (book, onEdit) => {
     const editBtn = card.querySelector('.ax-edit');
     const binBtn = card.querySelector('.ax-bin');
     const markReadBtn = card.querySelector('.ax-mark-read');
+    const toggleOwnBtn = card.querySelector('.ax-toggle-own');
+
+    if (toggleOwnBtn) {
+        toggleOwnBtn.addEventListener('click', async (e) => {
+            e.stopPropagation(); // prevent card click?? (if card is clickable later)
+            const newOwn = !book.own;
+            // Optimistic update of button UI? Or just wait for re-render
+            // Re-render is safer for state consistency
+            await updateBook(book.id, { ...book, own: newOwn });
+        });
+    }
 
     if (editBtn && onEdit) {
         editBtn.addEventListener('click', () => onEdit(book.id));

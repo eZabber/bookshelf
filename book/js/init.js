@@ -83,6 +83,7 @@ const openSaveModal = (book, onSave) => {
 
     $('#modal-notes').value = book.notes || '';
     $('#modal-audiobook').checked = !!book.isAudiobook;
+    $('#modal-own').checked = !!book.own;
 
     const fileInput = $('#modal-cover-file');
     if (fileInput) fileInput.value = '';
@@ -191,6 +192,7 @@ export const initModalWiring = () => {
             currentModalBook.coverUrl = $('#modal-cover').value;
             currentModalBook.notes = $('#modal-notes').value;
             currentModalBook.isAudiobook = $('#modal-audiobook').checked;
+            currentModalBook.own = $('#modal-own').checked;
 
             if (!currentModalBook.title) {
                 showToast('Title is required');
