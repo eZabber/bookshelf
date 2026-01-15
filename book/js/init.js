@@ -101,6 +101,18 @@ const openSaveModal = (book, onSave) => {
     const fileInput = $('#modal-cover-file');
     if (fileInput) fileInput.value = '';
 
+    // Show Existing Cover
+    const coverPreview = $('#modal-cover-preview');
+    if (coverPreview) {
+        if (book.coverUrl) {
+            coverPreview.src = book.coverUrl;
+            coverPreview.classList.remove('hidden');
+        } else {
+            coverPreview.src = '';
+            coverPreview.classList.add('hidden');
+        }
+    }
+
     // Status Buttons
     const statusBtns = $$('.status-btn');
     const initialStatus = book.status || STATE.currentTab || 'read';
