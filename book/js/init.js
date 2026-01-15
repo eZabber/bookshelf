@@ -128,8 +128,8 @@ const openSaveModal = (book, onSave) => {
     const modalName = $('#modal-borrowed-name');
     const modalLoanedTo = $('#modal-loaned-to');
 
-    // Default to 'borrowed' if not set
-    currentModalBook.loanType = book.loanType || 'borrowed';
+    // Default to 'borrowed' ONLY if it exists, otherwise null
+    currentModalBook.loanType = book.loanType || null;
 
     // Init values
     if (modalType) modalType.value = book.borrowedFromType || 'library';
@@ -144,9 +144,13 @@ const openSaveModal = (book, onSave) => {
         if (type === 'borrowed') {
             if (loanBorrowedSection) loanBorrowedSection.classList.remove('hidden');
             if (loanLoanedSection) loanLoanedSection.classList.add('hidden');
-        } else {
+        } else if (type === 'loanedOut') { // Strict check
             if (loanBorrowedSection) loanBorrowedSection.classList.add('hidden');
             if (loanLoanedSection) loanLoanedSection.classList.remove('hidden');
+        } else {
+            // None active
+            if (loanBorrowedSection) loanBorrowedSection.classList.add('hidden');
+            if (loanLoanedSection) loanLoanedSection.classList.add('hidden');
         }
 
         // Dynamic Date Label
@@ -164,7 +168,13 @@ const openSaveModal = (book, onSave) => {
             updateLoanTypeUI(currentModalBook.loanType);
         };
     });
+    // If null, this hides sections, which is correct for non-loan books
+    updateLoanTypeUI(currentModalBook.loanType || 'borrowed'); // UI default preview only?
+    // Actually, if it's null, we probably don't want to show either section?
+    // But updateLoanTypeUI needs a type. 
+    // Let's pass the current value. If null, updateLoanTypeUI handles it (added 'else' block above).
     updateLoanTypeUI(currentModalBook.loanType);
+
 
     const updateStatusUI = (status) => {
         statusBtns.forEach(b => {
@@ -175,8 +185,16 @@ const openSaveModal = (book, onSave) => {
         // Toggle Loan fields only
         const loanFields = $('#modal-loan-fields');
         if (loanFields) {
-            if (status === 'loan') loanFields.classList.remove('hidden');
-            else loanFields.classList.add('hidden');
+            if (status === 'loan') {
+                loanFields.classList.remove('hidden');
+                // If switching TO loan and no type set, default to borrowed
+                if (!currentModalBook.loanType) {
+                    currentModalBook.loanType = 'borrowed';
+                    updateLoanTypeUI('borrowed');
+                }
+            } else {
+                loanFields.classList.add('hidden');
+            }
         }
     };
 
