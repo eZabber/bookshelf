@@ -110,6 +110,10 @@ const openSaveModal = (book, onSave) => {
         changeCoverLabel.textContent = (val && val !== 'btn.change_cover') ? val : 'Change Cover';
     }
 
+    // Reset Tab to Details
+    const detailsTab = $('.modal-tab-btn[data-tab="details"]');
+    if (detailsTab) detailsTab.click();
+
     // Status Buttons
     const statusBtns = $$('.status-btn');
     const initialStatus = book.status || STATE.currentTab || 'read';
@@ -244,6 +248,29 @@ export const initModalWiring = () => {
     };
     fixBtn('label[for="modal-cover-file"]', 'btn.change_cover', 'Change Cover');
     fixBtn('#btn-end-loan span', 'btn.mark_returned', 'Mark as returned');
+
+    // Modal Tabs Logic
+    const modalTabBtns = $$('.modal-tab-btn');
+    if (modalTabBtns) {
+        modalTabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                modalTabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const tab = btn.dataset.tab;
+                const details = $('#modal-tab-details');
+                const notes = $('#modal-tab-notes');
+
+                if (tab === 'details') {
+                    if (details) details.classList.remove('hidden');
+                    if (notes) notes.classList.add('hidden');
+                } else {
+                    if (details) details.classList.add('hidden');
+                    if (notes) notes.classList.remove('hidden');
+                }
+            });
+        });
+    }
 
     if (fileInput) {
         fileInput.addEventListener('change', async () => {
