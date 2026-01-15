@@ -907,8 +907,9 @@ body.dark-mode .loan-type-btn.active {
 /* Modal Action Buttons Redesign */
 .modal-action-btn {
   flex: 1;
-  min-height: 36px;
-  /* Ensure touch target but flexible */
+  height: 32px !important;
+  /* Exact match for tabs in small container (40 - 8 padding) */
+  min-height: 32px !important;
   border-radius: 8px !important;
   display: flex !important;
   align-items: center;
