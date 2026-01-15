@@ -852,3 +852,54 @@ body.dark-mode .loan-type-btn.active {
   color: #E2E8F0;
   border-color: #4A5568;
 }
+
+/* Sync Status Indicator */
+.sync-status {
+  width: 20px;
+  height: 20px;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.sync-status.spinning {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #4299e1;
+  animation: spin 1s linear infinite;
+}
+
+.sync-status.success {
+  color: #48bb78;
+}
+
+.sync-status.success::before {
+  content: '✓';
+  font-weight: bold;
+}
+
+.sync-status.error {
+  color: #f56565;
+}
+
+.sync-status.error::before {
+  content: '!';
+  font-weight: bold;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

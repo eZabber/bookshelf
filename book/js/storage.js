@@ -187,6 +187,7 @@ let isSyncing = false;
 const syncWithDrive = async () => {
     if (isSyncing) return;
     isSyncing = true;
+    dispatchSyncEvent('start');
     try {
         const fileId = await findFile();
         if (fileId) {
@@ -203,8 +204,13 @@ const syncWithDrive = async () => {
         if (e.status === 401 || e.status === 403) {
             // Token invalid
         }
+        dispatchSyncEvent('error', e.message);
     } finally {
         isSyncing = false;
+        // If no error thrown, assume success (or at least completion)
+        // ideally we'd track specific success paths, but 'end of try' is good proxy if no catch
+        // But we are in finally, so we don't know if it erred easily unless we flagged it.
+        // Actually, let's just dispatch 'success' inside the try block at end of logic.
     }
 };
 
@@ -279,6 +285,8 @@ const loadFromDrive = async (fileId) => {
             if (hasLocalChanges) {
                 console.log('Storage: Local changes merged. Pushing back to Cloud...');
                 await saveToDrive();
+            } else {
+                dispatchSyncEvent('success');
             }
         }
     } catch (e) {
@@ -286,7 +294,13 @@ const loadFromDrive = async (fileId) => {
     }
 };
 
+// --- Cloud Sync Events ---
+const dispatchSyncEvent = (status, detail = null) => {
+    document.dispatchEvent(new CustomEvent(`cloud-sync-${status}`, { detail }));
+};
+
 const saveToDrive = async (isNew = false) => {
+    dispatchSyncEvent('start');
     try {
         const fileContent = JSON.stringify(appData);
         const fileId = localStorage.getItem(FILE_ID_KEY);
@@ -325,12 +339,15 @@ const saveToDrive = async (isNew = false) => {
             const json = await response.json();
             if (json.id) localStorage.setItem(FILE_ID_KEY, json.id);
             console.log('Storage: Saved to Drive');
+            dispatchSyncEvent('success');
         } else {
             console.error('Storage: Save Failed', await response.text());
+            dispatchSyncEvent('error', 'Save Failed');
         }
 
     } catch (e) {
         console.error('Save Drive Error:', e);
         showToast('Sync Failed (Check Console)');
+        dispatchSyncEvent('error', e.message);
     }
 };
