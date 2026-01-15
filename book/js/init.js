@@ -526,12 +526,13 @@ const initManualWiring = () => {
     if (manualBtn && manualModal) {
         manualBtn.addEventListener('click', () => {
             manualModal.classList.remove('hidden');
-            // Ensure translations are applied if language changed dynamically
-            // (Standard t() calls in HTML data-i18n attributes handled by re-render or reload, 
-            // but dynamic opening is fine as attributes update on lang change)
+            requestAnimationFrame(() => manualModal.classList.add('visible'));
         });
 
-        const close = () => manualModal.classList.add('hidden');
+        const close = () => {
+            manualModal.classList.remove('visible');
+            setTimeout(() => manualModal.classList.add('hidden'), 300);
+        };
         if (closeX) closeX.addEventListener('click', close);
         if (closeBtn) closeBtn.addEventListener('click', close);
 
@@ -540,8 +541,9 @@ const initManualWiring = () => {
             if (e.target === manualModal) close();
         });
 
-        // Use hidden class by default in HTML or JS
+        // Use hidden class by default
         manualModal.classList.add('hidden');
+        manualModal.classList.remove('visible');
     }
 };
 
