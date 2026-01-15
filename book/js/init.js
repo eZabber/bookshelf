@@ -397,7 +397,20 @@ export const initMenuWiring = () => {
         `;
     };
 
-    document.addEventListener('language-changed', updateMenuStats);
+    document.addEventListener('language-changed', () => {
+        updateMenuStats();
+
+        // Fix Button Translations Helper
+        const fixBtn = (sel, key, fallback) => {
+            const el = $(sel);
+            if (el) {
+                const val = t(key);
+                el.textContent = (val && val !== key) ? val : fallback;
+            }
+        };
+        fixBtn('label[for="modal-cover-file"]', 'btn.change_cover', 'Change Cover');
+        fixBtn('#btn-end-loan span', 'btn.mark_returned', 'Mark as returned');
+    });
 
     if (menuBtn) menuBtn.addEventListener('click', () => toggleMenu(true));
     if (closeBtn) closeBtn.addEventListener('click', () => toggleMenu(false));
@@ -462,7 +475,14 @@ export const initTabWiring = () => {
 
 export const refreshList = () => {
     const books = getBooks();
-    let filtered = books.filter(b => b.status === STATE.currentTab);
+    let filtered;
+
+    if (STATE.currentTab === 'loan') {
+        filtered = books.filter(b => b.status === 'loan' || (b.loanType && b.loanType !== 'none'));
+    } else {
+        filtered = books.filter(b => b.status === STATE.currentTab);
+    }
+
     filtered = filterBooks(filtered);
     renderList($('#main-content'), filtered, handleEditValues);
 };
