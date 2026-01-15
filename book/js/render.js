@@ -82,9 +82,17 @@ export const renderBookCard = (book, onEdit) => {
             }
 
             if (returnDateStr) {
-                loanInfo += `<div style="font-size:0.75rem;margin-top:2px;${overdueStyle}">
+                if (book.loanType === 'loanedOut') {
+                    // For loaned out, date is start date, so no overdue logic
+                    loanInfo += `<div style="font-size:0.75rem;margin-top:2px;color:var(--text-light);">
+                            ${t('loan.date_loaned')}: ${returnDateStr}
+                        </div>`;
+                } else {
+                    // For borrowed, date is return deadline
+                    loanInfo += `<div style="font-size:0.75rem;margin-top:2px;${overdueStyle}">
                             ${isOverdue ? 'Overdue!' : 'Return by:'} ${returnDateStr}
                         </div>`;
+                }
             }
             return loanInfo;
         })() : ''}
