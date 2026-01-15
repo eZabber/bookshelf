@@ -232,16 +232,16 @@ export const initModalWiring = () => {
 
 
     // Explicit Translation for Change Cover Button (Sync)
-    const changeCoverLabel = $('label[for="modal-cover-file"]');
-    if (changeCoverLabel) {
-        import('./i18n.js').then(({ t }) => {
-            changeCoverLabel.textContent = t('btn.change_cover');
-        });
-    }
-
-    // Explicit Translation for Mark Returned (Sync)
-    const markReturnedBtn = $('#btn-end-loan span');
-    if (markReturnedBtn) markReturnedBtn.textContent = t('btn.mark_returned');
+    // Explicit Translation with Strict Fallback
+    const fixBtn = (sel, key, fallback) => {
+        const el = $(sel);
+        if (el) {
+            const val = t(key);
+            el.textContent = (val && val !== key) ? val : fallback;
+        }
+    };
+    fixBtn('label[for="modal-cover-file"]', 'btn.change_cover', 'Change Cover');
+    fixBtn('#btn-end-loan span', 'btn.mark_returned', 'Mark as returned');
 
     if (fileInput) {
         fileInput.addEventListener('change', async () => {
