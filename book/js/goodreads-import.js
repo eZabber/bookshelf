@@ -95,28 +95,69 @@ const processImport = async (rows, onProgress) => {
 
         if (isbn && dedupSet.has(isbn)) { skipped++; continue; }
 
-        const grShelf = row['Exclusive Shelf'];
-        let status = 'read';
-        if (grShelf === 'to-read') status = 'wishlist';
-        else if (grShelf === 'current-reading') status = 'read';
-        else if (grShelf === 'on-deck') status = 'wishlist';
-
         const book = {
             id: crypto.randomUUID(),
             title: title,
             author: row['Author'] || 'Unknown',
             isbn: isbn || null,
             coverUrl: null,
-            status: status,
-            rating: parseInt(row['My Rating']) || 0,
-            dateRead: row['Date Read'] ? new Date(row['Date Read']).toISOString() : null,
-            year: row['Year Published'] ? parseInt(row['Year Published']) : null,
+            status: 'read', // Default
+            rating: 0,
+            dateRead: null,
+            year: null,
             publisher: row['Publisher'],
             genres: [],
             isAudiobook: false,
-            addedAt: new Date().toISOString(),
-            source: 'Import'
+            addedAt: row['Added'] || new Date().toISOString(), // Use native Added date if exists
+            source: 'Import',
+            notes: row['Notes'] || ''
         };
+
+        // --- DUAL FORMAT MAPPING ---
+
+        // 1. STATUS
+        if (row['Status']) {
+            // Native Export
+            book.status = row['Status'];
+        } else if (row['Exclusive Shelf']) {
+            // Goodreads
+            const grShelf = row['Exclusive Shelf'];
+            if (grShelf === 'to-read') book.status = 'wishlist';
+            else if (grShelf === 'current-reading') book.status = 'read';
+            else if (grShelf === 'on-deck') book.status = 'wishlist';
+            else book.status = 'read';
+        }
+
+        // 2. RATING
+        if (row['Rating']) book.rating = parseInt(row['Rating']) || 0;
+        else if (row['My Rating']) book.rating = parseInt(row['My Rating']) || 0;
+
+        // 3. DATES & YEAR
+        const dateReadStr = row['DateRead'] || row['Date Read'];
+        if (dateReadStr) book.dateRead = new Date(dateReadStr).toISOString();
+
+        const yearStr = row['Year'] || row['Year Published'];
+        if (yearStr) book.year = parseInt(yearStr);
+
+        // 4. LOAN DATA (Native Only)
+        if (row['LoanStatus']) {
+            book.loanType = row['LoanStatus'];
+            if (book.loanType === 'borrowed') {
+                book.borrowedFromName = row['BorrowedFrom'];
+                book.borrowedFromType = 'friend'; // Default for CSV import
+            } else if (book.loanType === 'loanedOut') {
+                book.loanedToName = row['LoanedTo'];
+            }
+            if (row['DueDate']) book.reminderDate = new Date(row['DueDate']).toISOString();
+
+            // Ensure status is loan if loan data exists (backup integrity)
+            if (book.loanType) book.status = 'loan';
+        }
+
+        // 5. GENRES (Native Only - Goodreads doesn't export them easily)
+        if (row['Genres']) {
+            book.genres = row['Genres'].split(',').map(s => s.trim()).filter(x => x);
+        }
 
         if (isbn) {
             try {
