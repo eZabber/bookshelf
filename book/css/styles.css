@@ -907,7 +907,7 @@ body.dark-mode .loan-type-btn.active {
 /* Modal Action Buttons Redesign */
 .modal-action-btn {
   flex: 1;
-  height: 100%;
+  height: 40px !important;
   border-radius: 8px !important;
   display: flex !important;
   align-items: center;
