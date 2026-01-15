@@ -77,129 +77,102 @@ const searchGoogleBooks = async (query) => {
     if (!CONFIG.API_KEY) return [];
     try {
         const q = encodeURIComponent(query);
-        // ...
-        const fetchGoogleBooks = async (isbn) => {
-            if (!CONFIG.API_KEY) return null;
-            try {
-                const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=${CONFIG.API_KEY}`;
-                const res = await fetch(url);
-                if (res.status === 403) return null;
+        const url = `https://api.finna.fi/v1/search?lookfor=${q}&field[]=${fields.split(',').join('&field[]=')}`;
 
-                const data = await res.json();
-                if (data.totalItems > 0 && data.items[0].volumeInfo) {
-                    const info = data.items[0].volumeInfo;
-                    const isbn13 = info.industryIdentifiers?.find(id => id.type === 'ISBN_13')?.identifier || isbn;
-                    return normalize({
-                        ...info,
-                        isbn: isbn13,
-                        source: 'GoogleBooks'
-                    });
-                }
-            } catch (e) { console.warn('Google Books lookup failed', e); }
-            return null;
-        };
+        const res = await fetch(url);
+        const data = await res.json();
 
-        // 3. Finna API (Tertiary)
-        const searchFinna = async (query) => {
-            try {
-                const q = encodeURIComponent(query);
-                const fields = 'title,authors,year,images,isbns,subjects,topic';
-                const url = `https://api.finna.fi/v1/search?lookfor=${q}&field[]=${fields.split(',').join('&field[]=')}`;
+        if (data.records && data.records.length > 0) {
+            return data.records.map(rec => {
+                const subjects = rec.subjects ? rec.subjects.flat() : [];
+                const topics = rec.topic ? (Array.isArray(rec.topic) ? rec.topic : [rec.topic]) : [];
+                return normalize({
+                    title: rec.title,
+                    authors: Array.isArray(rec.authors) ? rec.authors : (rec.authors ? [rec.authors] : []),
+                    year: rec.year,
+                    finnaImage: rec.images ? rec.images[0] : null,
+                    isbn: rec.isbns ? rec.isbns[0] : null,
+                    genres: [...new Set([...subjects, ...topics])],
+                    source: 'Finna'
+                });
+            });
+        }
+    } catch (e) { console.warn('Finna search failed', e); }
+    return [];
+};
 
-                const res = await fetch(url);
-                const data = await res.json();
+const fetchFinna = async (isbn) => {
+    try {
+        const url = `https://api.finna.fi/v1/search?lookfor=${isbn}&type=AllFields&field[]=title&field[]=authors&field[]=year&field[]=images&field[]=isbns&field[]=subjects&field[]=topic`;
+        const res = await fetch(url);
+        const data = await res.json();
 
-                if (data.records && data.records.length > 0) {
-                    return data.records.map(rec => {
-                        const subjects = rec.subjects ? rec.subjects.flat() : [];
-                        const topics = rec.topic ? (Array.isArray(rec.topic) ? rec.topic : [rec.topic]) : [];
-                        return normalize({
-                            title: rec.title,
-                            authors: Array.isArray(rec.authors) ? rec.authors : (rec.authors ? [rec.authors] : []),
-                            year: rec.year,
-                            finnaImage: rec.images ? rec.images[0] : null,
-                            isbn: rec.isbns ? rec.isbns[0] : null,
-                            genres: [...new Set([...subjects, ...topics])],
-                            source: 'Finna'
-                        });
-                    });
-                }
-            } catch (e) { console.warn('Finna search failed', e); }
-            return [];
-        };
+        if (data.records && data.records.length > 0) {
+            const rec = data.records[0];
+            const subjects = rec.subjects ? rec.subjects.flat() : [];
+            const topics = rec.topic ? (Array.isArray(rec.topic) ? rec.topic : [rec.topic]) : [];
+            return normalize({
+                title: rec.title,
+                authors: Array.isArray(rec.authors) ? rec.authors : (rec.authors ? [rec.authors] : []),
+                year: rec.year,
+                finnaImage: rec.images ? rec.images[0] : null,
+                isbn: isbn,
+                genres: [...new Set([...subjects, ...topics])],
+                source: 'Finna'
+            });
+        }
+    } catch (e) { }
+    return null;
+};
 
-        const fetchFinna = async (isbn) => {
-            try {
-                const url = `https://api.finna.fi/v1/search?lookfor=${isbn}&type=AllFields&field[]=title&field[]=authors&field[]=year&field[]=images&field[]=isbns&field[]=subjects&field[]=topic`;
-                const res = await fetch(url);
-                const data = await res.json();
+/* --- Main Exported Functions --- */
 
-                if (data.records && data.records.length > 0) {
-                    const rec = data.records[0];
-                    const subjects = rec.subjects ? rec.subjects.flat() : [];
-                    const topics = rec.topic ? (Array.isArray(rec.topic) ? rec.topic : [rec.topic]) : [];
-                    return normalize({
-                        title: rec.title,
-                        authors: Array.isArray(rec.authors) ? rec.authors : (rec.authors ? [rec.authors] : []),
-                        year: rec.year,
-                        finnaImage: rec.images ? rec.images[0] : null,
-                        isbn: isbn,
-                        genres: [...new Set([...subjects, ...topics])],
-                        source: 'Finna'
-                    });
-                }
-            } catch (e) { }
-            return null;
-        };
+export const searchBooks = async (query) => {
+    console.log(`Searching for "${query}"...`);
 
-        /* --- Main Exported Functions --- */
+    // 1. Open Library
+    let results = await searchOpenLibrary(query);
+    if (results.length > 0) return results;
 
-        export const searchBooks = async (query) => {
-            console.log(`Searching for "${query}"...`);
+    // 2. Google Books
+    results = await searchGoogleBooks(query);
+    if (results.length > 0) return results;
 
-            // 1. Open Library
-            let results = await searchOpenLibrary(query);
-            if (results.length > 0) return results;
+    // 3. Finna
+    results = await searchFinna(query);
+    return results;
+};
 
-            // 2. Google Books
-            results = await searchGoogleBooks(query);
-            if (results.length > 0) return results;
+export const fetchByIsbn = async (isbn) => {
+    isbn = isbn.replace(/[^0-9X]/gi, '');
 
-            // 3. Finna
-            results = await searchFinna(query);
-            return results;
-        };
+    // 1. Open Library
+    let meta = await fetchOpenLibrary(isbn);
+    if (meta && meta.coverUrl) return meta;
 
-        export const fetchByIsbn = async (isbn) => {
-            isbn = isbn.replace(/[^0-9X]/gi, '');
+    // 2. Google Books
+    let gMeta = await fetchGoogleBooks(isbn);
+    if (gMeta) {
+        if (!meta) meta = gMeta;
+        else {
+            // Merge if OL data was partial
+            if (!meta.coverUrl && gMeta.coverUrl) meta.coverUrl = gMeta.coverUrl;
+            if (!meta.genres.length && gMeta.genres.length) meta.genres = gMeta.genres;
+        }
+    }
 
-            // 1. Open Library
-            let meta = await fetchOpenLibrary(isbn);
-            if (meta && meta.coverUrl) return meta;
+    if (meta && meta.coverUrl) return meta;
 
-            // 2. Google Books
-            let gMeta = await fetchGoogleBooks(isbn);
-            if (gMeta) {
-                if (!meta) meta = gMeta;
-                else {
-                    // Merge if OL data was partial
-                    if (!meta.coverUrl && gMeta.coverUrl) meta.coverUrl = gMeta.coverUrl;
-                    if (!meta.genres.length && gMeta.genres.length) meta.genres = gMeta.genres;
-                }
-            }
+    // 3. Finna
+    let fMeta = await fetchFinna(isbn);
+    if (fMeta) {
+        if (!meta) meta = fMeta;
+        else {
+            if (!meta.coverUrl && fMeta.coverUrl) meta.coverUrl = fMeta.coverUrl;
+            if (!meta.title && fMeta.title) meta.title = fMeta.title; // Ensure title fill
+            if (!meta.author && fMeta.author) meta.author = fMeta.author;
+        }
+    }
 
-            if (meta && meta.coverUrl) return meta;
-
-            // 3. Finna
-            let fMeta = await fetchFinna(isbn);
-            if (fMeta) {
-                if (!meta) meta = fMeta;
-                else {
-                    if (!meta.coverUrl && fMeta.coverUrl) meta.coverUrl = fMeta.coverUrl;
-                    if (!meta.title && fMeta.title) meta.title = fMeta.title; // Ensure title fill
-                    if (!meta.author && fMeta.author) meta.author = fMeta.author;
-                }
-            }
-
-            return meta;
-        };
+    return meta;
+};

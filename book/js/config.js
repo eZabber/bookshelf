@@ -2,7 +2,7 @@
 // User must replace these values with their own from Google Cloud Console
 export const CONFIG = {
     CLIENT_ID: '579369345257-sqq02cnitlhcf54o5ptad36fm19jcha7.apps.googleusercontent.com',
-    API_KEY: '',
+    API_KEY: 'AIzaSyBMoW1-MFE84Ec5yDWynAYIHqkLzmz6beM',
 
     // Scopes for AppData folder access
     SCOPES: 'https://www.googleapis.com/auth/drive.appdata',
