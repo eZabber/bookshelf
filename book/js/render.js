@@ -1,6 +1,6 @@
 import { createElement, escapeHtml } from './dom-utils.js';
-import { deleteBook, updateBook } from './storage.js'; // Need these for immediate actions? 
-// Actually easier to pass action handlers via init, but for quick actions we can import.
+import { deleteBook, updateBook } from './storage.js';
+import { t } from './i18n.js';
 
 export const renderBookCard = (book, onEdit) => {
     const card = createElement('div', 'book-card');
@@ -58,11 +58,41 @@ export const renderBookCard = (book, onEdit) => {
                 </div>
 
                 ${badgesHtml}
+
+                ${book.status === 'loan' ? (() => {
+            let loanInfo = '';
+            const isOverdue = book.reminderDate && new Date(book.reminderDate) < new Date();
+            const returnDateStr = book.reminderDate ? new Date(book.reminderDate).toLocaleDateString('en-GB') : '';
+            const overdueStyle = isOverdue ? 'color:#C53030;font-weight:bold;' : 'color:var(--text-light);';
+
+            if (book.loanType === 'loanedOut') {
+                loanInfo = `<div style="font-size:0.75rem;margin-top:4px;color:var(--text-light);">
+                            Loaned to: <span style="font-weight:600;color:var(--text-color);">${escapeHtml(book.loanedToName || 'Unknown')}</span>
+                         </div>`;
+            } else if (book.loanType === 'borrowed' || (!book.loanType && book.status === 'loan')) {
+                // Default to borrowed behavior if undefined but status is loan (or just show nothing if we want strict existing behavior?)
+                // User said "Existing Loan books ... show normally". Normally means just badge.
+                // But if we have borrowedFrom details we should show them.
+                const from = book.borrowedFromName || book.borrowedFromType;
+                if (from) {
+                    loanInfo = `<div style="font-size:0.75rem;margin-top:4px;color:var(--text-light);">
+                                Borrowed from: <span style="font-weight:600;color:var(--text-color);">${escapeHtml(from)}</span>
+                             </div>`;
+                }
+            }
+
+            if (returnDateStr) {
+                loanInfo += `<div style="font-size:0.75rem;margin-top:2px;${overdueStyle}">
+                            ${isOverdue ? 'Overdue!' : 'Return by:'} ${returnDateStr}
+                        </div>`;
+            }
+            return loanInfo;
+        })() : ''}
             </div>
         </div>
         <div class="book-actions">
             <button class="action-link ax-toggle-own" style="background:${book.own ? 'var(--accent-green)' : 'var(--pill-bg)'}; color:${book.own ? 'white' : 'var(--text-color)'}; border:1px solid ${book.own ? 'transparent' : 'var(--divider-color)'}; opacity:${book.own ? '1' : '0.8'};">
-                ${book.own ? 'Own: Yes' : 'Own: No'}
+                ${book.own ? t('card.own_yes') : t('card.own_no')}
             </button>
             <button class="action-link ax-edit">Edit</button>
             ${(book.status === 'wishlist' || book.status === 'loan') ? `<button class="action-link ax-mark-read" style="color:var(--accent-green);border:1px solid var(--accent-green);background:white;">Mark Read</button>` : ''}

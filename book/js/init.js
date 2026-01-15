@@ -94,6 +94,44 @@ const openSaveModal = (book, onSave) => {
     const initialStatus = book.status || STATE.currentTab || 'read';
     currentModalBook.status = initialStatus;
 
+    // Loan Type Logic
+    const loanTypeBtns = $$('.loan-type-btn');
+    const loanBorrowedSection = $('#loan-borrowed-section');
+    const loanLoanedSection = $('#loan-loaned-section');
+    const modalType = $('#modal-borrowed-type');
+    const modalName = $('#modal-borrowed-name');
+    const modalLoanedTo = $('#modal-loaned-to');
+
+    // Default to 'borrowed' if not set
+    currentModalBook.loanType = book.loanType || 'borrowed';
+
+    // Init values
+    if (modalType) modalType.value = book.borrowedFromType || 'library';
+    if (modalName) modalName.value = book.borrowedFromName || '';
+    if (modalLoanedTo) modalLoanedTo.value = book.loanedToName || '';
+
+    const updateLoanTypeUI = (type) => {
+        loanTypeBtns.forEach(b => {
+            if (b.dataset.value === type) b.classList.add('active');
+            else b.classList.remove('active');
+        });
+        if (type === 'borrowed') {
+            if (loanBorrowedSection) loanBorrowedSection.classList.remove('hidden');
+            if (loanLoanedSection) loanLoanedSection.classList.add('hidden');
+        } else {
+            if (loanBorrowedSection) loanBorrowedSection.classList.add('hidden');
+            if (loanLoanedSection) loanLoanedSection.classList.remove('hidden');
+        }
+    };
+
+    loanTypeBtns.forEach(btn => {
+        btn.onclick = () => {
+            currentModalBook.loanType = btn.dataset.value;
+            updateLoanTypeUI(currentModalBook.loanType);
+        };
+    });
+    updateLoanTypeUI(currentModalBook.loanType);
+
     const updateStatusUI = (status) => {
         statusBtns.forEach(b => {
             if (b.dataset.value === status) b.classList.add('active');
@@ -208,6 +246,14 @@ export const initModalWiring = () => {
             if (currentModalBook.status === 'loan') {
                 const rd = $('#modal-reminder-date').value;
                 currentModalBook.reminderDate = rd ? new Date(rd).toISOString() : null;
+                // Save extra fields
+                const bType = $('#modal-borrowed-type');
+                const bName = $('#modal-borrowed-name');
+                const lTo = $('#modal-loaned-to');
+
+                if (bType) currentModalBook.borrowedFromType = bType.value;
+                if (bName) currentModalBook.borrowedFromName = bName.value;
+                if (lTo) currentModalBook.loanedToName = lTo.value;
             }
 
             if (onSaveCallback) {

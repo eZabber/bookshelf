@@ -47,7 +47,20 @@ export const translations = {
         'msg.saved': 'Saved!',
         'msg.welcome': 'Welcome',
         'card.own_yes': 'Own: Yes',
-        'card.own_no': 'Own: No'
+        'card.own_yes': 'Own: Yes',
+        'card.own_no': 'Own: No',
+        'loan.type': 'Loan Type',
+        'loan.borrowed': 'Borrowed',
+        'loan.loaned_out': 'Loaned Out',
+        'loan.borrowed_from': 'Borrowed From',
+        'loan.loaned_to': 'Loaned To',
+        'loan.return_date': 'Return Date',
+        'loan.source.library': 'Library',
+        'loan.source.friend': 'Friend',
+        'loan.source.work': 'Work',
+        'loan.source.school': 'School',
+        'loan.source.other': 'Other',
+        'loan.name_placeholder': 'Name...'
     },
     fi: {
         'app.title': 'Kirjahyllyni',
@@ -94,7 +107,22 @@ export const translations = {
         'menu.stats': 'Kirjaston Tilastot',
         'menu.filters': 'Suodattimet',
         'msg.saved': 'Tallennettu!',
-        'msg.welcome': 'Tervetuloa'
+        'msg.welcome': 'Tervetuloa',
+        'card.own_yes': 'Omistettu: Kyllä',
+        'card.own_yes': 'Omistettu: Kyllä',
+        'card.own_no': 'Omistettu: Ei',
+        'loan.type': 'Lainatyyppi',
+        'loan.borrowed': 'Lainattu Itselle',
+        'loan.loaned_out': 'Lainattu Muille',
+        'loan.borrowed_from': 'Lainaaja',
+        'loan.loaned_to': 'Lainattu Henkilölle',
+        'loan.return_date': 'Palautuspäivä',
+        'loan.source.library': 'Kirjasto',
+        'loan.source.friend': 'Ystävä',
+        'loan.source.work': 'Työ',
+        'loan.source.school': 'Koulu',
+        'loan.source.other': 'Muu',
+        'loan.name_placeholder': 'Nimi...'
     },
     et: {
         'app.title': 'Minu Raamaturiiul',
@@ -141,7 +169,22 @@ export const translations = {
         'menu.stats': 'Raamatukogu Statistika',
         'menu.filters': 'Filtrid',
         'msg.saved': 'Salvestatud!',
-        'msg.welcome': 'Tere tulemast'
+        'msg.welcome': 'Tere tulemast',
+        'card.own_yes': 'Oman: Jah',
+        'card.own_yes': 'Oman: Jah',
+        'card.own_no': 'Oman: Ei',
+        'loan.type': 'Laenu Tüüp',
+        'loan.borrowed': 'Laenatud',
+        'loan.loaned_out': 'Välja Laenatud',
+        'loan.borrowed_from': 'Laenaja',
+        'loan.loaned_to': 'Laenatud Kellele',
+        'loan.return_date': 'Tagastamise Kuupäev',
+        'loan.source.library': 'Raamatukogu',
+        'loan.source.friend': 'Sõber',
+        'loan.source.work': 'Töö',
+        'loan.source.school': 'Kool',
+        'loan.source.other': 'Muu',
+        'loan.name_placeholder': 'Nimi...'
     }
 };
 
