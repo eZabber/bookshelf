@@ -969,6 +969,7 @@ body.dark-mode .loan-type-btn.active {
   font-weight: 500;
   color: var(--text-color);
   font-size: 0.95rem;
+  white-space: nowrap;
 }
 
 .switch {
