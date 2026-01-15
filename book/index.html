@@ -178,6 +178,8 @@
                 <div class="menu-item" id="import-csv-trigger" data-i18n="btn.import">Import Goodreads CSV</div>
                 <div class="menu-item" id="export-csv-btn" data-i18n="btn.export">Export CSV</div>
                 <div class="menu-item" id="theme-toggle-btn" data-i18n="nav.mode">Dark Mode</div>
+                <div class="menu-item" id="user-manual-btn" data-i18n="nav.manual"
+                    style="margin-top:auto; border-top:1px solid var(--divider-color);">User Manual</div>
                 <input type="file" id="import-file" accept=".csv" class="hidden">
             </nav>
 
@@ -373,6 +375,43 @@
             </div>
             <div class="modal-actions mt-2">
                 <button id="search-cancel-btn" class="btn-pill">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Manual Modal -->
+    <div id="user-manual-modal" class="overlay" style="z-index: 210;">
+        <div class="modal-card manual-card"
+            style="max-width: 800px; width: 90%; max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="flex justify-between items-center border-b pb-2 mb-2">
+                <h3 data-i18n="manual.title">User Manual</h3>
+                <button id="manual-close-x"
+                    style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+
+            <div class="manual-content" style="overflow-y: auto; flex: 1; padding-right: 8px;">
+                <h4 data-i18n="manual.intro.title">Introduction</h4>
+                <p data-i18n="manual.intro.body" class="text-sm mb-4">MyBookShelf is your personal library manager...
+                </p>
+
+                <h4 data-i18n="manual.privacy.title">Data & Privacy</h4>
+                <p data-i18n="manual.privacy.body" class="text-sm mb-4">Your data is stored locally...</p>
+
+                <h4 data-i18n="manual.permissions.title">Permissions</h4>
+                <p data-i18n="manual.permissions.body" class="text-sm mb-4">We ask for Google Drive access...</p>
+
+                <h4 data-i18n="manual.add.title">Adding Books</h4>
+                <p data-i18n="manual.add.body" class="text-sm mb-4">You can add books by scanning...</p>
+
+                <h4 data-i18n="manual.loans.title">Loans & Calendar</h4>
+                <p data-i18n="manual.loans.body" class="text-sm mb-4">Track books you lend or borrow...</p>
+
+                <h4 data-i18n="manual.filters.title">Filtering & Sorting</h4>
+                <p data-i18n="manual.filters.body" class="text-sm mb-4">Use the top bar to filter...</p>
+            </div>
+
+            <div class="mt-4 pt-2 border-t flex justify-end">
+                <button id="manual-close-btn" class="btn-pill" data-i18n="btn.close">Close</button>
             </div>
         </div>
     </div>

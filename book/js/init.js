@@ -515,6 +515,36 @@ export const refreshLibraryList = () => {
     filtered = filterBooks(filtered);
     const active = isFiltersActive();
     renderList($('#main-content'), filtered, handleEditValues, totalForTab, active);
+    // --- Manual Wiring ---
+    initManualWiring();
+};
+
+const initManualWiring = () => {
+    const manualBtn = $('#user-manual-btn');
+    const manualModal = $('#user-manual-modal');
+    const closeX = $('#manual-close-x');
+    const closeBtn = $('#manual-close-btn');
+
+    if (manualBtn && manualModal) {
+        manualBtn.addEventListener('click', () => {
+            manualModal.classList.remove('hidden');
+            // Ensure translations are applied if language changed dynamically
+            // (Standard t() calls in HTML data-i18n attributes handled by re-render or reload, 
+            // but dynamic opening is fine as attributes update on lang change)
+        });
+
+        const close = () => manualModal.classList.add('hidden');
+        if (closeX) closeX.addEventListener('click', close);
+        if (closeBtn) closeBtn.addEventListener('click', close);
+
+        // Close on overlay click
+        manualModal.addEventListener('click', (e) => {
+            if (e.target === manualModal) close();
+        });
+
+        // Use hidden class by default in HTML or JS
+        manualModal.classList.add('hidden');
+    }
 };
 
 const handleEditValues = (bookId) => {
