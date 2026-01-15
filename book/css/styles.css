@@ -914,12 +914,24 @@ body.dark-mode .loan-type-btn.active {
   justify-content: center;
   margin: 0 !important;
   box-shadow: none !important;
-  font-size: 0.9rem !important;
+  font-size: 0.95rem !important;
+  /* Slightly larger text */
+  font-weight: 600 !important;
+  border: 1px solid transparent !important;
+  padding: 0 !important;
+  /* Reset padding to rely on flex centering */
 }
 
-.modal-action-btn.btn-pill {
-  background-color: transparent;
-  border: 1px solid transparent !important;
+.modal-action-btn.action-cancel {
+  background-color: var(--white);
+  color: var(--text-color);
+  /* Border? */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.modal-action-btn.action-save {
+  background-color: var(--primary-color);
+  color: var(--white);
 }
 
 /* Specific tweaks to make them fit nicely */
