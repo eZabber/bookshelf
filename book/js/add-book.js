@@ -163,13 +163,17 @@ export const initAddWiring = () => {
                     window._openSaveModal(data, async (finalBook) => {
                         finalBook.source = 'Home';
                         finalBook.addedAt = new Date().toISOString();
-                        await addBook(finalBook);
-                        input.value = '';
-                        showToast('Book Saved!');
+                        const result = await addBook(finalBook);
+                        if (result) {
+                            // Success
+                            input.value = '';
+                            // Toast handled in addBook
+                        }
                     });
                 } else {
-                    addBook(data);
-                    input.value = '';
+                    addBook(data).then(res => {
+                        if (res) input.value = '';
+                    });
                 }
                 addBtn.textContent = originalText;
                 addBtn.disabled = false;

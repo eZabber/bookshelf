@@ -61,6 +61,15 @@ const migrateData = () => {
 // --- CRUD Operations ---
 
 export const addBook = async (book) => {
+    // DUPLICATE CHECK
+    if (book.isbn) {
+        const exists = (appData.books || []).some(b => b.isbn === book.isbn);
+        if (exists) {
+            showToast('Book with this ISBN already exists!');
+            return null; // Return null to indicate failure
+        }
+    }
+
     if (!book.id) book.id = crypto.randomUUID();
     if (!book.addedAt) book.addedAt = new Date().toISOString();
 
@@ -80,8 +89,30 @@ export const addBook = async (book) => {
 export const addBooks = async (newBooks) => {
     if (!newBooks || !newBooks.length) return;
 
+    const existingIsbns = new Set(
+        (appData.books || []).filter(b => b.isbn).map(b => b.isbn)
+    );
+
+    let skippedCount = 0;
+
+    // Filter duplicates
+    const uniqueBooks = newBooks.filter(book => {
+        if (book.isbn && existingIsbns.has(book.isbn)) {
+            skippedCount++;
+            return false;
+        }
+        // If unique ISBN (or internal duplicate in batch), add to set to catch subsequent dupes in same batch
+        if (book.isbn) existingIsbns.add(book.isbn);
+        return true;
+    });
+
+    if (uniqueBooks.length === 0) {
+        showToast(`All ${newBooks.length} books were duplicates.`);
+        return [];
+    }
+
     // Prepare all books
-    const processed = newBooks.map(book => {
+    const processed = uniqueBooks.map(book => {
         if (!book.id) book.id = crypto.randomUUID();
         if (!book.addedAt) book.addedAt = new Date().toISOString();
 
@@ -95,7 +126,11 @@ export const addBooks = async (newBooks) => {
     appData.books.unshift(...processed);
 
     await saveLocally();
-    showToast(`${processed.length} books imported`);
+
+    let msg = `${processed.length} books imported`;
+    if (skippedCount > 0) msg += `, ${skippedCount} duplicates skipped`;
+
+    showToast(msg);
     return processed;
 };
 
