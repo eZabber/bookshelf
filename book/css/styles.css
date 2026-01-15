@@ -1029,5 +1029,18 @@ input:checked+.slider:before {
 }
 
 .segmented-control .btn-dark {
-  /* height is handled by flex/height:100 */
-}
+
+  /* User Manual */
+  div.manual-content h4 {
+    color: var(--primary-color);
+    margin-top: 16px;
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  div.manual-content p {
+    color: var(--text-color);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
