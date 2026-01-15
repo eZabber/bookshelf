@@ -288,6 +288,7 @@ export const initMenuWiring = () => {
 
     // Stats Logic
     // Stats Logic
+    // Stats Logic
     const updateMenuStats = async () => {
         const { getBooks } = await import('./storage.js');
         const { t } = await import('./i18n.js');
@@ -295,23 +296,35 @@ export const initMenuWiring = () => {
         const container = document.getElementById('menu-library-stats');
         if (!container) return;
 
+        // Rule: Total = All books - Loaned - Bin
+        // (Wishlist and Read are included in Total)
+        const total = books.filter(b => b.status !== 'loan' && b.status !== 'bin').length;
+
         const stats = {
+            total: total,
             read: books.filter(b => b.status === 'read').length,
             wishlist: books.filter(b => b.status === 'wishlist').length,
             loan: books.filter(b => b.status === 'loan').length
         };
 
         container.innerHTML = `
-            <div class="stats-box">
-                <div class="stats-label">${t('stats.read')}</div>
-                <div class="stats-number">${stats.read}</div>
+            <div class="stats-box" style="margin-bottom:8px; background-color: var(--primary-color); color: var(--white);">
+                <div class="stats-label" style="color:rgba(255,255,255,0.8);">${t('stats.total')}</div>
+                <div class="stats-number" style="color:#fff;">${stats.total}</div>
             </div>
-            <div class="stats-box">
-                <div class="stats-label">${t('stats.wishlist')}</div>
-                <div class="stats-number">${stats.wishlist}</div>
-            </div>
-            <div class="stats-box">
-                <div class="stats-label">${t('stats.loan')}</div>
+            <div style="display:flex; gap:8px;">
+                <div class="stats-box">
+                    <div class="stats-label">${t('stats.read')}</div>
+                    <div class="stats-number">${stats.read}</div>
+                </div>
+                <div class="stats-box">
+                    <div class="stats-label">${t('stats.wishlist')}</div>
+                    <div class="stats-number">${stats.wishlist}</div>
+                </div>
+                <div class="stats-box">
+                    <div class="stats-label">${t('stats.loan')}</div>
+                    <div class="stats-number">${stats.loan}</div>
+                </div>
             </div>
         `;
     };
