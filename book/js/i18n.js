@@ -73,7 +73,8 @@ export const translations = {
         'btn.cancel': 'Cancel',
         'btn.save': 'Save',
         'modal.edit_title': 'Edit Book',
-        'modal.save_title': 'Save Book'
+        'modal.save_title': 'Save Book',
+        'modal.tab_details': 'Details'
     },
     fi: {
         'app.title': 'Kirjahyllyni',
@@ -148,7 +149,8 @@ export const translations = {
         'btn.cancel': 'Peruuta',
         'btn.save': 'Tallenna',
         'modal.edit_title': 'Muokkaa Kirjaa',
-        'modal.save_title': 'Tallenna Kirja'
+        'modal.save_title': 'Tallenna Kirja',
+        'modal.tab_details': 'Tiedot'
     },
     et: {
         'app.title': 'Minu Raamaturiiul',
@@ -223,7 +225,8 @@ export const translations = {
         'btn.cancel': 'Loobu',
         'btn.save': 'Salvesta',
         'modal.edit_title': 'Muuda Raamatut',
-        'modal.save_title': 'Salvesta Raamat'
+        'modal.save_title': 'Salvesta Raamat',
+        'modal.tab_details': 'Üksikasjad'
     }
 };
 
