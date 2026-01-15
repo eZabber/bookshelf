@@ -111,6 +111,14 @@ body {
   background-color: #f7f7f7;
 }
 
+.btn-pill.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  background-color: #eee;
+  color: #aaa;
+  box-shadow: none;
+}
+
 .status-dot {
   width: 10px;
   height: 10px;

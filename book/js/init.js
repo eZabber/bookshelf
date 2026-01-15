@@ -164,9 +164,10 @@ const openSaveModal = (book, onSave) => {
         if (date) {
             const url = createCalendarUrl(currentModalBook, date, book.notes);
             calLink.href = url;
-            calLink.classList.remove('hidden');
+            calLink.classList.remove('disabled');
         } else {
-            calLink.classList.add('hidden');
+            calLink.removeAttribute('href'); // or href="#" with preventDefault, but removing href is cleaner for styling
+            calLink.classList.add('disabled');
         }
     };
     $('#modal-reminder-date').onchange = updateCalLink;

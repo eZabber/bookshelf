@@ -7,23 +7,39 @@ export const createCalendarUrl = (book, reminderDate, note = '') => {
 
     // Create start/end time
     // Google Calendar link format requires YYYYMMDDTHHMMSSZ or YYYYMMDD
-    // Simple date (all day)
-    const date = new Date(reminderDate);
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    const dateStr = `${y}${m}${d}`;
+    // All-day event requires dates=Start/End (End is exclusive, so Start+1 day)
+    const startDate = new Date(reminderDate);
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 1);
+
+    const format = (d) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}${m}${day}`;
+    };
+
+    const datesStr = `${format(startDate)}/${format(endDate)}`;
 
     // Details
     let details = `Author: ${book.author || 'Unknown'}\n`;
     if (note) details += `Note: ${note}\n`;
     if (book.isbn) details += `ISBN: ${book.isbn}\n`;
 
+    // Loan specific details
+    if (book.status === 'loan') {
+        if (book.loanType === 'borrowed') {
+            details += `Borrowed From: ${book.borrowedFromName || book.borrowedFromType || 'Unknown'}\n`;
+        } else if (book.loanType === 'loanedOut') {
+            details += `Loaned To: ${book.loanedToName || 'Unknown'}\n`;
+        }
+    }
+
     const params = new URLSearchParams({
         action: 'TEMPLATE',
         text: eventTitle,
         details: details,
-        dates: `${dateStr}/${dateStr}` // Single day event
+        dates: datesStr
     });
 
     return `https://calendar.google.com/calendar/render?${params.toString()}`;
