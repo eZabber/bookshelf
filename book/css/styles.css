@@ -903,3 +903,31 @@ body.dark-mode .loan-type-btn.active {
   align-items: center;
   gap: 8px;
 }
+
+/* Modal Action Buttons Redesign */
+.modal-action-btn {
+  flex: 1;
+  height: 100%;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  margin: 0 !important;
+  box-shadow: none !important;
+  font-size: 0.9rem !important;
+}
+
+.modal-action-btn.btn-pill {
+  background-color: transparent;
+  border: 1px solid transparent !important;
+}
+
+/* Specific tweaks to make them fit nicely */
+.segmented-control .btn-pill {
+  background-color: var(--white);
+  color: var(--text-color);
+}
+
+.segmented-control .btn-dark {
+  /* height is handled by flex/height:100 */
+}
