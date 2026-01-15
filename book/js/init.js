@@ -148,6 +148,14 @@ const openSaveModal = (book, onSave) => {
             if (loanBorrowedSection) loanBorrowedSection.classList.add('hidden');
             if (loanLoanedSection) loanLoanedSection.classList.remove('hidden');
         }
+
+        // Dynamic Date Label
+        const dateLabel = document.querySelector('label[data-i18n="loan.return_date"], label[data-i18n="loan.date_loaned"]');
+        if (dateLabel) {
+            const key = (type === 'loanedOut') ? 'loan.date_loaned' : 'loan.return_date';
+            dateLabel.setAttribute('data-i18n', key);
+            dateLabel.textContent = t(key);
+        }
     };
 
     loanTypeBtns.forEach(btn => {
