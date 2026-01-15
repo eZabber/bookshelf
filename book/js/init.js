@@ -231,6 +231,18 @@ export const initModalWiring = () => {
 
 
 
+    // Explicit Translation for Change Cover Button (Sync)
+    const changeCoverLabel = $('label[for="modal-cover-file"]');
+    if (changeCoverLabel) {
+        import('./i18n.js').then(({ t }) => {
+            changeCoverLabel.textContent = t('btn.change_cover');
+        });
+    }
+
+    // Explicit Translation for Mark Returned (Sync)
+    const markReturnedBtn = $('#btn-end-loan span');
+    if (markReturnedBtn) markReturnedBtn.textContent = t('btn.mark_returned');
+
     if (fileInput) {
         fileInput.addEventListener('change', async () => {
             const file = fileInput.files[0];
@@ -246,6 +258,37 @@ export const initModalWiring = () => {
                     showToast('Error processing image');
                 }
             }
+        });
+    }
+
+    // Mark Returned Logic
+    const markReturnedBtnEl = $('#btn-end-loan');
+    if (markReturnedBtnEl) {
+        markReturnedBtnEl.addEventListener('click', () => {
+            if (!currentModalBook) return;
+
+            // 1. Determine Target Status (Heuristic)
+            // If rating exists or dateRead exists -> Read. Else -> Wishlist.
+            // Or default to 'read' as returned items are usually "done".
+            const newStatus = (currentModalBook.rating > 0 || currentModalBook.dateRead) ? 'read' : 'wishlist';
+
+            // 2. Switch Status UI & State
+            const statusBtns = Array.from($$('.status-btn'));
+            const targetBtn = statusBtns.find(b => b.dataset.value === newStatus);
+            if (targetBtn) targetBtn.click(); // Triggers existing logic to hide loan fields
+
+            // 3. Clear Loan Data in Model
+            currentModalBook.loanType = null;
+            currentModalBook.borrowedFromType = null;
+            currentModalBook.borrowedFromName = null;
+            currentModalBook.loanedToName = null;
+            currentModalBook.reminderDate = null;
+
+            // 4. Clear Inputs (Visual)
+            if ($('#modal-borrowed-name')) $('#modal-borrowed-name').value = '';
+            if ($('#modal-loaned-to')) $('#modal-loaned-to').value = '';
+
+            showToast('Marked as returned');
         });
     }
 
