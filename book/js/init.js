@@ -372,7 +372,7 @@ export const initMenuWiring = () => {
             total: total,
             read: books.filter(b => b.status === 'read').length,
             wishlist: books.filter(b => b.status === 'wishlist').length,
-            loan: books.filter(b => b.status === 'loan').length
+            loan: books.filter(b => b.status === 'loan' || (b.loanType && b.loanType !== 'none')).length
         };
 
         container.innerHTML = `
