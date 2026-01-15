@@ -51,7 +51,7 @@ export const renderBookCard = (book, onEdit) => {
                     </select>
 
                     ${book.status === 'read' ? `
-                        <span style="font-size:0.75rem; color:${book.dateRead ? '#666' : '#aaa'}; margin-left: 4px; padding: 4px 8px; background: #fdfdfd; border-radius: 4px; border: 1px solid #eee;">
+                        <span class="date-badge">
                             ${book.dateRead ? new Date(book.dateRead).toLocaleDateString('en-GB') : 'No Date'}
                         </span>
                     ` : ''}
@@ -61,7 +61,7 @@ export const renderBookCard = (book, onEdit) => {
             </div>
         </div>
         <div class="book-actions">
-            <button class="action-link ax-toggle-own" style="background:${book.own ? '#E6FFFA' : '#f0f0f0'}; color:${book.own ? '#2C7A7B' : 'inherit'}; border-color:${book.own ? '#81E6D9' : 'transparent'};">
+            <button class="action-link ax-toggle-own" style="background:${book.own ? 'var(--accent-green)' : 'var(--pill-bg)'}; color:${book.own ? 'white' : 'var(--text-color)'}; border:1px solid ${book.own ? 'transparent' : 'var(--divider-color)'}; opacity:${book.own ? '1' : '0.8'};">
                 ${book.own ? 'Own: Yes' : 'Own: No'}
             </button>
             <button class="action-link ax-edit">Edit</button>

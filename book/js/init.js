@@ -254,17 +254,16 @@ export const initMenuWiring = () => {
         };
 
         container.innerHTML = `
-            <div style="flex:1; text-align:center; background:#f7f7f7; padding:8px; border-radius:8px;">
-                <div style="font-size:0.75rem; color:#888;">${t('stats.read')}</div>
-                <div style="font-size:1.1rem; font-weight:700;">${stats.read}</div>
+            <div class="stats-box">
+                <div class="stats-label">${t('stats.read')}</div>
+                <div class="stats-number">${stats.read}</div>
             </div>
-            <div style="flex:1; text-align:center; background:#f7f7f7; padding:8px; border-radius:8px;">
-                <div style="font-size:0.75rem; color:#888;">${t('stats.wishlist')}</div>
-                <div style="font-size:1.1rem; font-weight:700;">${stats.wishlist}</div>
+            <div class="stats-box">
+                <div class="stats-label">${t('stats.wishlist')}</div>
+                <div class="stats-number">${stats.wishlist}</div>
             </div>
-            <div style="flex:1; text-align:center; background:#f7f7f7; padding:8px; border-radius:8px;">
-                <div style="font-size:0.75rem; color:#888;">${t('stats.loan')}</div>
-                <div style="font-size:1.1rem; font-weight:700;">${stats.loan}</div>
+            <div class="stats-box">
+                <div class="stats-label">${t('stats.loan')}</div>
             </div>
         `;
     };
