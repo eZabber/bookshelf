@@ -102,6 +102,7 @@ export const translations = {
         'manual.filters.title': 'Filtering & Sorting',
         'manual.filters.body': 'Use the top bar to specific find books. Type a keyword, or select a Year/Rating/Month. Sort by "Date Added", "Year", or "Rating". Click "Clear Filters" or the filter reset button to show all books.',
         'nav.manual': 'User Manual',
+        'btn.close': 'Close',
     },
     fi: {
         'app.title': 'Kirjahyllyni',
@@ -201,6 +202,7 @@ export const translations = {
         'manual.filters.title': 'Suodatus & Lajittelu',
         'manual.filters.body': 'Käytä yläpalkkia kirjojen etsimiseen. Suodata vuoden, arvosanan tai kuukauden mukaan. Lajittele lisäyspäivän, vuoden tai arvosanan mukaan.',
         'nav.manual': 'Käyttöohje',
+        'btn.close': 'Sulje',
     },
     et: {
         'app.title': 'Minu Raamaturiiul',

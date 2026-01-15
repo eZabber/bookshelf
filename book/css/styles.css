@@ -1045,4 +1045,30 @@ div.manual-content p {
   color: var(--text-color);
   line-height: 1.6;
   margin-bottom: 16px;
+
+}
+
+/* Utility Classes */
+.flex {
+  display: flex;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.border-b {
+  border-bottom: 1px solid var(--divider-color);
+}
+
+.pb-2 {
+  padding-bottom: 8px;
+}
+
+.mb-2 {
+  margin-bottom: 8px;
 }
