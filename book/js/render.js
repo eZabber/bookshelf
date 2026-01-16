@@ -67,7 +67,7 @@ export const renderBookCard = (book, onEdit) => {
 
             if (book.loanType === 'loanedOut') {
                 loanInfo = `<div style="font-size:0.75rem;margin-top:4px;color:var(--text-light);">
-                            Loaned to: <span style="font-weight:600;color:var(--text-color);">${escapeHtml(book.loanedToName || 'Unknown')}</span>
+                            ${t('loan.loaned_to')}: <span style="font-weight:600;color:var(--text-color);">${escapeHtml(book.loanedToName || t('loan.unknown'))}</span>
                          </div>`;
             } else if (book.loanType === 'borrowed' || (!book.loanType && book.status === 'loan')) {
                 // Default to borrowed behavior if undefined but status is loan (or just show nothing if we want strict existing behavior?)
@@ -76,7 +76,7 @@ export const renderBookCard = (book, onEdit) => {
                 const from = book.borrowedFromName || book.borrowedFromType;
                 if (from) {
                     loanInfo = `<div style="font-size:0.75rem;margin-top:4px;color:var(--text-light);">
-                                Borrowed from: <span style="font-weight:600;color:var(--text-color);">${escapeHtml(from)}</span>
+                                ${t('loan.borrowed_from')}: <span style="font-weight:600;color:var(--text-color);">${escapeHtml(from)}</span>
                              </div>`;
                 }
             }
@@ -90,7 +90,7 @@ export const renderBookCard = (book, onEdit) => {
                 } else {
                     // For borrowed, date is return deadline
                     loanInfo += `<div style="font-size:0.75rem;margin-top:2px;${overdueStyle}">
-                            ${isOverdue ? 'Overdue!' : 'Return by:'} ${returnDateStr}
+                            ${isOverdue ? t('loan.overdue') : t('loan.return_by') + ':'} ${returnDateStr}
                         </div>`;
                 }
             }
