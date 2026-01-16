@@ -522,11 +522,22 @@ export const refreshLibraryList = () => {
     const books = getBooks();
     let filtered;
 
+    // Helper: Enforce Loan Precedence
+    // If a book has ANY active loan info, it belongs ONLY in the Loan tab.
+    const isInLoanState = (b) => {
+        return b.status === 'loan' ||
+            (b.loanType && b.loanType !== 'none') ||
+            !!b.reminderDate ||
+            !!b.borrowedFromName ||
+            !!b.loanedToName;
+    };
+
     // Get Tab Books
     if (STATE.currentTab === 'loan') {
-        filtered = books.filter(b => b.status === 'loan' || (b.loanType && b.loanType !== 'none'));
+        filtered = books.filter(b => isInLoanState(b));
     } else {
-        filtered = books.filter(b => b.status === STATE.currentTab);
+        // For Read/Wishlist/ToRead, EXCLUDE any book that belongs in Loans
+        filtered = books.filter(b => b.status === STATE.currentTab && !isInLoanState(b));
     }
     const totalForTab = filtered.length;
 
